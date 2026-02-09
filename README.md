@@ -1,6 +1,6 @@
 # Transcendence
 
-The essence of the 42 school [*ft_transcendence v19.1*](.subject/42_transcendence.pdf) project requirements.
+The essence of the 42 school [*ft_transcendence v20.0*](.subject/transcendence_v20.0.pdf) project requirements.
 
 ---
 
@@ -36,6 +36,8 @@ Look at you now; it’s time to shine!<BR><BR>
   - [5.4 Creative and Media Projects](#54-creative-and-media-projects)
   - [5.5 Productivity and Tools Projects](#55-productivity-and-tools-projects)
   - [5.6 Specialized Projects](#56-specialized-projects)
+- [Bonus Part](#6-bonus-part)
+
 
 
 
@@ -609,3 +611,28 @@ These projects target specific niches or industries:
 > *   Has coherent module combinations that work well together.
 >
 > Discuss with your team, review the available modules, and choose wisely!
+
+
+
+
+
+# **6 Bonus part**
+
+The bonus part will be considered only if all required modules have been implemented corresponding to the minimum of **14 mandatory points**.
+
+Each additional module implemented beyond the required 14 points may be considered as a bonus.
+
+**For each extra module:**
+
+* It must be fully functional
+* It must meet the module requirements description
+* It must add real value to the project
+* It must include a proper justification in the README
+
+Each validated extra module will be taken into account during the review as follows:
+
+* Major modules: 2 points each
+* Minor modules: 1 point each
+
+You can have a maximum of 5 points (e.g., 5 minor modules, or 2 major modules + 1 minor module).
+
