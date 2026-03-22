@@ -28,7 +28,7 @@
 
 | Layer | Choice | Why |
 |---|---|---|
-| Containers | **Docker Compose** | Single `docker compose up` to run everything |
+| Containers | **Docker Compose** | Single `docker compose up` to run everything (with rootless docker)|
 | Reverse proxy | **Nginx** | HTTPS termination, static file serving |
 | Secrets | `.env` file (git-ignored) | 42 requirement; `.env.example` committed |
 

@@ -60,16 +60,19 @@ Once the platform reaches critical mass (~10k users), optional real-money micro-
 | **Database** | PostgreSQL 16 + Redis 7 |
 | **Real-time** | Socket.IO (WebSockets) |
 | **Auth** | JWT + bcrypt + OAuth 2.0 |
+| **LLM** | OpenRouter API (market summarizer, resolution assistant) |
 | **Infra** | Docker Compose + Nginx (HTTPS) |
 
-See [plan/TECH.md](plan/TECH.md) for full details and module targets.
+See [plan/TECH.md](plan/TECH.md) for module targets and [plan/PLANNING.md](plan/PLANNING.md) for the full project plan (architecture, database schema, API endpoints, deployment).
 
 ## Quick Start
 
 ```bash
 cp .env.example .env   # fill in secrets
-docker compose up
+docker compose up --build
 ```
+
+Open `https://localhost:8443` in Google Chrome.
 
 ## Summary
 
