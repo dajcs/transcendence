@@ -51,6 +51,26 @@ Once the platform reaches critical mass (~10k users), optional real-money micro-
 - Spice points are docked for users who resist accepting clear outcomes.
 - Only enabled in jurisdictions where gambling is legal.
 
+## Tech Stack
+
+| | Choice |
+|---|---|
+| **Frontend** | Next.js 15 (React 19) + TypeScript + Tailwind CSS 4 |
+| **Backend** | FastAPI (Python 3.12) + SQLAlchemy 2 + Alembic |
+| **Database** | PostgreSQL 16 + Redis 7 |
+| **Real-time** | Socket.IO (WebSockets) |
+| **Auth** | JWT + bcrypt + OAuth 2.0 |
+| **Infra** | Docker Compose + Nginx (HTTPS) |
+
+See [plan/TECH.md](plan/TECH.md) for full details and module targets.
+
+## Quick Start
+
+```bash
+cp .env.example .env   # fill in secrets
+docker compose up
+```
+
 ## Summary
 
 Vox Populi rewards being right over being rich. Reputation is earned, bets are transparent, and the community – not capital – decides what's true.
