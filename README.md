@@ -4,11 +4,11 @@ A 42 school [project](.subject/transcendence_v21.0.md).
 
 ---
 
-# Vox Populi – Poor Man's Prediction Market
+# Vox Populi
 
 A lightweight prediction market designed to reduce the distortions introduced by money, while preserving incentives for truth-seeking and high-quality discussion.
 
-## Why?
+## Motivation
 
 Money-driven prediction markets have structural flaws: capital distorts signal, large players can influence outcomes, and disputes over resolution criteria turn toxic when real stakes are involved. Vox fixes this by making **reputation the primary currency**.
 
