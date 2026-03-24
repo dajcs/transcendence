@@ -2,7 +2,7 @@
 
 ## Team
 
-### Phase 1 — Core Platform (3 students)
+### Part 1 — Core Platform (3 students)
 
 | Role | Person | Focus |
 |---|---|---|
@@ -12,7 +12,7 @@
 
 All three contribute to all areas — roles indicate primary ownership, not exclusivity.
 
-### Phase 2 — Spice (2 additional students join later)
+### Part 2 — Spice (2 additional students join later)
 
 | Role | Person | Focus |
 |---|---|---|

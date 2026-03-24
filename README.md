@@ -47,15 +47,15 @@ Every vote costs **1 bp**. Probabilities are refreshed continuously as votes com
 
 ### Points Economy
 
-| Currency | Name | How You Earn It | Purpose |                                                                                                                                      
-|---|---|---|---|                                                                                                                                                                    
-| **kp** | Karma Points | New upvotes on your comments or proposed bets (resets daily) | Measures community contribution |                                                           
-| **bp** | Betting Points | +10 at signup, +1 daily login, +log(kp) daily, +1 to vote on your own bet | Currency for placing bets |                                                  
-| **tp** | Truth Points | for each winning bet: + (t<sub>win</sub> / t<sub>bet</sub>) | Tracks forecasting accuracy |                                                                                                    
-| **sp** | Spice Points | Winnings from pairwise real-money bets (Phase 2) | Skin-in-the-game signal |                                                                               
+| Currency | Name | How You Earn It | Purpose |
+|---|---|---|---|
+| **kp** | Karma Points | New upvotes on your comments or proposed bets (resets daily) | Measures community contribution |
+| **bp** | Betting Points | +10 at signup, +1 daily login, +log(kp) daily, +1 to vote on your own bet | Currency for placing bets |
+| **tp** | Truth Points | for each winning bet: + (t<sub>win</sub> / t<sub>bet</sub>) | Tracks forecasting accuracy |
+| **sp** | Spice Points | Winnings from pairwise real-money bets (Part 2) | Skin-in-the-game signal |
 
 - the log-scale bet cap log(kp) prevents any single user from dominating a market regardless of how active they are
-- the tp amount t<sub>win</sub> / t<sub>bet</sub> is the ratio of time in winning position over the total time of the bet (avoids last minute tp farming)
+- the tp amount t<sub>win</sub> / t<sub>bet</sub> is the ratio of time in winning position over the total time of the bet (reduces last minute tp farming)
 
 
 ### Bets as Discussions
@@ -65,20 +65,20 @@ Every bet doubles as a discussion thread. Anyone can propose a bet and define it
 1. **Automatic** – pulled from public APIs/data sources whenever possible.
 2. **Bet Proposer** – if the outcome is clear-cut, the proposer can resolve it unilaterally.
 3. **Community vote** – if proposer outcome is disputed, a weighted majority vote determines the final resolution.
-    - disputing a bet costs 1 bp and a losing dispute costs an additional 1 bp, while a successful dispute rewards 2 bp to the disputing voters 
+    - disputing a bet costs 1 bp and a losing dispute costs an additional 1 bp, while a successful dispute rewards 2 bp to the disputing voters
     - at least 1% of the participants must vote in the dispute for it to be valid
     - vote weight:
         - 0.5x for users voting for their winning position
         - 2x for users voting against their own position
         - 1x for users who didn't participate in the bet
     - bet proposers wrongly resolving a bet lose half of their staked bp as a penalty (including eventual winning on ongoing bets)
-     
+
 
 ### Who Can Play
 
 Humans only. No bots, no automation. Participation earns points; points unlock larger positions.
 
-## Phase 2 – Spice
+## Part 2 – Spice
 
 Once the platform reaches critical mass (~10k users), optional real-money micro-bets become available:
 
