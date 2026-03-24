@@ -4,12 +4,12 @@ milestone: v21.0
 milestone_name: milestone
 current_plan: 2 of 5
 status: Executing Phase 01
-last_updated: "2026-03-24T21:31:51.543Z"
+last_updated: "2026-03-24T21:43:26.597Z"
 progress:
   total_phases: 1
   completed_phases: 0
   total_plans: 5
-  completed_plans: 1
+  completed_plans: 2
 ---
 
 # Project State
@@ -25,7 +25,7 @@ See: `.planning/PROJECT.md` (updated 2026-03-24)
 
 **Phase:** 01-foundation
 **Current Plan:** 2 of 5
-**Last session:** 2026-03-24T21:31:51.530Z
+**Last session:** 2026-03-24T21:43:26.585Z
 **Resume file:** None
 
 ## Decisions
@@ -39,6 +39,8 @@ See: `.planning/PROJECT.md` (updated 2026-03-24)
 
 - [Phase 01]: docker-compose.override.yml for dev hot-reload; base compose is eval-ready without modification
 - [Phase 01]: Alembic migrations run in backend entrypoint before uvicorn start; gen-keys Makefile target generates SSL cert and RSA JWT key pair in one command
+- [Phase 01-02]: field_validator on secret_key rejects empty string — empty secret is insecure; pydantic str allows empty
+- [Phase 01-02]: backend/.env with test values enables pytest to import app.config without Docker running
 
 ## Performance Metrics
 
@@ -46,6 +48,7 @@ See: `.planning/PROJECT.md` (updated 2026-03-24)
 |---|---|---|---|---|
 | 01 | 01 | 3min | 2 | 11 |
 | Phase 01 P01 | 3min | 2 tasks | 11 files |
+| Phase 01 P02 | 8min | 2 tasks | 17 files |
 
 ## Session History
 

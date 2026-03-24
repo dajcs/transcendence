@@ -11,7 +11,7 @@
 - [x] **INFRA-02**: HTTPS on all endpoints via Nginx + self-signed cert
 - [x] **INFRA-03**: PostgreSQL 16 + Redis 7 running in containers
 - [x] **INFRA-04**: Secrets via `.env` (git-ignored); `.env.example` committed
-- [ ] **INFRA-05**: App validates required env vars at startup; fails loudly if missing
+- [x] **INFRA-05**: App validates required env vars at startup; fails loudly if missing
 
 ### Authentication
 
