@@ -1,4 +1,5 @@
 """Application configuration via pydantic-settings."""
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -16,6 +17,14 @@ class Settings(BaseSettings):
     secret_key: str
     jwt_private_key_path: str
     jwt_public_key_path: str
+
+    @field_validator("secret_key")
+    @classmethod
+    def secret_key_not_empty(cls, v: str) -> str:
+        """Reject empty secret_key — insecure."""
+        if not v:
+            raise ValueError("secret_key must not be empty")
+        return v
 
     # Email
     smtp_host: str = "localhost"
