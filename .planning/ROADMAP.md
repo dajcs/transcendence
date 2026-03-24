@@ -25,14 +25,14 @@
 
 **42 modules:** FastAPI + Next.js (2pts), ORM/SQLAlchemy (1pt) — partial
 
-**Plans:** 3/5 plans executed
+**Plans:** 5/5 plans complete
 
 Plans:
 - [x] 01-01-PLAN.md — Docker Compose infra: all services, Nginx HTTPS, .env, Makefile, Dockerfiles
 - [x] 01-02-PLAN.md — Backend foundation: FastAPI app, config, models (16 tables), Alembic migration, test scaffold
 - [x] 01-03-PLAN.md — Auth API: register, login, /me, refresh, logout, password reset + integration tests
 - [x] 01-04-PLAN.md — Next.js frontend: layout, Zustand store, middleware, auth pages, dashboard
-- [ ] 01-05-PLAN.md — Seed script + full stack smoke test checkpoint
+- [x] 01-05-PLAN.md — Seed script + full stack smoke test checkpoint
 
 ---
 
