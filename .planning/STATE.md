@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v21.0
 milestone_name: milestone
-current_plan: 3 of 5
+current_plan: 4 of 5
 status: Executing Phase 01
-last_updated: "2026-03-24T21:54:06Z"
+last_updated: "2026-03-24T22:13:23Z"
 progress:
   total_phases: 1
   completed_phases: 0
   total_plans: 5
-  completed_plans: 3
+  completed_plans: 4
 ---
 
 # Project State
@@ -24,8 +24,8 @@ See: `.planning/PROJECT.md` (updated 2026-03-24)
 ## Current Status
 
 **Phase:** 01-foundation
-**Current Plan:** 3 of 5
-**Last session:** 2026-03-24T21:54:06Z
+**Current Plan:** 4 of 5
+**Last session:** 2026-03-24T22:13:23Z
 **Resume file:** None
 
 ## Decisions
@@ -45,6 +45,9 @@ See: `.planning/PROJECT.md` (updated 2026-03-24)
 - [Phase 01-03]: sqlalchemy.types.Uuid replaces dialects.postgresql.UUID for cross-dialect compatibility (SQLite tests)
 - [Phase 01-03]: Ephemeral RSA keys in conftest session fixture — tests don't need Docker secrets
 - [Phase 01-03]: ForeignKey("users.id") added to OauthAccount.user_id — was missing in Plan 02 model
+- [Phase 01-04]: Next.js 16 renames middleware.ts to proxy.ts — route guard uses src/proxy.ts with exported 'proxy' function
+- [Phase 01-04]: AuthBootstrap client component required because root layout is a Server Component; cannot call useEffect in layout directly
+- [Phase 01-04]: Zustand logout() is async — calls /api/auth/logout before clearing store state for proper server-side cookie clearing
 
 ## Performance Metrics
 
@@ -54,6 +57,7 @@ See: `.planning/PROJECT.md` (updated 2026-03-24)
 | Phase 01 P01 | 3min | 2 tasks | 11 files |
 | Phase 01 P02 | 8min | 2 tasks | 17 files |
 | Phase 01 P03 | 9min | 2 tasks | 15 files |
+| 01 | 04 | 16min | 2 | 22 |
 
 ## Session History
 
@@ -62,3 +66,4 @@ See: `.planning/PROJECT.md` (updated 2026-03-24)
 | 2026-03-24 | Project initialized — roadmap created, ready for Phase 1 |
 | 2026-03-24 | Completed 01-foundation/01-01-PLAN.md — Docker infrastructure scaffold |
 | 2026-03-24 | Completed 01-foundation/01-03-PLAN.md — Auth API: register, login, /me, refresh, logout, reset |
+| 2026-03-24 | Completed 01-foundation/01-04-PLAN.md — Next.js 16 frontend: auth UI, Zustand store, proxy route guard |
