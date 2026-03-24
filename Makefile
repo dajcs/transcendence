@@ -14,7 +14,7 @@ migrate:
 
 # Seed dev database with test users
 seed:
-	docker compose exec backend uv run python scripts/seed_dev.py
+	docker compose exec -e PYTHONPATH=/app backend uv run python scripts/seed_dev.py
 
 # Tail logs for all services
 logs:
