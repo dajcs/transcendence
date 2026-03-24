@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v21.0
 milestone_name: milestone
-current_plan: 2 of 5
+current_plan: 3 of 5
 status: Executing Phase 01
-last_updated: "2026-03-24T21:43:26.597Z"
+last_updated: "2026-03-24T21:54:06Z"
 progress:
   total_phases: 1
   completed_phases: 0
   total_plans: 5
-  completed_plans: 2
+  completed_plans: 3
 ---
 
 # Project State
@@ -24,8 +24,8 @@ See: `.planning/PROJECT.md` (updated 2026-03-24)
 ## Current Status
 
 **Phase:** 01-foundation
-**Current Plan:** 2 of 5
-**Last session:** 2026-03-24T21:43:26.585Z
+**Current Plan:** 3 of 5
+**Last session:** 2026-03-24T21:54:06Z
 **Resume file:** None
 
 ## Decisions
@@ -41,6 +41,10 @@ See: `.planning/PROJECT.md` (updated 2026-03-24)
 - [Phase 01]: Alembic migrations run in backend entrypoint before uvicorn start; gen-keys Makefile target generates SSL cert and RSA JWT key pair in one command
 - [Phase 01-02]: field_validator on secret_key rejects empty string — empty secret is insecure; pydantic str allows empty
 - [Phase 01-02]: backend/.env with test values enables pytest to import app.config without Docker running
+- [Phase 01-03]: bcrypt pinned to <4.0.0 for passlib 1.7.4 compatibility (bcrypt 5.x removed __about__ attr)
+- [Phase 01-03]: sqlalchemy.types.Uuid replaces dialects.postgresql.UUID for cross-dialect compatibility (SQLite tests)
+- [Phase 01-03]: Ephemeral RSA keys in conftest session fixture — tests don't need Docker secrets
+- [Phase 01-03]: ForeignKey("users.id") added to OauthAccount.user_id — was missing in Plan 02 model
 
 ## Performance Metrics
 
@@ -49,6 +53,7 @@ See: `.planning/PROJECT.md` (updated 2026-03-24)
 | 01 | 01 | 3min | 2 | 11 |
 | Phase 01 P01 | 3min | 2 tasks | 11 files |
 | Phase 01 P02 | 8min | 2 tasks | 17 files |
+| Phase 01 P03 | 9min | 2 tasks | 15 files |
 
 ## Session History
 
@@ -56,3 +61,4 @@ See: `.planning/PROJECT.md` (updated 2026-03-24)
 |---|---|
 | 2026-03-24 | Project initialized — roadmap created, ready for Phase 1 |
 | 2026-03-24 | Completed 01-foundation/01-01-PLAN.md — Docker infrastructure scaffold |
+| 2026-03-24 | Completed 01-foundation/01-03-PLAN.md — Auth API: register, login, /me, refresh, logout, reset |

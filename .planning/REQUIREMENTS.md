@@ -15,10 +15,10 @@
 
 ### Authentication
 
-- [ ] **AUTH-01**: User can register with email and password
-- [ ] **AUTH-02**: User can log in and receive JWT access + refresh tokens
-- [ ] **AUTH-03**: User can reset password via email link
-- [ ] **AUTH-04**: User session persists across browser refresh (refresh token rotation)
+- [x] **AUTH-01**: User can register with email and password
+- [x] **AUTH-02**: User can log in and receive JWT access + refresh tokens
+- [x] **AUTH-03**: User can reset password via email link
+- [x] **AUTH-04**: User session persists across browser refresh (refresh token rotation)
 - [ ] **AUTH-05**: OAuth 2.0 login via Google, GitHub, and 42 school (PKCE flow)
 
 ### Betting
