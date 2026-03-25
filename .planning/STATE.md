@@ -4,9 +4,9 @@ milestone: v21.0
 milestone_name: milestone
 current_plan: Not started
 status: Milestone complete
-last_updated: "2026-03-25T05:37:01.314Z"
+last_updated: "2026-03-25T11:50:02.560Z"
 progress:
-  total_phases: 1
+  total_phases: 2
   completed_phases: 1
   total_plans: 5
   completed_plans: 5
@@ -25,8 +25,8 @@ See: `.planning/PROJECT.md` (updated 2026-03-24)
 
 **Phase:** 01
 **Current Plan:** Not started
-**Last session:** 2026-03-24T23:44:20Z
-**Resume file:** None
+**Last session:** 2026-03-25T11:50:02.522Z
+**Resume file:** .planning/phases/02-core-betting/02-CONTEXT.md
 
 ## Decisions
 
