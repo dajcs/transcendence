@@ -6,6 +6,9 @@ interface User {
   email: string;
   username: string;
   avatar_url: string | null;
+  bp: number;
+  kp: number;
+  tp: number;
 }
 
 interface AuthStore {

@@ -2,7 +2,7 @@
 import uuid
 from datetime import datetime
 
-from pydantic import BaseModel, EmailStr, field_validator
+from pydantic import BaseModel, EmailStr, field_validator, model_validator
 
 
 class RegisterRequest(BaseModel):
@@ -30,8 +30,17 @@ class RegisterRequest(BaseModel):
 
 
 class LoginRequest(BaseModel):
-    email: EmailStr
+    identifier: str | None = None
+    email: str | None = None
     password: str
+
+    @model_validator(mode="after")
+    def validate_identifier_or_email(self):
+        candidate = self.identifier if self.identifier is not None else self.email
+        if candidate is None or not str(candidate).strip():
+            raise ValueError("Email or username is required")
+        self.identifier = str(candidate).strip()
+        return self
 
 
 class UserResponse(BaseModel):
@@ -40,6 +49,9 @@ class UserResponse(BaseModel):
     username: str
     avatar_url: str | None
     created_at: datetime
+    bp: float = 0.0
+    kp: int = 0
+    tp: float = 0.0
 
     model_config = {"from_attributes": True}
 

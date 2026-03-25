@@ -22,8 +22,14 @@ export default function TopNav() {
         {isAuthenticated ? (
           <>
             <span className="text-sm text-gray-600">{user?.username}</span>
+            <span className="text-xs text-gray-500">
+              BP {user?.bp ?? 0} · KP {user?.kp ?? 0} · TP {user?.tp ?? 0}
+            </span>
             <Link href="/dashboard" className="text-sm text-blue-600 hover:underline">
               Dashboard
+            </Link>
+            <Link href="/markets" className="text-sm text-blue-600 hover:underline">
+              Markets
             </Link>
             <button
               onClick={handleLogout}

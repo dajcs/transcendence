@@ -60,6 +60,21 @@ services:
         condition: service_healthy
     command: ["uv", "run", "celery", "-A", "app.workers.celery_app", "worker", "--loglevel=info"]
 
+  celery-beat:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      REDIS_URL: redis://redis:6379/0
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: ["uv", "run", "celery", "-A", "app.workers.celery_app", "beat", "--loglevel=info"]
+
   frontend:
     build:
       context: ./frontend

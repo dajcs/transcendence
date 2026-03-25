@@ -14,7 +14,6 @@ def test_karma_bp_formula():
 
 
 @pytest.mark.asyncio
-@pytest.mark.xfail(reason="daily_allocation task not yet implemented", strict=False)
 async def test_daily_allocation_inserts_transactions(db_session):
     """BET-07: daily_allocation credits karma_bp and resets kp for each user."""
     import uuid
@@ -32,7 +31,7 @@ async def test_daily_allocation_inserts_transactions(db_session):
     await db_session.commit()
 
     from app.workers.tasks.daily import _run_allocation
-    await _run_allocation()
+    await _run_allocation(db_session)
 
     bp_total = (await db_session.execute(
         select(func.sum(BpTransaction.amount)).where(BpTransaction.user_id == user_id)

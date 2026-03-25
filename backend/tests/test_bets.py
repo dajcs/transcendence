@@ -9,7 +9,7 @@ async def _setup_user_with_market(client: AsyncClient, email: str, username: str
         "email": email, "username": username, "password": "Passw0rd!",
     })
     await client.post("/api/auth/login", json={
-        "email": email, "password": "Passw0rd!",
+        "identifier": email, "password": "Passw0rd!",
     })
     resp = await client.post("/api/markets", json={
         "title": "Test market",
@@ -21,7 +21,6 @@ async def _setup_user_with_market(client: AsyncClient, email: str, username: str
 
 
 @pytest.mark.asyncio
-@pytest.mark.xfail(reason="bets API not yet implemented", strict=False)
 async def test_place_yes_bet(client: AsyncClient):
     """BET-02: POST /api/bets places a YES bet, deducts 1 bp, returns position."""
     market_id = await _setup_user_with_market(client, "bettor@example.com", "bettor")
@@ -33,7 +32,6 @@ async def test_place_yes_bet(client: AsyncClient):
 
 
 @pytest.mark.asyncio
-@pytest.mark.xfail(reason="bets API not yet implemented", strict=False)
 async def test_place_no_bet(client: AsyncClient):
     """BET-02: POST /api/bets places a NO bet."""
     market_id = await _setup_user_with_market(client, "bettor2@example.com", "bettor2")
@@ -43,7 +41,6 @@ async def test_place_no_bet(client: AsyncClient):
 
 
 @pytest.mark.asyncio
-@pytest.mark.xfail(reason="bets API not yet implemented", strict=False)
 async def test_duplicate_bet_rejected(client: AsyncClient):
     """BET-02: Second bet on same market returns 409 (unique constraint)."""
     market_id = await _setup_user_with_market(client, "dupe@example.com", "dupe")
@@ -53,7 +50,6 @@ async def test_duplicate_bet_rejected(client: AsyncClient):
 
 
 @pytest.mark.asyncio
-@pytest.mark.xfail(reason="bets API not yet implemented", strict=False)
 async def test_withdraw_bet(client: AsyncClient):
     """BET-03: DELETE /api/bets/{position_id} withdraws position and credits refund."""
     market_id = await _setup_user_with_market(client, "withdrawer@example.com", "withdrawer")

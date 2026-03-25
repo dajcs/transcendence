@@ -11,8 +11,32 @@ from app.schemas.auth import (
     UserResponse,
 )
 from app.services import auth_service
+from app.services.economy_service import get_balance
 
 router = APIRouter()
+
+
+def _resolve_client_ip(request: Request) -> str:
+    forwarded_for = request.headers.get("x-forwarded-for")
+    if forwarded_for:
+        first_ip = forwarded_for.split(",", 1)[0].strip()
+        if first_ip:
+            return first_ip
+    return request.client.host if request.client else "unknown"
+
+
+async def _to_user_response(db: AsyncSession, user) -> UserResponse:
+    balances = await get_balance(db, user.id)
+    return UserResponse(
+        id=user.id,
+        email=user.email,
+        username=user.username,
+        avatar_url=user.avatar_url,
+        created_at=user.created_at,
+        bp=float(balances["bp"]),
+        kp=int(balances["kp"]),
+        tp=float(balances["tp"]),
+    )
 
 
 def _set_auth_cookies(response: Response, access_token: str, refresh_token: str) -> None:
@@ -23,7 +47,7 @@ def _set_auth_cookies(response: Response, access_token: str, refresh_token: str)
         httponly=True,
         secure=True,
         samesite="lax",
-        max_age=900,  # 15 minutes
+        max_age=18000,  # 5 hours
     )
     response.set_cookie(
         key="refresh_token",
@@ -44,7 +68,7 @@ def _clear_auth_cookies(response: Response) -> None:
 @router.post("/register", status_code=201, response_model=UserResponse)
 async def register(req: RegisterRequest, db: AsyncSession = Depends(get_db)):
     user = await auth_service.register(db, req)
-    return user
+    return await _to_user_response(db, user)
 
 
 @router.post("/login")
@@ -54,10 +78,10 @@ async def login(
     response: Response,
     db: AsyncSession = Depends(get_db),
 ):
-    client_ip = request.client.host if request.client else "unknown"
+    client_ip = _resolve_client_ip(request)
     user, access_token, refresh_token = await auth_service.login(db, req, client_ip)
     _set_auth_cookies(response, access_token, refresh_token)
-    return UserResponse.model_validate(user)
+    return await _to_user_response(db, user)
 
 
 @router.get("/me", response_model=UserResponse)
@@ -66,7 +90,7 @@ async def me(request: Request, db: AsyncSession = Depends(get_db)):
     if not access_token:
         raise HTTPException(status_code=401, detail="Not authenticated")
     user = await auth_service.get_current_user(db, access_token)
-    return user
+    return await _to_user_response(db, user)
 
 
 @router.post("/refresh")

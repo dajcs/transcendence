@@ -13,8 +13,12 @@ from app.db.models.user import User
 
 
 def compute_bet_cap(kp: int) -> int:
-    """BET-04: cap = floor(log10(kp+1)) + 1. Minimum 1."""
-    return math.floor(math.log10(kp + 1)) + 1
+    """BET-04: cap = digit count of kp, minimum 1.
+    Examples: kp 0..9 -> 1, 10..99 -> 2, 100..999 -> 3.
+    """
+    if kp <= 0:
+        return 1
+    return math.floor(math.log10(kp)) + 1
 
 
 def compute_refund_bp(yes_pool: float, no_pool: float, side: str) -> float:

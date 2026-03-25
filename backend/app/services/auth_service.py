@@ -4,11 +4,12 @@ import uuid
 from datetime import datetime, timezone
 
 from fastapi import HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models.user import User
 from app.schemas.auth import LoginRequest, RegisterRequest, ResetConfirmBody
+from app.services.economy_service import credit_bp
 from app.services.email_service import send_password_reset_email
 from app.utils.jwt import (
     create_access_token,
@@ -54,7 +55,21 @@ async def register(db: AsyncSession, req: RegisterRequest) -> User:
     db.add(user)
     await db.commit()
     await db.refresh(user)
+    await credit_bp(db, user.id, 10.0, "signup")
+    await db.commit()
     return user
+
+
+async def _credit_daily_login_bonus(db: AsyncSession, user: User) -> None:
+    """Credit +1 bp on first authenticated request of the UTC day."""
+    now = datetime.now(timezone.utc)
+    today = now.date()
+    if user.last_login is not None and user.last_login.astimezone(timezone.utc).date() == today:
+        return
+
+    await credit_bp(db, user.id, 1.0, "daily_login")
+    user.last_login = now
+    await db.commit()
 
 
 async def login(db: AsyncSession, req: LoginRequest, client_ip: str) -> tuple[User, str, str]:
@@ -63,26 +78,27 @@ async def login(db: AsyncSession, req: LoginRequest, client_ip: str) -> tuple[Us
     """
     redis = _get_redis()
     rate_key = f"rate:login:{client_ip}"
-    attempts = await redis.incr(rate_key)
-    if attempts == 1:
-        await redis.expire(rate_key, 900)  # 15 minutes
-    if attempts > 5:
-        raise HTTPException(
-            status_code=429,
-            detail="Too many login attempts",
-            headers={"Retry-After": "900"},
-        )
 
-    result = await db.execute(select(User).where(User.email == req.email))
+    identifier = (req.identifier or req.email or "").strip()
+    result = await db.execute(
+        select(User).where(or_(User.email == identifier, User.username == identifier))
+    )
     user = result.scalar_one_or_none()
 
     # Generic error — no email enumeration (per AUTH.md)
     if not user or not user.password_hash or not verify_password(req.password, user.password_hash):
+        attempts = await redis.incr(rate_key)
+        if attempts == 1:
+            await redis.expire(rate_key, 900)  # 15 minutes
+        if attempts > 5:
+            raise HTTPException(
+                status_code=429,
+                detail="Too many login attempts",
+                headers={"Retry-After": "900"},
+            )
         raise HTTPException(status_code=401, detail="Invalid credentials")
 
-    user.last_login = datetime.now(timezone.utc)
-    await db.commit()
-    await db.refresh(user)
+    await redis.delete(rate_key)
 
     access_token = create_access_token(str(user.id), user.email, user.username)
     refresh_token = create_refresh_token()
@@ -105,6 +121,7 @@ async def get_current_user(db: AsyncSession, access_token: str) -> User:
     user = result.scalar_one_or_none()
     if not user or not user.is_active:
         raise HTTPException(status_code=401, detail="User not found or inactive")
+    await _credit_daily_login_bonus(db, user)
     return user
 
 

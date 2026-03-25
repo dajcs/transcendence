@@ -10,7 +10,7 @@ dependencies = [
     "asyncpg>=0.30.0",
     "pydantic[email]>=2.10.0",
     "pydantic-settings>=2.6.0",
-    "PyJWT>=2.10.0",
+    "PyJWT[crypto]>=2.10.0",
     "passlib[bcrypt]>=1.7.4",
     "aiosmtplib>=3.0.0",
     "httpx>=0.28.0",
@@ -27,7 +27,6 @@ dev = [
     "httpx>=0.28.0",
     "aiosqlite>=0.22.1",
     "fakeredis>=2.34.1",
-    "cryptography>=46.0.5",
 ]
 
 [tool.pytest.ini_options]

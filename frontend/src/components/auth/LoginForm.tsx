@@ -8,11 +8,36 @@ import { useAuthStore } from "@/store/auth";
 import { api } from "@/lib/api";
 
 const schema = z.object({
-  email: z.string().email("Invalid email"),
+  identifier: z.string().min(1, "Email or username is required"),
   password: z.string().min(1, "Password is required"),
 });
 
 type FormData = z.infer<typeof schema>;
+
+function normalizeLoginError(err: unknown): string {
+  const detail = (err as { response?: { data?: { detail?: unknown } } })?.response?.data?.detail;
+
+  if (typeof detail === "string") {
+    return detail;
+  }
+
+  if (Array.isArray(detail)) {
+    const first = detail[0] as { msg?: unknown } | undefined;
+    if (first && typeof first.msg === "string") {
+      return first.msg;
+    }
+    return "Login failed";
+  }
+
+  if (detail && typeof detail === "object") {
+    const maybeMsg = (detail as { msg?: unknown }).msg;
+    if (typeof maybeMsg === "string") {
+      return maybeMsg;
+    }
+  }
+
+  return "Login failed";
+}
 
 export default function LoginForm() {
   const router = useRouter();
@@ -30,9 +55,7 @@ export default function LoginForm() {
       await bootstrap();
       router.push("/dashboard");
     } catch (err: unknown) {
-      const msg =
-        (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ??
-        "Login failed";
+      const msg = normalizeLoginError(err);
       setError("root", { message: msg });
     }
   };
@@ -40,13 +63,15 @@ export default function LoginForm() {
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4 w-full max-w-sm">
       <div>
-        <label className="block text-sm font-medium text-gray-700">Email</label>
+        <label className="block text-sm font-medium text-gray-700">Email or Username</label>
         <input
-          {...register("email")}
-          type="email"
+          {...register("identifier")}
+          type="text"
+          placeholder="Enter email or username"
+          autoComplete="username"
           className="mt-1 block w-full border border-gray-300 rounded px-3 py-2 text-sm"
         />
-        {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email.message}</p>}
+        {errors.identifier && <p className="text-red-500 text-xs mt-1">{errors.identifier.message}</p>}
       </div>
       <div>
         <label className="block text-sm font-medium text-gray-700">Password</label>

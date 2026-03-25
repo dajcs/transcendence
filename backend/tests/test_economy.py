@@ -2,7 +2,6 @@
 import pytest
 
 
-@pytest.mark.xfail(reason="economy_service not yet implemented", strict=False)
 def test_compute_bet_cap_formula():
     """BET-04: cap = floor(log10(kp+1)) + 1."""
     from app.services.economy_service import compute_bet_cap
@@ -13,7 +12,6 @@ def test_compute_bet_cap_formula():
     assert compute_bet_cap(100) == 3
 
 
-@pytest.mark.xfail(reason="economy_service not yet implemented", strict=False)
 def test_withdrawal_refund_formula():
     """BET-03: compute_refund_bp(yes_pool, no_pool, side) -> float."""
     from app.services.economy_service import compute_refund_bp
@@ -24,7 +22,6 @@ def test_withdrawal_refund_formula():
 
 
 @pytest.mark.asyncio
-@pytest.mark.xfail(reason="economy_service not yet implemented", strict=False)
 async def test_get_balance_empty(db_session):
     """get_balance returns zero balances for a user with no transactions."""
     from app.services.economy_service import get_balance
@@ -35,7 +32,6 @@ async def test_get_balance_empty(db_session):
 
 
 @pytest.mark.asyncio
-@pytest.mark.xfail(reason="economy_service not yet implemented", strict=False)
 async def test_credit_bp(db_session):
     """credit_bp inserts a positive BpTransaction; balance increases."""
     from app.services.economy_service import credit_bp, get_balance
@@ -47,7 +43,6 @@ async def test_credit_bp(db_session):
 
 
 @pytest.mark.asyncio
-@pytest.mark.xfail(reason="economy_service not yet implemented", strict=False)
 async def test_deduct_bp_success(db_session):
     """BET-05: deduct_bp reduces balance when sufficient funds exist."""
     from app.services.economy_service import credit_bp, deduct_bp, get_balance
@@ -64,7 +59,6 @@ async def test_deduct_bp_success(db_session):
 
 
 @pytest.mark.asyncio
-@pytest.mark.xfail(reason="economy_service not yet implemented", strict=False)
 async def test_deduct_bp_insufficient(db_session):
     """BET-05: deduct_bp raises HTTPException(402) when balance < amount."""
     from app.services.economy_service import credit_bp, deduct_bp

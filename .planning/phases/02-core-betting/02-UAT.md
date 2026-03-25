@@ -1,0 +1,88 @@
+---
+status: testing
+phase: 02-core-betting
+source:
+  - .planning/phases/02-core-betting/02-01-SUMMARY.md
+  - .planning/phases/02-core-betting/02-02-SUMMARY.md
+  - .planning/phases/02-core-betting/02-03-SUMMARY.md
+  - .planning/phases/02-core-betting/02-04-SUMMARY.md
+  - .planning/phases/02-core-betting/02-05-SUMMARY.md
+  - .planning/phases/02-core-betting/02-06-SUMMARY.md
+started: 2026-03-25T16:22:20Z
+updated: 2026-03-25T18:55:00Z
+---
+
+## Current Test
+<!-- OVERWRITE each test - shows where we are -->
+
+number: 5
+name: Browse Markets Feed
+expected: |
+  Markets page loads a list and supports observable feed behavior
+  (sorting/filtering/pagination controls update results and state correctly).
+awaiting: user response
+
+## Tests
+
+### 1. Cold Start Smoke Test
+expected: Stop running services, then start the stack from scratch. Startup should complete without boot errors, migrations/seeding should succeed, and the app should respond to a primary request (homepage or health/API) with live data.
+result: pass
+
+### 2. Register + Signup Bonus
+expected: Registering a new account succeeds and the authenticated user payload includes balance fields (bp/kp/tp) with signup bonus behavior reflected.
+result: pass
+
+### 3. Daily Login Bonus Once Per Day
+expected: Accessing authenticated user data on a new UTC day applies a single daily bonus; repeated checks the same day do not repeatedly increase balance.
+result: pass
+
+### 4. Top Navigation Balance Display
+expected: The top nav for authenticated users shows live bp/kp/tp balances and includes working navigation into Markets.
+result: pass
+
+### 5. Browse Markets Feed
+expected: Markets page loads a list and supports observable feed behavior (sorting/filtering/pagination controls update results and state correctly).
+result: pending
+
+### 6. Create Market Flow
+expected: Creating a market from the protected create page succeeds, persists the new market, and the user can navigate to it afterward.
+result: pending
+
+### 7. Market Detail + Positions View
+expected: Market detail page loads current odds/market info and shows user position data section(s) without refresh glitches.
+result: pending
+
+### 8. Place Bet + Validation
+expected: Placing a valid bet succeeds and updates displayed position/balance data; invalid/capped bet attempts show rejection behavior instead of silently succeeding.
+result: pending
+
+### 9. Withdraw Bet Refund
+expected: Withdrawing an existing position succeeds and the refund is reflected in visible balance/position state.
+result: pending
+
+### 10. Comments, Reply Depth, and Upvote
+expected: Users can create comments, create one-level replies, are prevented from deeper reply nesting, and upvoting applies once with updated UI state.
+result: pending
+
+### 11. Dashboard Portfolio View
+expected: Protected dashboard shows portfolio/position overview data from betting activity and remains consistent after bet/place/withdraw operations.
+result: pending
+
+## Fix Notes
+
+- Login now supports both username and email across UI and backend payload compatibility.
+- Login form error rendering was hardened to avoid React runtime crashes on structured API validation errors.
+- Access-token inactivity window increased from 15 minutes to 5 hours (JWT expiry + cookie max_age aligned).
+
+## Summary
+
+total: 11
+passed: 4
+issues: 0
+pending: 7
+skipped: 0
+blocked: 0
+
+## Gaps
+
+- none

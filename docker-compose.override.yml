@@ -1,9 +1,10 @@
 
 services:
   backend:
-    entrypoint: ["sh", "-c", "uv run alembic upgrade head && uv run uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"]
+    entrypoint: ["sh", "-c", "uv sync --frozen --no-dev && uv run --no-sync alembic upgrade head && uv run --no-sync uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload --reload-exclude '.venv/*'"]
     volumes:
       - ./backend:/app
+      - /app/.venv
 
   frontend:
     command: ["npm", "run", "dev"]

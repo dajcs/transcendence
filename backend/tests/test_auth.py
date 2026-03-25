@@ -49,7 +49,7 @@ async def test_login_sets_cookies(client: AsyncClient):
     })
     # Login
     resp = await client.post("/api/auth/login", json={
-        "email": "carol@example.com", "password": "Passw0rd!",
+        "identifier": "carol@example.com", "password": "Passw0rd!",
     })
     assert resp.status_code == 200
     cookies = resp.headers.get("set-cookie", "")
@@ -60,10 +60,32 @@ async def test_login_sets_cookies(client: AsyncClient):
 @pytest.mark.asyncio
 async def test_login_invalid_credentials(client: AsyncClient):
     resp = await client.post("/api/auth/login", json={
-        "email": "nobody@example.com", "password": "Wrongpass1",
+        "identifier": "nobody@example.com", "password": "Wrongpass1",
     })
     assert resp.status_code == 401
     assert resp.json()["detail"] == "Invalid credentials"
+
+
+@pytest.mark.asyncio
+async def test_login_with_username(client: AsyncClient):
+    await client.post("/api/auth/register", json={
+        "email": "eve@example.com", "username": "eve", "password": "Passw0rd!",
+    })
+    resp = await client.post("/api/auth/login", json={
+        "identifier": "eve", "password": "Passw0rd!",
+    })
+    assert resp.status_code == 200
+
+
+@pytest.mark.asyncio
+async def test_login_with_username_in_legacy_email_field(client: AsyncClient):
+    await client.post("/api/auth/register", json={
+        "email": "frank@example.com", "username": "frank", "password": "Passw0rd!",
+    })
+    resp = await client.post("/api/auth/login", json={
+        "email": "frank", "password": "Passw0rd!",
+    })
+    assert resp.status_code == 200
 
 
 # ── AUTH-03: Password reset no enumeration ────────────────────────────────
@@ -90,7 +112,7 @@ async def test_me_authenticated(client: AsyncClient):
         "email": "dave@example.com", "username": "dave", "password": "Passw0rd!",
     })
     await client.post("/api/auth/login", json={
-        "email": "dave@example.com", "password": "Passw0rd!",
+        "identifier": "dave@example.com", "password": "Passw0rd!",
     })
     resp = await client.get("/api/auth/me")
     # Will be 401 in unit test env without real JWT keys — mark as expected

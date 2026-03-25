@@ -20,13 +20,13 @@ def _read_public_key() -> bytes:
 
 
 def create_access_token(user_id: str, email: str, username: str) -> str:
-    """RS256-signed access token, 15-minute expiry."""
+    """RS256-signed access token, 5-hour expiry."""
     payload = {
         "sub": user_id,
         "email": email,
         "username": username,
         "iat": datetime.now(timezone.utc),
-        "exp": datetime.now(timezone.utc) + timedelta(minutes=15),
+        "exp": datetime.now(timezone.utc) + timedelta(hours=5),
     }
     return jwt.encode(payload, _read_private_key(), algorithm="RS256")
 
