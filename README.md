@@ -12,8 +12,12 @@ A lightweight prediction market designed to reduce the distortions introduced by
 ## Quick Start
 
 ```bash
+# first time setup:
 cp .env.example .env   # fill in secrets
-docker compose up --build
+make gen-keys          # Generate SSL cert + RSA key pair for JWT (run once)
+
+# Start all services with hot-reload (docker-compose.override.yml picked up automatically)
+make dev               # docker compose up --build
 ```
 
 Open `https://localhost:8443` in Google Chrome.
