@@ -1,7 +1,8 @@
 ---
 phase: 2
 slug: core-betting
-status: draft
+status: approved
+reviewed_at: 2026-03-25
 shadcn_initialized: false
 preset: none
 created: 2026-03-25
@@ -108,7 +109,7 @@ Danger:    px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 disabled:opa
 ### Form Fields
 
 ```
-Label:  block text-sm font-medium text-gray-700
+Label:  block text-sm font-normal text-gray-700
 Input:  mt-1 block w-full border border-gray-300 rounded px-3 py-2 text-sm
 Error:  text-red-500 text-xs mt-1
 ```
@@ -233,6 +234,8 @@ Pagination row: [← Previous]  Page N of M  [Next →]
 ```
 
 ### Market Detail (`/markets/[id]`)
+
+**Primary focal point:** Market title and odds bar — these anchor all user decisions before the bet form.
 
 ```
 TopNav
