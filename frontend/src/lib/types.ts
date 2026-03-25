@@ -7,9 +7,18 @@ export interface Market {
   status: "open" | "pending" | "closed";
   proposer_id: string;
   created_at: string;
+  market_type: "binary" | "multiple_choice" | "numeric";
+  choices: string[] | null;
+  numeric_min: number | null;
+  numeric_max: number | null;
   yes_pct: number;
   no_pct: number;
+  yes_count: number;
+  no_count: number;
   position_count: number;
+  comment_count: number;
+  choice_counts: Record<string, number>;
+  upvote_count: number;
 }
 
 export interface MarketListResponse {

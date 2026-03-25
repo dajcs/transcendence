@@ -42,3 +42,13 @@ async def list_markets(
 @router.get("/{market_id}", response_model=MarketResponse)
 async def get_market(market_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
     return await market_service.get_market(db, market_id)
+
+
+@router.post("/{market_id}/upvote", status_code=201)
+async def upvote_market(
+    market_id: uuid.UUID,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+):
+    user = await _get_current_user(request, db)
+    await market_service.upvote_market(db, user_id=user.id, market_id=market_id)

@@ -5,7 +5,8 @@ from fastapi import HTTPException
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.models.bet import Bet, BetPosition
+from app.db.models.bet import Bet, BetPosition, BetUpvote
+from app.db.models.bet import Comment
 from app.schemas.market import MarketCreate, MarketListResponse, MarketResponse
 from app.services.economy_service import deduct_bp, get_bet_odds
 
@@ -22,6 +23,10 @@ async def create_market(
         description=data.description,
         resolution_criteria=data.resolution_criteria,
         deadline=data.deadline,
+        market_type=data.market_type,
+        choices=data.choices,
+        numeric_min=data.numeric_min,
+        numeric_max=data.numeric_max,
         status="open",
     )
     db.add(bet)
@@ -37,7 +42,21 @@ async def create_market(
         status=bet.status,
         proposer_id=bet.proposer_id,
         created_at=bet.created_at,
+        market_type=bet.market_type,
+        choices=bet.choices,
+        numeric_min=bet.numeric_min,
+        numeric_max=bet.numeric_max,
     )
+
+
+async def _get_choice_counts(db: AsyncSession, bet_id: uuid.UUID) -> dict[str, int]:
+    """Return vote count per side for a market (useful for multichoice)."""
+    result = await db.execute(
+        select(BetPosition.side, func.count(BetPosition.id))
+        .where(BetPosition.bet_id == bet_id, BetPosition.withdrawn_at.is_(None))
+        .group_by(BetPosition.side)
+    )
+    return {side: int(count) for side, count in result}
 
 
 async def list_markets(
@@ -83,6 +102,20 @@ async def list_markets(
                 )
             )
         ).scalar_one()
+        comment_count = (
+            await db.execute(
+                select(func.count(Comment.id)).where(
+                    Comment.bet_id == row.id,
+                    Comment.deleted_at.is_(None),
+                )
+            )
+        ).scalar_one()
+        choice_counts = await _get_choice_counts(db, row.id)
+        upvote_count = (
+            await db.execute(
+                select(func.count(BetUpvote.bet_id)).where(BetUpvote.bet_id == row.id)
+            )
+        ).scalar_one()
         items.append(
             MarketResponse(
                 id=row.id,
@@ -93,9 +126,18 @@ async def list_markets(
                 status=row.status,
                 proposer_id=row.proposer_id,
                 created_at=row.created_at,
+                market_type=row.market_type,
+                choices=row.choices,
+                numeric_min=row.numeric_min,
+                numeric_max=row.numeric_max,
                 yes_pct=float(odds["yes_pct"]),
                 no_pct=float(odds["no_pct"]),
+                yes_count=int(odds["yes_count"]),
+                no_count=int(odds["no_count"]),
                 position_count=int(position_count),
+                comment_count=int(comment_count),
+                choice_counts=choice_counts,
+                upvote_count=int(upvote_count),
             )
         )
 
@@ -116,6 +158,20 @@ async def get_market(db: AsyncSession, market_id: uuid.UUID) -> MarketResponse:
             )
         )
     ).scalar_one()
+    comment_count = (
+        await db.execute(
+            select(func.count(Comment.id)).where(
+                Comment.bet_id == market.id,
+                Comment.deleted_at.is_(None),
+            )
+        )
+    ).scalar_one()
+    choice_counts = await _get_choice_counts(db, market.id)
+    upvote_count = (
+        await db.execute(
+            select(func.count(BetUpvote.bet_id)).where(BetUpvote.bet_id == market.id)
+        )
+    ).scalar_one()
 
     return MarketResponse(
         id=market.id,
@@ -126,7 +182,39 @@ async def get_market(db: AsyncSession, market_id: uuid.UUID) -> MarketResponse:
         status=market.status,
         proposer_id=market.proposer_id,
         created_at=market.created_at,
+        market_type=market.market_type,
+        choices=market.choices,
+        numeric_min=market.numeric_min,
+        numeric_max=market.numeric_max,
         yes_pct=float(odds["yes_pct"]),
         no_pct=float(odds["no_pct"]),
+        yes_count=int(odds["yes_count"]),
+        no_count=int(odds["no_count"]),
         position_count=int(position_count),
+        comment_count=int(comment_count),
+        choice_counts=choice_counts,
+        upvote_count=int(upvote_count),
     )
+
+
+async def upvote_market(db: AsyncSession, user_id: uuid.UUID, market_id: uuid.UUID) -> None:
+    from datetime import datetime, timezone
+    from sqlalchemy.exc import IntegrityError
+    from app.db.models.transaction import KpEvent
+
+    market = (await db.execute(select(Bet).where(Bet.id == market_id))).scalar_one_or_none()
+    if market is None:
+        raise HTTPException(status_code=404, detail="Market not found")
+    try:
+        db.add(BetUpvote(bet_id=market_id, user_id=user_id))
+        db.add(KpEvent(
+            user_id=market.proposer_id,
+            amount=1,
+            source_type="market_upvote",
+            source_id=market_id,
+            day_date=datetime.now(timezone.utc).date(),
+        ))
+        await db.commit()
+    except IntegrityError:
+        await db.rollback()
+        raise HTTPException(status_code=409, detail="Already upvoted")

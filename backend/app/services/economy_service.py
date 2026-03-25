@@ -18,7 +18,7 @@ def compute_bet_cap(kp: int) -> int:
     """
     if kp <= 0:
         return 1
-    return math.floor(math.log10(kp)) + 1
+    return math.floor(math.log2(kp)) + 1
 
 
 def compute_refund_bp(yes_pool: float, no_pool: float, side: str) -> float:
@@ -100,22 +100,28 @@ async def deduct_bp(
 
 
 async def get_bet_odds(db: AsyncSession, bet_id: uuid.UUID) -> dict:
-    """D-12: Compute yes_pct and no_pct from active positions (withdrawn_at IS NULL).
-    Returns {"yes_pct": float, "no_pct": float, "yes_pool": float, "no_pool": float}."""
+    """D-12: Compute yes_pct, no_pct, and vote counts from active positions (withdrawn_at IS NULL).
+    Returns {"yes_pct", "no_pct", "yes_pool", "no_pool", "yes_count", "no_count"}."""
     result = await db.execute(
-        select(BetPosition.side, func.sum(BetPosition.bp_staked))
+        select(BetPosition.side, func.sum(BetPosition.bp_staked), func.count(BetPosition.id))
         .where(BetPosition.bet_id == bet_id, BetPosition.withdrawn_at.is_(None))
         .group_by(BetPosition.side)
     )
-    pools = {row[0]: float(row[1]) for row in result}
-    yes = pools.get("yes", 0.0)
-    no = pools.get("no", 0.0)
+    pools: dict[str, dict] = {}
+    for side, staked, count in result:
+        pools[side] = {"pool": float(staked), "count": int(count)}
+    yes = pools.get("yes", {}).get("pool", 0.0)
+    no = pools.get("no", {}).get("pool", 0.0)
+    yes_count = pools.get("yes", {}).get("count", 0)
+    no_count = pools.get("no", {}).get("count", 0)
     total = yes + no
     if total == 0:
-        return {"yes_pct": 50.0, "no_pct": 50.0, "yes_pool": 0.0, "no_pool": 0.0}
+        return {"yes_pct": 50.0, "no_pct": 50.0, "yes_pool": 0.0, "no_pool": 0.0, "yes_count": 0, "no_count": 0}
     return {
         "yes_pct": round(yes / total * 100, 1),
         "no_pct": round(no / total * 100, 1),
         "yes_pool": yes,
         "no_pool": no,
+        "yes_count": yes_count,
+        "no_count": no_count,
     }

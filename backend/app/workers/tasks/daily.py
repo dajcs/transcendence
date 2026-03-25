@@ -23,7 +23,7 @@ async def _apply_daily_allocation(db: AsyncSession, today) -> None:
             )
         ).scalar_one()
         kp_value = int(kp_total or 0)
-        karma_bp = math.floor(math.log10(kp_value + 1)) if kp_value >= 0 else 0
+        karma_bp = math.floor(math.log2(kp_value + 1)) if kp_value >= 0 else 0
 
         if karma_bp > 0:
             db.add(

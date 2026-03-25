@@ -74,6 +74,8 @@ async def place_bet(db: AsyncSession, user_id: uuid.UUID, data: BetPlaceRequest)
 
     try:
         await deduct_bp(db, user_id=user_id, amount=1.0, reason="bet_place", bet_id=data.bet_id)
+        if market.proposer_id == user_id:
+            await credit_bp(db, user_id=user_id, amount=1.0, reason="own_bet_vote", bet_id=data.bet_id)
         position = BetPosition(
             id=uuid.uuid4(),
             bet_id=data.bet_id,

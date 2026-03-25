@@ -1,14 +1,14 @@
 """Pydantic schemas for bet endpoints."""
 import uuid
 from datetime import datetime
-from typing import Literal
+from typing import Literal  # noqa: F401
 
 from pydantic import BaseModel
 
 
 class BetPlaceRequest(BaseModel):
     bet_id: uuid.UUID
-    side: Literal["yes", "no"]
+    side: str
 
 
 class BetPositionResponse(BaseModel):
