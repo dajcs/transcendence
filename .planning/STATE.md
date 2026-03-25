@@ -2,13 +2,13 @@
 gsd_state_version: 1.0
 milestone: v21.0
 milestone_name: milestone
-current_plan: Not started
-status: Milestone complete
-last_updated: "2026-03-25T11:50:02.560Z"
+current_plan: 1
+status: Executing Phase 02
+last_updated: "2026-03-25T15:24:14.491Z"
 progress:
   total_phases: 2
   completed_phases: 1
-  total_plans: 5
+  total_plans: 11
   completed_plans: 5
 ---
 
@@ -19,14 +19,14 @@ progress:
 See: `.planning/PROJECT.md` (updated 2026-03-24)
 
 **Core value:** Users can bet on real-world outcomes, argue their position, and earn a verifiable reputation score — without real money.
-**Current focus:** Phase 01 — foundation
+**Current focus:** Phase 02 — core-betting
 
 ## Current Status
 
 **Phase:** 01
-**Current Plan:** Not started
-**Last session:** 2026-03-25T11:50:02.522Z
-**Resume file:** .planning/phases/02-core-betting/02-CONTEXT.md
+**Current Plan:** 1
+**Last session:** 2026-03-25T12:18:07.743Z
+**Resume file:** .planning/phases/02-core-betting/02-UI-SPEC.md
 
 ## Decisions
 
