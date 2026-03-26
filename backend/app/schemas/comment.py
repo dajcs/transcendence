@@ -24,6 +24,7 @@ class CommentResponse(BaseModel):
     id: uuid.UUID
     bet_id: uuid.UUID
     user_id: uuid.UUID
+    author_username: str
     parent_id: uuid.UUID | None
     content: str
     created_at: datetime

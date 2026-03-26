@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models.bet import Bet, Comment, CommentUpvote
 from app.db.models.transaction import KpEvent
+from app.db.models.user import User
 from app.schemas.comment import CommentCreate, CommentResponse
 
 
@@ -42,10 +43,12 @@ async def create_comment(
     await db.commit()
     await db.refresh(comment)
 
+    author = (await db.execute(select(User).where(User.id == user_id))).scalar_one()
     return CommentResponse(
         id=comment.id,
         bet_id=comment.bet_id,
         user_id=comment.user_id,
+        author_username=author.username,
         parent_id=comment.parent_id,
         content=comment.content,
         created_at=comment.created_at,
@@ -54,16 +57,17 @@ async def create_comment(
 
 
 async def list_comments(db: AsyncSession, bet_id: uuid.UUID) -> list[CommentResponse]:
-    comments = (
+    rows = (
         await db.execute(
-            select(Comment)
+            select(Comment, User.username)
+            .join(User, User.id == Comment.user_id)
             .where(Comment.bet_id == bet_id, Comment.deleted_at.is_(None))
             .order_by(Comment.created_at.asc())
         )
-    ).scalars().all()
+    ).all()
 
     response: list[CommentResponse] = []
-    for comment in comments:
+    for comment, author_username in rows:
         upvote_count = (
             await db.execute(
                 select(func.count(CommentUpvote.comment_id)).where(CommentUpvote.comment_id == comment.id)
@@ -74,6 +78,7 @@ async def list_comments(db: AsyncSession, bet_id: uuid.UUID) -> list[CommentResp
                 id=comment.id,
                 bet_id=comment.bet_id,
                 user_id=comment.user_id,
+                author_username=author_username,
                 parent_id=comment.parent_id,
                 content=comment.content,
                 created_at=comment.created_at,
