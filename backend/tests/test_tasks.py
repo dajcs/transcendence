@@ -4,13 +4,13 @@ import pytest
 
 
 def test_karma_bp_formula():
-    """BET-07: karma_bp = floor(log10(kp + 1)) — pure formula test, no DB needed."""
-    assert math.floor(math.log10(0 + 1)) == 0    # kp=0 → 0 bp
-    assert math.floor(math.log10(1 + 1)) == 0    # kp=1 → 0 bp
-    assert math.floor(math.log10(9 + 1)) == 1    # kp=9 → 1 bp
-    assert math.floor(math.log10(10 + 1)) == 1   # kp=10 → 1 bp
-    assert math.floor(math.log10(99 + 1)) == 2   # kp=99 → 2 bp
-    assert math.floor(math.log10(100 + 1)) == 2  # kp=100 → 2 bp
+    """BET-07: karma_bp = floor(log2(kp + 1)) — pure formula test, no DB needed."""
+    assert math.floor(math.log2(0 + 1)) == 0    # kp=0 → 0 bp
+    assert math.floor(math.log2(1 + 1)) == 1    # kp=1 → 1 bp
+    assert math.floor(math.log2(3 + 1)) == 2    # kp=3 → 2 bp
+    assert math.floor(math.log2(7 + 1)) == 3    # kp=7 → 3 bp
+    assert math.floor(math.log2(15 + 1)) == 4   # kp=15 → 4 bp
+    assert math.floor(math.log2(9 + 1)) == 3    # kp=9 → 3 bp
 
 
 @pytest.mark.asyncio
@@ -36,4 +36,4 @@ async def test_daily_allocation_inserts_transactions(db_session):
     bp_total = (await db_session.execute(
         select(func.sum(BpTransaction.amount)).where(BpTransaction.user_id == user_id)
     )).scalar_one() or 0
-    assert float(bp_total) == 1.0  # floor(log10(9+1)) = 1
+    assert float(bp_total) == 3.0  # floor(log2(9+1)) = 3
