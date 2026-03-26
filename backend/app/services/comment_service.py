@@ -100,7 +100,7 @@ async def upvote_comment(db: AsyncSession, voter_id: uuid.UUID, comment_id: uuid
     if comment is None:
         raise HTTPException(status_code=404, detail="Comment not found")
     if comment.user_id == voter_id:
-        raise HTTPException(status_code=403, detail="Cannot upvote your own comment")
+        return  # self-upvote — silent no-op
 
     today = datetime.now(timezone.utc).date()
     try:
