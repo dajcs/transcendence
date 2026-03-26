@@ -4,7 +4,7 @@ milestone: v21.0
 milestone_name: milestone
 current_plan: 1
 status: Executing Phase 02
-last_updated: "2026-03-26T13:22:06.158Z"
+last_updated: "2026-03-26T13:22:11.249Z"
 progress:
   total_phases: 2
   completed_phases: 2
@@ -25,7 +25,7 @@ See: `.planning/PROJECT.md` (updated 2026-03-24)
 
 **Phase:** 02
 **Current Plan:** 1
-**Last session:** 2026-03-26T13:21:53.968Z
+**Last session:** 2026-03-26T13:22:11.234Z
 **Resume file:** None
 
 ## Decisions
@@ -52,6 +52,7 @@ See: `.planning/PROJECT.md` (updated 2026-03-24)
 - [Phase 01-05]: JWT key paths in .env.example updated to keys/ (relative, dev path) instead of /run/secrets/ (Docker Secrets path)
 - [Phase 02-09]: Display own-side win probability (Win X%) instead of both YES/NO percentages — simpler, user-centric
 - [Phase 02-07]: compute_bet_cap uses log10 (digit count) not log2 — correct BET-04 formula
+- [Phase 02-08]: Join User in both list_comments and create_comment rather than a separate lookup — keeps API contract simple
 
 ## Performance Metrics
 
