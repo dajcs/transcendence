@@ -66,12 +66,14 @@ main                        ← always deployable, protected
 
 ```bash
 # Clone the repo
-git clone git@github.com:YOUR_ORG/transcendence.git
+git clone git@github.com/dajcs/transcendence.git
 cd transcendence
 
 # Set up your local environment
 cp .env.example .env
 # Edit .env — fill in secrets (each student uses the same values, share via DM)
+make gen-keys  # Generate SSL cert + RSA key pair for JWT (run once)
+make seed # Optional: seed the database with test data
 
 # Switch to dev (the dev branch is created in Sprint 0)
 git checkout dev
@@ -95,6 +97,12 @@ git push -u origin dev
 # Always start from latest dev
 git checkout dev
 git pull origin dev
+
+
+# Verify everything works
+make dev
+
+# Announce in team chat: "Starting feat/my-feature"
 
 # Create your feature branch
 git checkout -b feat/my-feature
@@ -140,10 +148,16 @@ test: add auth registration tests
 
 ```bash
 # Push your feature branch
-git push -u origin feat/my-feature
+git push origin feat/my-feature
 
-# Subsequent pushes
-git push
+# After pushing, go to GitHub to create a PR:
+# 1. Click "Compare & pull request"
+# 2. Base: dev / Compare: feat/my-feature
+# 3. Title: same format as commit messages (e.g., "feat: add market CRUD endpoints")
+# 4. Description: What changed, why, and how to test
+# 5. Assign a reviewer (one of the other 2 team members)
+# 6. Announce in team chat: "Created PR for feat/my-feature"
+
 ```
 
 #### Creating a Pull Request (PR)
