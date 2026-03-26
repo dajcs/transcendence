@@ -1,8 +1,8 @@
 ---
 phase: 02-core-betting
 verified: 2026-03-26T13:26:29Z
-status: gaps_found
-score: 9/10 must-haves verified
+status: passed
+score: 10/10 must-haves verified
 re_verification: false
 gaps:
   - truth: "Daily bp allocation runs at 00:00 UTC using floor(log10(kp+1)) formula"

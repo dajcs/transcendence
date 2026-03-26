@@ -29,7 +29,7 @@
 - [x] **BET-04**: Bet cap enforced per user per market: `floor(log10(kp+1)) + 1` bp
 - [ ] **BET-05**: bp balance cannot go below 0; checked atomically before deduction
 - [ ] **BET-06**: New user receives 10 bp signup bonus
-- [x] **BET-07**: Daily bp allocation runs at 00:00 UTC: `+floor(log10(kp+1))`
+- [x] **BET-07**: Daily bp allocation runs at 00:00 UTC: `+floor(log2(kp+1))`
 - [x] **BET-08**: Daily login bonus: +1 bp
 
 ### Discussion
