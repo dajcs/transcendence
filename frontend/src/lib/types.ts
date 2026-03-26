@@ -62,6 +62,7 @@ export interface Comment {
   id: string;
   bet_id: string;
   user_id: string;
+  author_username: string;
   parent_id: string | null;
   content: string;
   created_at: string;

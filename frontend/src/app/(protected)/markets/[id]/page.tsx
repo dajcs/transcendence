@@ -357,9 +357,13 @@ export default function MarketDetailPage() {
 
             <div className="space-y-2">
               {commentsQuery.data?.map((comment) => (
-                <div key={comment.id} className="rounded border border-gray-200 p-3">
+                <div
+                  key={comment.id}
+                  className={`rounded border border-gray-200 p-3${comment.parent_id ? " ml-6" : ""}`}
+                >
+                  <p className="text-xs font-medium text-gray-700 mb-1">{comment.author_username}</p>
                   <p className="text-sm text-gray-800">{comment.content}</p>
-                  <div className="mt-2 flex items-center justify-between text-xs text-gray-500">
+                  <div className="mt-2 flex items-center gap-3 text-xs text-gray-500">
                     <span>{new Date(comment.created_at).toLocaleString()}</span>
                     <button
                       onClick={() => upvoteComment.mutate(comment.id)}
@@ -367,7 +371,36 @@ export default function MarketDetailPage() {
                     >
                       Upvote ({comment.upvote_count})
                     </button>
+                    {comment.parent_id === null && (
+                      <button
+                        onClick={() => setReplyingTo(replyingTo === comment.id ? null : comment.id)}
+                        className="rounded border border-gray-300 px-2 py-1 hover:bg-gray-100"
+                      >
+                        Reply
+                      </button>
+                    )}
                   </div>
+                  {replyingTo === comment.id && (
+                    <form
+                      onSubmit={(e) => {
+                        e.preventDefault();
+                        if (!replyText.trim()) return;
+                        postComment.mutate({ content: replyText, parentId: comment.id });
+                      }}
+                      className="mt-2 flex gap-2"
+                    >
+                      <input
+                        value={replyText}
+                        onChange={(e) => setReplyText(e.target.value)}
+                        className="flex-1 rounded border border-gray-300 px-3 py-1 text-sm"
+                        placeholder="Write a reply..."
+                        autoFocus
+                      />
+                      <button type="submit" className="rounded bg-gray-900 px-3 py-1 text-sm text-white">
+                        Post
+                      </button>
+                    </form>
+                  )}
                 </div>
               ))}
               {commentsQuery.isLoading && <p className="text-sm text-gray-500">Loading comments...</p>}
