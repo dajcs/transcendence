@@ -37,13 +37,10 @@ export default function DashboardPage() {
                 href={`/markets/${position.bet_id}`}
                 className="block rounded border border-gray-200 bg-white p-3 hover:border-gray-300"
               >
-                <div className="flex items-center justify-between">
-                  <p className="font-medium text-gray-900">{position.market_title}</p>
-                  <span className="text-xs text-gray-500">View →</span>
-                </div>
+                <p className="font-medium text-gray-900">{position.market_title}</p>
                 <p className="mt-1 text-sm text-gray-600">
                   {position.side.toUpperCase()} · {position.bp_staked} BP staked ·{" "}
-                  YES {position.yes_pct}% / NO {position.no_pct}%
+                  Win {position.side === "yes" ? position.yes_pct : position.no_pct}%
                 </p>
               </Link>
             ))}
