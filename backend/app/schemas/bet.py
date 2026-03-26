@@ -3,12 +3,13 @@ import uuid
 from datetime import datetime
 from typing import Literal  # noqa: F401
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class BetPlaceRequest(BaseModel):
     bet_id: uuid.UUID
     side: str
+    amount: float = Field(default=1.0, ge=1.0)
 
 
 class BetPositionResponse(BaseModel):

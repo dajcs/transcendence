@@ -18,7 +18,7 @@ def compute_bet_cap(kp: int) -> int:
     """
     if kp <= 0:
         return 1
-    return math.floor(math.log2(kp)) + 1
+    return math.floor(math.log10(kp)) + 1
 
 
 def compute_refund_bp(yes_pool: float, no_pool: float, side: str) -> float:
