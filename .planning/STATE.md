@@ -4,12 +4,12 @@ milestone: v21.0
 milestone_name: milestone
 current_plan: 1
 status: Executing Phase 02
-last_updated: "2026-03-26T13:20:46.221Z"
+last_updated: "2026-03-26T13:22:06.158Z"
 progress:
   total_phases: 2
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 14
-  completed_plans: 12
+  completed_plans: 14
 ---
 
 # Project State
@@ -25,7 +25,7 @@ See: `.planning/PROJECT.md` (updated 2026-03-24)
 
 **Phase:** 02
 **Current Plan:** 1
-**Last session:** 2026-03-26T13:20:46.183Z
+**Last session:** 2026-03-26T13:21:53.968Z
 **Resume file:** None
 
 ## Decisions
@@ -51,6 +51,7 @@ See: `.planning/PROJECT.md` (updated 2026-03-24)
 - [Phase 01-05]: Seed script uses select + scalar_one_or_none before insert — safe to re-run without duplicate key errors
 - [Phase 01-05]: JWT key paths in .env.example updated to keys/ (relative, dev path) instead of /run/secrets/ (Docker Secrets path)
 - [Phase 02-09]: Display own-side win probability (Win X%) instead of both YES/NO percentages — simpler, user-centric
+- [Phase 02-07]: compute_bet_cap uses log10 (digit count) not log2 — correct BET-04 formula
 
 ## Performance Metrics
 
@@ -63,6 +64,8 @@ See: `.planning/PROJECT.md` (updated 2026-03-24)
 | 01 | 04 | 16min | 2 | 22 |
 | 01 | 05 | 15min | 2 | 4 |
 | Phase 02 P09 | 2min | 1 tasks | 1 files |
+| Phase 02 P07 | 2min | 2 tasks | 4 files |
+| Phase 02 P08 | 2 | 2 tasks | 4 files |
 
 ## Session History
 

@@ -26,7 +26,7 @@
 - [ ] **BET-01**: User can create a market (title, description, criteria, deadline)
 - [ ] **BET-02**: User can place a YES or NO bet (costs 1 bp)
 - [ ] **BET-03**: User can withdraw a bet before resolution (refund = current win probability)
-- [ ] **BET-04**: Bet cap enforced per user per market: `floor(log10(kp+1)) + 1` bp
+- [x] **BET-04**: Bet cap enforced per user per market: `floor(log10(kp+1)) + 1` bp
 - [ ] **BET-05**: bp balance cannot go below 0; checked atomically before deduction
 - [ ] **BET-06**: New user receives 10 bp signup bonus
 - [x] **BET-07**: Daily bp allocation runs at 00:00 UTC: `+floor(log10(kp+1))`
