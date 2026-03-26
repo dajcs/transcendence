@@ -30,13 +30,37 @@ async def create_market(
 
 @router.get("", response_model=MarketListResponse)
 async def list_markets(
+    request: Request,
     sort: str = Query(default="deadline", pattern="^(deadline|active|newest)$"),
-    status: str = Query(default="all", pattern="^(all|open|resolved)$"),
+    sort_dir: str = Query(default="", pattern="^(asc|desc|)$"),
+    status: str = Query(default="all", pattern="^(all|open|closed|resolved)$"),
+    my_bets: bool = Query(default=False),
+    q: str = Query(default=""),
+    include_desc: bool = Query(default=False),
     page: int = Query(default=1, ge=1),
     limit: int = Query(default=20, ge=1, le=100),
     db: AsyncSession = Depends(get_db),
 ):
-    return await market_service.list_markets(db, sort=sort, status=status, page=page, limit=limit)
+    user_id = None
+    if my_bets:
+        try:
+            user = await _get_current_user(request, db)
+            user_id = user.id
+        except HTTPException:
+            raise HTTPException(status_code=401, detail="Login required for My Bets filter")
+
+    return await market_service.list_markets(
+        db,
+        sort=sort,
+        sort_dir=sort_dir,
+        status=status,
+        my_bets=my_bets,
+        user_id=user_id,
+        q=q,
+        include_desc=include_desc,
+        page=page,
+        limit=limit,
+    )
 
 
 @router.get("/{market_id}", response_model=MarketResponse)

@@ -4,7 +4,6 @@ from datetime import datetime, timezone
 
 from fastapi import HTTPException
 from sqlalchemy import func, select
-from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models.bet import Bet, BetPosition, PositionHistory
@@ -18,6 +17,7 @@ from app.schemas.bet import (
 )
 from app.services.economy_service import (
     compute_bet_cap,
+    compute_numeric_refund_bp,
     compute_refund_bp,
     credit_bp,
     deduct_bp,
@@ -72,31 +72,27 @@ async def place_bet(db: AsyncSession, user_id: uuid.UUID, data: BetPlaceRequest)
 
     await _check_bet_cap(db, user_id, data.bet_id)
 
-    try:
-        await deduct_bp(db, user_id=user_id, amount=1.0, reason="bet_place", bet_id=data.bet_id)
-        if market.proposer_id == user_id:
-            await credit_bp(db, user_id=user_id, amount=1.0, reason="own_bet_vote", bet_id=data.bet_id)
-        position = BetPosition(
+    await deduct_bp(db, user_id=user_id, amount=1.0, reason="bet_place", bet_id=data.bet_id)
+    if market.proposer_id == user_id:
+        await credit_bp(db, user_id=user_id, amount=1.0, reason="own_bet_vote", bet_id=data.bet_id)
+    position = BetPosition(
+        id=uuid.uuid4(),
+        bet_id=data.bet_id,
+        user_id=user_id,
+        side=data.side,
+        bp_staked=1.0,
+    )
+    db.add(position)
+    db.add(
+        PositionHistory(
             id=uuid.uuid4(),
             bet_id=data.bet_id,
             user_id=user_id,
             side=data.side,
-            bp_staked=1.0,
         )
-        db.add(position)
-        db.add(
-            PositionHistory(
-                id=uuid.uuid4(),
-                bet_id=data.bet_id,
-                user_id=user_id,
-                side=data.side,
-            )
-        )
-        await db.commit()
-        await db.refresh(position)
-    except IntegrityError:
-        await db.rollback()
-        raise HTTPException(status_code=409, detail="You already have a position in this market")
+    )
+    await db.commit()
+    await db.refresh(position)
 
     return BetPositionResponse.model_validate(position)
 
@@ -110,21 +106,42 @@ async def withdraw_bet(db: AsyncSession, user_id: uuid.UUID, position_id: uuid.U
     if position.withdrawn_at is not None:
         raise HTTPException(status_code=409, detail="Position already withdrawn")
 
-    odds = await get_bet_odds(db, position.bet_id)
-    refund = compute_refund_bp(float(odds["yes_pool"]), float(odds["no_pool"]), position.side)
+    market = (await db.execute(select(Bet).where(Bet.id == position.bet_id))).scalar_one()
 
-    await credit_bp(
-        db,
-        user_id=user_id,
-        amount=refund,
-        reason="withdrawal_refund",
-        bet_id=position.bet_id,
-    )
+    if market.market_type == "numeric":
+        # Consensus proximity refund: 1 - |estimate - mean| / (max - min)
+        estimates_result = await db.execute(
+            select(BetPosition.side).where(
+                BetPosition.bet_id == position.bet_id,
+                BetPosition.withdrawn_at.is_(None),
+            )
+        )
+        estimates = [float(row) for row in estimates_result.scalars() if _is_numeric(row)]
+        mean_estimate = sum(estimates) / len(estimates) if estimates else float(position.side)
+        refund = compute_numeric_refund_bp(
+            float(position.side),
+            mean_estimate,
+            float(market.numeric_min or 0),
+            float(market.numeric_max or 1),
+        )
+    else:
+        odds = await get_bet_odds(db, position.bet_id)
+        refund = compute_refund_bp(float(odds["yes_pool"]), float(odds["no_pool"]), position.side)
+
+    await credit_bp(db, user_id=user_id, amount=refund, reason="withdrawal_refund", bet_id=position.bet_id)
     position.withdrawn_at = datetime.now(timezone.utc)
     position.refund_bp = refund
     await db.commit()
 
     return BetWithdrawResponse(id=position.id, refund_bp=float(refund), message="Position withdrawn")
+
+
+def _is_numeric(value: str) -> bool:
+    try:
+        float(value)
+        return True
+    except (ValueError, TypeError):
+        return False
 
 
 async def list_positions(db: AsyncSession, user_id: uuid.UUID) -> BetPositionsListResponse:

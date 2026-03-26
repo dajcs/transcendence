@@ -120,20 +120,40 @@ Error:  text-red-500 text-xs mt-1
 Container: bg-white border border-gray-200 rounded p-4
 ```
 
-### Filter Tabs (All / Open / Resolved)
+### Search Bar
 
 ```
-Tab bar:      flex gap-2 border-b border-gray-200 mb-4
-Tab default:  px-4 py-2 text-sm text-gray-600 hover:text-gray-900
-Tab active:   px-4 py-2 text-sm text-blue-600 border-b-2 border-blue-600 font-bold
+Input:    w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none
+Checkbox: text-xs text-gray-500 — "Include description & resolution criteria in search"
 ```
 
-### Sort Buttons (Deadline / Active / Newest)
+### Sort Buttons (Hot / New / Closing)
+
+Labels: section heading "Sort by" (text-xs font-medium text-gray-500 uppercase tracking-wide)
 
 ```
-Button default:  px-3 py-1 text-sm border border-gray-300 rounded hover:bg-gray-50
-Button active:   px-3 py-1 text-sm border border-blue-600 text-blue-600 rounded bg-blue-50
+Button default:  px-3 py-1 text-sm font-medium bg-blue-50 text-blue-700 rounded hover:bg-blue-100
+Button active:   px-3 py-1 text-sm font-medium bg-blue-600 text-white rounded
+Arrow suffix:    " ↑" (asc) or " ↓" (desc) — appended to active button label only
 ```
+
+Clicking an inactive button → activates it with default direction (Hot=↓, New=↓, Closing=↑)
+Clicking the active button → toggles direction (↑ ↔ ↓)
+
+### Filter Buttons (All / My Bets / Open / Closed / Resolved)
+
+Labels: section heading "Filter" (text-xs font-medium text-gray-500 uppercase tracking-wide)
+
+```
+Button default:  px-3 py-1 text-sm font-medium bg-gray-100 text-gray-700 rounded hover:bg-gray-200
+Button active:   px-3 py-1 text-sm font-medium bg-gray-800 text-white rounded
+```
+
+- **All** — no status filter
+- **My Bets** — markets where the authenticated user has an active position
+- **Open** — `status = "open"` (accepting bets)
+- **Closed** — `status = "closed"`, no resolution record (awaiting resolution)
+- **Resolved** — `status = "closed"`, has resolution record
 
 ### Pagination (Previous / Next)
 
@@ -227,7 +247,8 @@ All interactive elements must implement these states. Use Tailwind variants only
 ```
 TopNav (full width)
 Page heading: "Markets"  [text-2xl font-bold]
-Row: [Filter tabs: All / Open / Resolved]   [Sort buttons: Deadline / Active / Newest]
+Search bar (full width) + "Include description & resolution" checkbox
+Row: [Sort by: Hot ↑↓ | New ↑↓ | Closing ↑↓]  |  [Filter: All | My Bets | Open | Closed | Resolved]
 Market card list (vertical stack, gap-4)
   Each card: title (text-xl font-bold) | deadline | creator | odds | bp staked
 Pagination row: [← Previous]  Page N of M  [Next →]

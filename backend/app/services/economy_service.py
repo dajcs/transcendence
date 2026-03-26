@@ -22,7 +22,7 @@ def compute_bet_cap(kp: int) -> int:
 
 
 def compute_refund_bp(yes_pool: float, no_pool: float, side: str) -> float:
-    """BET-03/D-13: refund = round(win_probability_of_position, 2).
+    """Binary refund: probability of the position's side winning.
     If total pool is 0, return 0.5 (50/50 default)."""
     total = yes_pool + no_pool
     if total == 0:
@@ -30,6 +30,16 @@ def compute_refund_bp(yes_pool: float, no_pool: float, side: str) -> float:
     if side == "yes":
         return round(yes_pool / total, 2)
     return round(no_pool / total, 2)
+
+
+def compute_numeric_refund_bp(estimate: float, mean_estimate: float, range_min: float, range_max: float) -> float:
+    """Numeric refund: consensus proximity.
+    refund = 1 - |estimate - mean| / (range_max - range_min), clamped to [0, 1].
+    If only one participant, mean == estimate → full refund (1.0)."""
+    span = range_max - range_min
+    if span <= 0:
+        return 1.0
+    return round(max(0.0, 1.0 - abs(estimate - mean_estimate) / span), 2)
 
 
 async def get_balance(db: AsyncSession, user_id: uuid.UUID) -> dict:

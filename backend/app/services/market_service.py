@@ -5,10 +5,11 @@ from fastapi import HTTPException
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.models.bet import Bet, BetPosition, BetUpvote
-from app.db.models.bet import Comment
+from app.db.models.bet import Bet, BetPosition, BetUpvote, Comment, Resolution
 from app.schemas.market import MarketCreate, MarketListResponse, MarketResponse
 from app.services.economy_service import deduct_bp, get_bet_odds
+
+_DEFAULT_DIRS: dict[str, str] = {"deadline": "asc", "newest": "desc", "active": "desc"}
 
 
 async def create_market(
@@ -62,21 +63,67 @@ async def _get_choice_counts(db: AsyncSession, bet_id: uuid.UUID) -> dict[str, i
 async def list_markets(
     db: AsyncSession,
     sort: str = "deadline",
+    sort_dir: str = "",
     status: str = "all",
+    my_bets: bool = False,
+    user_id: uuid.UUID | None = None,
+    q: str = "",
+    include_desc: bool = False,
     page: int = 1,
     limit: int = 20,
 ) -> MarketListResponse:
     query = select(Bet)
 
+    # Status filter
     if status == "open":
         query = query.where(Bet.status == "open")
+    elif status == "closed":
+        has_res = (
+            select(func.count(Resolution.id))
+            .where(Resolution.bet_id == Bet.id)
+            .correlate(Bet)
+            .scalar_subquery()
+        )
+        query = query.where(Bet.status == "closed", has_res == 0)
     elif status == "resolved":
-        query = query.where(Bet.status == "closed")
+        has_res = (
+            select(func.count(Resolution.id))
+            .where(Resolution.bet_id == Bet.id)
+            .correlate(Bet)
+            .scalar_subquery()
+        )
+        query = query.where(has_res > 0)
+
+    # My bets filter
+    if my_bets and user_id:
+        query = query.where(
+            Bet.id.in_(
+                select(BetPosition.bet_id).where(
+                    BetPosition.user_id == user_id,
+                    BetPosition.withdrawn_at.is_(None),
+                )
+            )
+        )
+
+    # Search
+    if q:
+        term = f"%{q}%"
+        if include_desc:
+            query = query.where(
+                Bet.title.ilike(term)
+                | Bet.description.ilike(term)
+                | Bet.resolution_criteria.ilike(term)
+            )
+        else:
+            query = query.where(Bet.title.ilike(term))
+
+    # Sort (effective direction: explicit override or per-sort default)
+    effective_dir = sort_dir if sort_dir in ("asc", "desc") else _DEFAULT_DIRS.get(sort, "asc")
 
     if sort == "deadline":
-        query = query.order_by(Bet.deadline.asc())
+        query = query.order_by(Bet.deadline.asc() if effective_dir == "asc" else Bet.deadline.desc())
     elif sort == "newest":
-        query = query.order_by(Bet.created_at.desc())
+        query = query.order_by(Bet.created_at.desc() if effective_dir == "desc" else Bet.created_at.asc())
     elif sort == "active":
         active_count = (
             select(func.count(BetPosition.id))
@@ -84,7 +131,10 @@ async def list_markets(
             .correlate(Bet)
             .scalar_subquery()
         )
-        query = query.order_by(active_count.desc(), Bet.created_at.desc())
+        if effective_dir == "desc":
+            query = query.order_by(active_count.desc(), Bet.created_at.desc())
+        else:
+            query = query.order_by(active_count.asc(), Bet.created_at.desc())
 
     total = (await db.execute(select(func.count()).select_from(query.subquery()))).scalar_one()
     offset = (page - 1) * limit

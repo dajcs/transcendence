@@ -83,13 +83,24 @@ karma_bp = floor(log2(kp + 1))
 - **Disputing a resolution:** 1 bp upfront; +1 bp penalty if dispute is lost
 
 ### Withdrawal
-A bet can be withdrawn before resolution. Refund formula:
+A bet can be withdrawn before resolution. Refund formula depends on market type:
+
+**Binary / Multiple-choice:**
 ```
-refund_bp = round(current_winning_probability_of_position, 2)
+refund_bp = round(side_pool / total_pool, 2)
 ```
-- If YES position currently has 80% probability, withdrawing returns 0.8 bp (rounded to 2 decimal places)
-- Minimum refund: 0.0 bp (when rounded probability to 2 decimals is 0.00)
-- Withdrawal is immediate; position removed from market calculations
+- YES position at 80% probability → 0.80 bp refund
+- Minimum refund: 0.0 bp
+
+**Numeric:**
+```
+refund_bp = round(max(0, 1 - |estimate - mean_estimate| / (range_max - range_min)), 2)
+```
+- Consensus proximity: closer to the crowd mean → more bp back
+- Single participant (or estimate == mean): full 1.0 bp refund
+- Extreme outlier at range boundary: ~0.0 bp refund
+
+Withdrawal is immediate; position removed from pool/mean calculations before refund is computed.
 
 ### Negative Balance
 - bp balance **cannot go below 0**

@@ -1,12 +1,34 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { api } from "@/lib/api";
 import { useAuthStore } from "@/store/auth";
-import type { BetPosition, Comment, Market } from "@/lib/types";
+import type { BetPosition, BetPositionsListResponse, Comment, Market } from "@/lib/types";
+
+function estimateRefund(position: { side: string }, market: Market): { bp: number; reason: string } {
+  if (market.market_type === "numeric") {
+    const entries = Object.entries(market.choice_counts);
+    const totalVotes = entries.reduce((s, [, c]) => s + c, 0);
+    const mean = totalVotes > 0
+      ? entries.reduce((s, [v, c]) => s + parseFloat(v) * c, 0) / totalVotes
+      : parseFloat(position.side);
+    const span = (market.numeric_max ?? 1) - (market.numeric_min ?? 0);
+    const bp = span > 0 ? Math.max(0, 1 - Math.abs(parseFloat(position.side) - mean) / span) : 1;
+    return { bp: Math.round(bp * 100) / 100, reason: "based on consensus proximity" };
+  }
+  if (market.market_type === "binary") {
+    const bp = position.side === "yes" ? market.yes_pct / 100 : market.no_pct / 100;
+    return { bp: Math.round(bp * 100) / 100, reason: "based on current winning probability" };
+  }
+  // multiple_choice
+  const total = market.position_count || 1;
+  const count = market.choice_counts[position.side] ?? 0;
+  const bp = count / total;
+  return { bp: Math.round(bp * 100) / 100, reason: "based on current winning probability" };
+}
 
 export default function MarketDetailPage() {
   const params = useParams<{ id: string }>();
@@ -16,6 +38,15 @@ export default function MarketDetailPage() {
 
   const [side, setSide] = useState<string>("yes");
   const [commentText, setCommentText] = useState("");
+  const [showWithdrawConfirm, setShowWithdrawConfirm] = useState(false);
+
+  const positionsQuery = useQuery<BetPositionsListResponse>({
+    queryKey: ["positions"],
+    queryFn: async () => (await api.get("/api/bets/positions")).data,
+  });
+
+  const myPosition = [...(positionsQuery.data?.active ?? []), ...(positionsQuery.data?.resolved ?? [])]
+    .find((p) => p.bet_id === marketId && p.withdrawn_at === null) ?? null;
 
   const marketQuery = useQuery<Market>({
     queryKey: ["market", marketId],
@@ -32,6 +63,7 @@ export default function MarketDetailPage() {
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["market", marketId] });
       await queryClient.invalidateQueries({ queryKey: ["positions"] });
+      await bootstrap();
     },
   });
 
@@ -60,6 +92,16 @@ export default function MarketDetailPage() {
     },
   });
 
+  const withdrawBet = useMutation({
+    mutationFn: (positionId: string) => api.delete(`/api/bets/${positionId}`),
+    onSuccess: async () => {
+      setShowWithdrawConfirm(false);
+      await queryClient.invalidateQueries({ queryKey: ["positions"] });
+      await queryClient.invalidateQueries({ queryKey: ["market", marketId] });
+      await bootstrap();
+    },
+  });
+
   const onSubmitComment = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!commentText.trim()) {
@@ -69,6 +111,17 @@ export default function MarketDetailPage() {
   };
 
   const market = marketQuery.data;
+  const refundEstimate = market && myPosition ? estimateRefund(myPosition, market) : null;
+
+  useEffect(() => {
+    if (!market) return;
+    if (market.market_type === "numeric") {
+      setSide(String(((market.numeric_min ?? 0) + (market.numeric_max ?? 100)) / 2));
+    } else if (market.market_type === "multiple_choice" && market.choices?.length) {
+      setSide(market.choices[0]);
+    }
+    // binary: "yes" default is correct
+  }, [market?.market_type]);
 
   return (
     <div className="space-y-6">
@@ -175,7 +228,55 @@ export default function MarketDetailPage() {
             })()}
           </section>
 
-          <section className="rounded border border-gray-200 bg-white p-4">
+          {myPosition && market && (
+            <section className="rounded border border-blue-200 bg-blue-50 p-4">
+              <h2 className="mb-2 text-lg font-semibold text-blue-900">Your Position</h2>
+              <p className="text-sm text-blue-800">
+                {market.market_type === "numeric" ? (
+                  <>Estimate: <span className="font-medium">{myPosition.side}</span></>
+                ) : market.market_type === "multiple_choice" ? (
+                  <>Choice: <span className="font-medium">{myPosition.side}</span></>
+                ) : (
+                  <>Side: <span className="font-medium">{myPosition.side.toUpperCase()}</span></>
+                )}
+                {" · "}Staked: <span className="font-medium">{myPosition.bp_staked} BP</span>
+                {" · "}Est. refund: <span className="font-medium">{refundEstimate!.bp} BP</span>
+              </p>
+              {!showWithdrawConfirm ? (
+                <button
+                  onClick={() => setShowWithdrawConfirm(true)}
+                  className="mt-3 rounded border border-red-300 px-3 py-1 text-sm text-red-700 hover:bg-red-50"
+                >
+                  Withdraw
+                </button>
+              ) : (
+                <div className="mt-3 flex items-center gap-3 flex-wrap">
+                  <p className="text-sm text-red-700">
+                    Refund {refundEstimate!.bp} BP{" "}
+                    <span className="text-gray-500">({refundEstimate!.reason})</span>
+                  </p>
+                  <button
+                    onClick={() => withdrawBet.mutate(myPosition.id)}
+                    disabled={withdrawBet.isPending}
+                    className="rounded bg-red-600 px-3 py-1 text-sm text-white hover:bg-red-700 disabled:opacity-50"
+                  >
+                    {withdrawBet.isPending ? "Withdrawing..." : "Confirm"}
+                  </button>
+                  <button
+                    onClick={() => setShowWithdrawConfirm(false)}
+                    className="text-sm text-gray-600 hover:underline"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              )}
+              {withdrawBet.isError && (
+                <p className="mt-2 text-sm text-red-600">Withdrawal failed.</p>
+              )}
+            </section>
+          )}
+
+          {!myPosition && <section className="rounded border border-gray-200 bg-white p-4">
             <h2 className="mb-3 text-lg font-semibold">Place Bet</h2>
             {market.market_type === "binary" && (
               <div className="mb-3 flex gap-2">
@@ -229,7 +330,7 @@ export default function MarketDetailPage() {
               {placeBet.isPending ? "Placing..." : "Place 1 BP Bet"}
             </button>
             {placeBet.isError && <p className="mt-2 text-sm text-red-600">Unable to place bet.</p>}
-          </section>
+          </section>}
 
           <section className="rounded border border-gray-200 bg-white p-4">
             <h2 className="mb-3 text-lg font-semibold">Comments</h2>

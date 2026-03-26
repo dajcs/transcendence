@@ -1,6 +1,7 @@
 "use client";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import Link from "next/link";
+import { useQuery } from "@tanstack/react-query";
 
 import { api } from "@/lib/api";
 import type { BetPositionsListResponse } from "@/lib/types";
@@ -8,19 +9,10 @@ import { useAuthStore } from "@/store/auth";
 
 export default function DashboardPage() {
   const { user } = useAuthStore();
-  const queryClient = useQueryClient();
 
   const positionsQuery = useQuery<BetPositionsListResponse>({
     queryKey: ["positions"],
     queryFn: async () => (await api.get("/api/bets/positions")).data,
-  });
-
-  const withdrawMutation = useMutation({
-    mutationFn: async (positionId: string) => api.delete(`/api/bets/${positionId}`),
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["positions"] });
-      await queryClient.invalidateQueries({ queryKey: ["market"] });
-    },
   });
 
   return (
@@ -40,20 +32,20 @@ export default function DashboardPage() {
         {positionsQuery.data?.active.length ? (
           <div className="space-y-2">
             {positionsQuery.data.active.map((position) => (
-              <div key={position.id} className="rounded border border-gray-200 bg-white p-3">
+              <Link
+                key={position.id}
+                href={`/markets/${position.bet_id}`}
+                className="block rounded border border-gray-200 bg-white p-3 hover:border-gray-300"
+              >
                 <div className="flex items-center justify-between">
                   <p className="font-medium text-gray-900">{position.market_title}</p>
-                  <button
-                    onClick={() => withdrawMutation.mutate(position.id)}
-                    className="rounded border border-gray-300 px-2 py-1 text-xs hover:bg-gray-100"
-                  >
-                    Withdraw
-                  </button>
+                  <span className="text-xs text-gray-500">View →</span>
                 </div>
                 <p className="mt-1 text-sm text-gray-600">
-                  {position.side.toUpperCase()} · {position.bp_staked} BP · YES {position.yes_pct}% / NO {position.no_pct}%
+                  {position.side.toUpperCase()} · {position.bp_staked} BP staked ·{" "}
+                  YES {position.yes_pct}% / NO {position.no_pct}%
                 </p>
-              </div>
+              </Link>
             ))}
           </div>
         ) : (
@@ -66,12 +58,17 @@ export default function DashboardPage() {
         {positionsQuery.data?.resolved.length ? (
           <div className="space-y-2">
             {positionsQuery.data.resolved.map((position) => (
-              <div key={position.id} className="rounded border border-gray-200 bg-white p-3 text-sm text-gray-700">
+              <Link
+                key={position.id}
+                href={`/markets/${position.bet_id}`}
+                className="block rounded border border-gray-200 bg-white p-3 text-sm text-gray-700 hover:border-gray-300"
+              >
                 <p className="font-medium text-gray-900">{position.market_title}</p>
                 <p className="mt-1">
-                  {position.side.toUpperCase()} · Stake {position.bp_staked} BP · Refund {position.refund_bp ?? 0} BP
+                  {position.side.toUpperCase()} · Stake {position.bp_staked} BP · Refund{" "}
+                  {position.refund_bp ?? 0} BP
                 </p>
-              </div>
+              </Link>
             ))}
           </div>
         ) : (

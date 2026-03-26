@@ -21,8 +21,8 @@ Resolution (Tiers 1–3), social features, and real-time updates are separate ph
 - **D-01:** Functional Tailwind utilities only — no custom design tokens, no visual polish. Visual design (PLANNING.md color scheme, Inter/JetBrains Mono fonts, shadows) is deferred to Phase 6. Phase 2 ships features, not aesthetics.
 
 ### Markets Feed & List
-- **D-02:** Default sort: deadline soonest first (ascending). One-click sort toggle for "Most active" (by position count) and "Newest" — sort buttons in the list header, no dropdown needed.
-- **D-03:** Filter tabs: All / Open / Resolved. Three tabs, no more. "Mine" tab deferred to dashboard.
+- **D-02:** Sort buttons: **Closing** (deadline asc, default), **Hot** (position count desc), **New** (created desc). Clicking the active sort button toggles direction (↑/↓ arrow shown). Separate "Sort by" label from "Filter" label so users can distinguish the two groups.
+- **D-03:** Filter buttons: All / My Bets / Open / Closed / Resolved. Search box above filters — case-insensitive ILIKE on title by default; checkbox expands search to description + resolution criteria. My Bets requires auth (401 if unauthenticated). Closed = status "closed" with no Resolution record; Resolved = status "closed" with a Resolution record.
 - **D-04:** Pagination: simple Previous/Next page buttons. No infinite scroll (conflicts with Phase 4 real-time approach).
 
 ### Market Creation Form
@@ -40,7 +40,8 @@ Resolution (Tiers 1–3), social features, and real-time updates are separate ph
 
 ### Betting Mechanics
 - **D-12:** Odds displayed as simple pool probability: yes_pct = yes_pool / (yes_pool + no_pool). Shown as percentage. Pool = SUM(bp_staked) for each side.
-- **D-13:** Withdrawal refund: refund_bp = round(current_winning_probability_of_position, 2) as specified in ECONOMY.md. Withdrawn positions are excluded from pool calculations immediately.
+- **D-13:** Withdrawal refund — binary/choice: `round(side_pool / total_pool, 2)` (win probability). Numeric: `round(max(0, 1 - |estimate - mean_estimate| / (range_max - range_min)), 2)` (consensus proximity; mean computed from all active estimates). UI shows "Refund X BP (based on consensus proximity)" or "based on current winning probability" in the confirmation dialog. Withdrawn positions excluded from pool/mean immediately.
+- **D-13a:** `bet_positions(bet_id, user_id)` unique constraint removed (migration 004). Users can re-bet on a market after withdrawing. Application enforces at most one active position via `withdrawn_at IS NULL` check.
 - **D-14:** Bet placement and market creation use SELECT FOR UPDATE on user row to prevent double-spend. bp balance check + deduction in a single DB transaction.
 
 ### Comment Threads
@@ -48,7 +49,7 @@ Resolution (Tiers 1–3), social features, and real-time updates are separate ph
 - **D-16:** Upvoting a comment earns +1 kp for the author. Self-upvotes blocked by unique constraint (comment_id, user_id on comment_upvotes). Implemented as atomic insert — duplicate = no-op with 409 response.
 
 ### Dashboard
-- **D-17:** Dashboard shows: user's active bets (market title, side, bp staked, current odds), portfolio summary (total bp, total tp, total kp as of today), and recent resolved bets. No notification feed in Phase 2 (Phase 3).
+- **D-17:** Dashboard shows active bets and recent resolved/withdrawn bets as clickable cards — each navigates to the market detail page. Withdraw action lives on the market detail page (not dashboard), behind an inline confirmation dialog. Market detail shows a "Your Position" section (blue card) when the user has an active position, with side/estimate, staked BP, estimated refund, and the Withdraw button.
 
 ### Claude's Discretion
 - Exact pagination page size (suggest 20 markets/page)

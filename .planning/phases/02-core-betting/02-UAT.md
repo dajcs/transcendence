@@ -15,11 +15,11 @@ updated: 2026-03-26T00:30:00Z
 ## Current Test
 <!-- OVERWRITE each test - shows where we are -->
 
-number: 5
-name: Browse Markets Feed
+number: 7
+name: Market Detail + Positions View
 expected: |
-  Markets page loads a list and supports observable feed behavior
-  (sorting/filtering/pagination controls update results and state correctly).
+  Market detail page loads current odds/market info and shows user position
+  data section(s) without refresh glitches.
 awaiting: user response
 
 ## Tests
@@ -42,15 +42,17 @@ result: pass
 
 ### 5. Browse Markets Feed
 expected: Markets page loads a list and supports observable feed behavior (sorting/filtering/pagination controls update results and state correctly).
-result: pending
+result: pass
 
 ### 6. Create Market Flow
 expected: Creating a market from the protected create page succeeds, persists the new market, and the user can navigate to it afterward.
-result: pending
+result: pass
 
 ### 7. Market Detail + Positions View
 expected: Market detail page loads current odds/market info and shows user position data section(s) without refresh glitches.
-result: pending
+result: issue
+reported: "1) Dashboard bets are listed but clicking a bet doesn't open market detail. 2) Withdraw button on dashboard withdraws immediately - should open bet detail with a confirmation dialog instead. 3) On withdrawal bp was not increased - refund should be based on market probability of that position before withdrawal."
+severity: major
 
 ### 8. Place Bet + Validation
 expected: Placing a valid bet succeeds and updates displayed position/balance data; invalid/capped bet attempts show rejection behavior instead of silently succeeding.
@@ -88,9 +90,9 @@ result: pending
 ## Summary
 
 total: 11
-passed: 4
-issues: 0
-pending: 7
+passed: 6
+issues: 1
+pending: 4
 skipped: 0
 blocked: 0
 

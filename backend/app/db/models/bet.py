@@ -41,7 +41,8 @@ class BetPosition(Base):
     withdrawn_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     refund_bp: Mapped[float | None] = mapped_column(Numeric(10, 2), nullable=True)
 
-    __table_args__ = (UniqueConstraint("bet_id", "user_id"),)
+    # No unique constraint — users can re-bet after withdrawal.
+    # Application logic enforces at most one active position (withdrawn_at IS NULL).
 
 
 class PositionHistory(Base):
