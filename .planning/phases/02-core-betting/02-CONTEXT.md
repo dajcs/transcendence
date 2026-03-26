@@ -35,7 +35,7 @@ Resolution (Tiers 1–3), social features, and real-time updates are separate ph
 - **D-09:** kp is computed from kp_events. No kp_balance column on User. Celery daily task: SUM kp_events for each user → credit floor(log10(kp+1)) bp → insert negative kp reset event. Pure ledger.
 
 ### Points Economy (Celery Tasks)
-- **D-10:** Celery daily task runs at 00:00 UTC: compute karma_bp per user, insert bp_transaction (+karma_bp), insert kp reset event (large negative). Formula: floor(log10(kp + 1)) as specified in ECONOMY.md.
+- **D-10:** Celery daily task runs at 00:00 UTC: compute karma_bp per user, insert bp_transaction (+karma_bp), insert kp reset event (large negative). Formula: `floor(log2(kp + 1))` — changed from log10 for faster early growth at low kp counts (confirmed in UAT, REQUIREMENTS.md updated).
 - **D-11:** Sign-up bonus (+10 bp) credited as a bp_transaction at registration. Daily login bonus (+1 bp) credited as a bp_transaction on first authenticated request of the day (backend checks last_login date).
 
 ### Betting Mechanics
@@ -46,7 +46,9 @@ Resolution (Tiers 1–3), social features, and real-time updates are separate ph
 
 ### Comment Threads
 - **D-15:** Up to 5-level deep replies (parent_id supported in Comment model). Flat render with depth-based indent (24px per level). Reply button hidden at depth ≥ 4. Backend enforces max via ancestor chain traversal. No collapse/expand — keep it simple.
-- **D-16:** Upvoting a comment earns +1 kp for the author. Self-upvotes blocked by unique constraint (comment_id, user_id on comment_upvotes). Implemented as atomic insert — duplicate = no-op with 409 response.
+- **D-16:** Upvoting a comment earns +1 kp for the author. Self-upvotes and duplicate upvotes are silent no-ops (IntegrityError caught and rolled back — no error returned). Market upvotes follow the same idempotent pattern. Comment upvote button uses a Reddit-style small ▲ arrow (orange on hover); market upvote uses a larger stacked ▲ / count column.
+- **D-18:** Comments are rendered in DFS tree order (not flat created_at order) so replies appear directly under their parent. Depth map and children map built from flat API response before render.
+- **D-19:** Date display uses `toLocaleString()` — browser system locale, no fixed format.
 
 ### Dashboard
 - **D-17:** Dashboard shows active bets and recent resolved/withdrawn bets as clickable cards — each navigates to the market detail page. Withdraw action lives on the market detail page (not dashboard), behind an inline confirmation dialog. Market detail shows a "Your Position" section (blue card) when the user has an active position, with side/estimate, staked BP, estimated refund, and the Withdraw button.

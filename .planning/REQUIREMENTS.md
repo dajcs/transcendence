@@ -23,12 +23,12 @@
 
 ### Betting
 
-- [ ] **BET-01**: User can create a market (title, description, criteria, deadline)
-- [ ] **BET-02**: User can place a YES or NO bet (costs 1 bp)
-- [ ] **BET-03**: User can withdraw a bet before resolution (refund = current win probability)
-- [x] **BET-04**: Bet cap enforced per user per market: `floor(log10(kp+1)) + 1` bp
-- [ ] **BET-05**: bp balance cannot go below 0; checked atomically before deduction
-- [ ] **BET-06**: New user receives 10 bp signup bonus
+- [x] **BET-01**: User can create a market (title, description, criteria, deadline)
+- [x] **BET-02**: User can place a YES or NO bet (costs 1 bp)
+- [x] **BET-03**: User can withdraw a bet before resolution (refund = current win probability)
+- [x] **BET-04**: Bet cap enforced per user per market: `floor(log2(kp+1)) + 1` bp
+- [x] **BET-05**: bp balance cannot go below 0; checked atomically before deduction
+- [x] **BET-06**: New user receives 10 bp signup bonus
 - [x] **BET-07**: Daily bp allocation runs at 00:00 UTC: `+floor(log2(kp+1))`
 - [x] **BET-08**: Daily login bonus: +1 bp
 
@@ -114,8 +114,8 @@
 | INFRA-01 to INFRA-05 | Phase 1 | Pending |
 | AUTH-01 to AUTH-04 | Phase 1 | Pending |
 | AUTH-05 | Phase 6 | Pending |
-| BET-01 to BET-08 | Phase 2 | Pending |
-| DISC-01 to DISC-03 | Phase 2 | Pending |
+| BET-01 to BET-08 | Phase 2 | Complete |
+| DISC-01 to DISC-03 | Phase 2 | Complete |
 | RES-01 to RES-06 | Phase 5 | Pending |
 | SOC-01 to SOC-05 | Phase 3 | Pending |
 | RT-01 to RT-03 | Phase 4 | Pending |
