@@ -1,5 +1,5 @@
 ---
-status: diagnosed
+status: resolved
 phase: 02-core-betting
 source:
   - .planning/phases/02-core-betting/02-01-SUMMARY.md
@@ -9,7 +9,7 @@ source:
   - .planning/phases/02-core-betting/02-05-SUMMARY.md
   - .planning/phases/02-core-betting/02-06-SUMMARY.md
 started: 2026-03-25T16:22:20Z
-updated: 2026-03-26T09:00:00Z
+updated: 2026-03-26T14:00:00Z
 ---
 
 ## Current Test
@@ -101,7 +101,7 @@ blocked: 0
 ## Gaps
 
 - truth: "Bet cap is enforced server-side and client-side; bet input accepts decimal amounts without browser validation errors."
-  status: failed
+  status: resolved
   reason: "User reported: 1) Bet cap not enforced — Alice (stackoverflow) could bet 42 when valid range is 8–40. 2) Bet input has implicit integer-only constraint (step=1 or similar) — browser tooltip 'please enter a valid value, closest values are 33 and 34' appears when entering 33.33; decimals should be allowed."
   severity: major
   test: 8
@@ -125,7 +125,7 @@ blocked: 0
   debug_session: ""
 
 - truth: "Comments show reply button for one-level nesting; comment author is visible on each comment."
-  status: failed
+  status: resolved
   reason: "User reported: 1) No reply button on comments — only top-level comments can be placed. 2) Comment author is not displayed."
   severity: major
   test: 10
@@ -150,7 +150,7 @@ blocked: 0
   debug_session: ""
 
 - truth: "Dashboard portfolio entries styled like market listing (clickable rows, no explicit View button); each entry shows user's own position amount and winning probability."
-  status: failed
+  status: resolved
   reason: "User reported: Dashboard bet listing should match market listing style — no explicit 'View' button (clicking the row is obvious). Missing: user's own position amount and own winning probability on each portfolio entry."
   severity: major
   test: 11
