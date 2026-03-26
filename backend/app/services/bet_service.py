@@ -25,7 +25,8 @@ from app.services.economy_service import (
 )
 
 
-async def _check_bet_cap(db: AsyncSession, user_id: uuid.UUID, bet_id: uuid.UUID) -> None:
+async def _check_bet_cap(db: AsyncSession, user_id: uuid.UUID, amount: float) -> None:
+    """BET-04: reject if amount exceeds today's kp-based cap."""
     today = datetime.now(timezone.utc).date()
     kp = (
         await db.execute(
@@ -36,19 +37,11 @@ async def _check_bet_cap(db: AsyncSession, user_id: uuid.UUID, bet_id: uuid.UUID
         )
     ).scalar_one()
     cap = compute_bet_cap(int(kp or 0))
-
-    active_positions = (
-        await db.execute(
-            select(func.count(BetPosition.id)).where(
-                BetPosition.bet_id == bet_id,
-                BetPosition.user_id == user_id,
-                BetPosition.withdrawn_at.is_(None),
-            )
+    if amount > cap:
+        raise HTTPException(
+            status_code=422,
+            detail=f"Bet amount {amount} exceeds your daily cap of {cap} bp.",
         )
-    ).scalar_one()
-
-    if int(active_positions) >= cap:
-        raise HTTPException(status_code=422, detail=f"Bet cap reached for this market ({cap}).")
 
 
 async def place_bet(db: AsyncSession, user_id: uuid.UUID, data: BetPlaceRequest) -> BetPositionResponse:
@@ -70,17 +63,17 @@ async def place_bet(db: AsyncSession, user_id: uuid.UUID, data: BetPlaceRequest)
     if existing_position is not None:
         raise HTTPException(status_code=409, detail="You already have a position in this market")
 
-    await _check_bet_cap(db, user_id, data.bet_id)
+    await _check_bet_cap(db, user_id, data.amount)
 
-    await deduct_bp(db, user_id=user_id, amount=1.0, reason="bet_place", bet_id=data.bet_id)
+    await deduct_bp(db, user_id=user_id, amount=data.amount, reason="bet_place", bet_id=data.bet_id)
     if market.proposer_id == user_id:
-        await credit_bp(db, user_id=user_id, amount=1.0, reason="own_bet_vote", bet_id=data.bet_id)
+        await credit_bp(db, user_id=user_id, amount=data.amount, reason="own_bet_vote", bet_id=data.bet_id)
     position = BetPosition(
         id=uuid.uuid4(),
         bet_id=data.bet_id,
         user_id=user_id,
         side=data.side,
-        bp_staked=1.0,
+        bp_staked=data.amount,
     )
     db.add(position)
     db.add(

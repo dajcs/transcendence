@@ -39,6 +39,8 @@ export default function MarketDetailPage() {
   const [side, setSide] = useState<string>("yes");
   const [commentText, setCommentText] = useState("");
   const [showWithdrawConfirm, setShowWithdrawConfirm] = useState(false);
+  const [replyingTo, setReplyingTo] = useState<string | null>(null);
+  const [replyText, setReplyText] = useState("");
 
   const positionsQuery = useQuery<BetPositionsListResponse>({
     queryKey: ["positions"],
@@ -68,10 +70,12 @@ export default function MarketDetailPage() {
   });
 
   const postComment = useMutation({
-    mutationFn: async (content: string) =>
-      api.post(`/api/markets/${marketId}/comments`, { content }),
+    mutationFn: async ({ content, parentId }: { content: string; parentId: string | null }) =>
+      api.post(`/api/markets/${marketId}/comments`, { content, parent_id: parentId }),
     onSuccess: async () => {
       setCommentText("");
+      setReplyText("");
+      setReplyingTo(null);
       await queryClient.invalidateQueries({ queryKey: ["comments", marketId] });
     },
   });
@@ -107,7 +111,7 @@ export default function MarketDetailPage() {
     if (!commentText.trim()) {
       return;
     }
-    postComment.mutate(commentText.trim());
+    postComment.mutate({ content: commentText.trim(), parentId: null });
   };
 
   const market = marketQuery.data;
@@ -316,6 +320,7 @@ export default function MarketDetailPage() {
                   type="number"
                   min={market.numeric_min ?? undefined}
                   max={market.numeric_max ?? undefined}
+                  step="any"
                   value={side}
                   onChange={(e) => setSide(e.target.value)}
                   className="rounded border border-gray-300 px-3 py-1 text-sm w-40"
