@@ -55,7 +55,7 @@ Plans:
 
 **42 modules:** Standard user management (2pts) — partial
 
-**Plans:** 9 plans (6 complete + 3 gap closure)
+**Plans:** 7/9 plans executed
 
 Plans:
 - [x] 02-01-PLAN.md — Market model, CRUD API, list + detail pages
@@ -66,7 +66,7 @@ Plans:
 - [x] 02-06-PLAN.md — UAT fixes: login, nav balance, multichoice/numeric markets
 - [ ] 02-07-PLAN.md — Gap closure: bet cap enforcement + decimal input fix
 - [ ] 02-08-PLAN.md — Gap closure: comment author display + reply UI
-- [ ] 02-09-PLAN.md — Gap closure: dashboard portfolio row cleanup
+- [x] 02-09-PLAN.md — Gap closure: dashboard portfolio row cleanup
 
 ---
 

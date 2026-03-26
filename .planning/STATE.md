@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v21.0
 milestone_name: milestone
-current_plan: Not started
-status: Milestone complete
-last_updated: "2026-03-25T16:14:03.442Z"
+current_plan: 1
+status: Executing Phase 02
+last_updated: "2026-03-26T13:20:46.221Z"
 progress:
   total_phases: 2
-  completed_phases: 2
-  total_plans: 11
-  completed_plans: 11
+  completed_phases: 1
+  total_plans: 14
+  completed_plans: 12
 ---
 
 # Project State
@@ -24,9 +24,9 @@ See: `.planning/PROJECT.md` (updated 2026-03-24)
 ## Current Status
 
 **Phase:** 02
-**Current Plan:** Not started
-**Last session:** 2026-03-25T12:18:07.743Z
-**Resume file:** .planning/phases/02-core-betting/02-UI-SPEC.md
+**Current Plan:** 1
+**Last session:** 2026-03-26T13:20:46.183Z
+**Resume file:** None
 
 ## Decisions
 
@@ -50,6 +50,7 @@ See: `.planning/PROJECT.md` (updated 2026-03-24)
 - [Phase 01-04]: Zustand logout() is async — calls /api/auth/logout before clearing store state for proper server-side cookie clearing
 - [Phase 01-05]: Seed script uses select + scalar_one_or_none before insert — safe to re-run without duplicate key errors
 - [Phase 01-05]: JWT key paths in .env.example updated to keys/ (relative, dev path) instead of /run/secrets/ (Docker Secrets path)
+- [Phase 02-09]: Display own-side win probability (Win X%) instead of both YES/NO percentages — simpler, user-centric
 
 ## Performance Metrics
 
@@ -61,6 +62,7 @@ See: `.planning/PROJECT.md` (updated 2026-03-24)
 | Phase 01 P03 | 9min | 2 tasks | 15 files |
 | 01 | 04 | 16min | 2 | 22 |
 | 01 | 05 | 15min | 2 | 4 |
+| Phase 02 P09 | 2min | 1 tasks | 1 files |
 
 ## Session History
 
