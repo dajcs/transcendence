@@ -43,8 +43,12 @@ description     TEXT NOT NULL
 resolution_criteria TEXT NOT NULL
 resolution_source TEXT       -- optional API URL
 deadline        TIMESTAMPTZ NOT NULL
+market_type     TEXT NOT NULL DEFAULT 'binary'  -- 'binary'|'multiple_choice'|'numeric'
+choices         JSONB          -- list of choice strings; only for multiple_choice markets
+numeric_min     FLOAT          -- only for numeric markets
+numeric_max     FLOAT          -- only for numeric markets
 status          TEXT NOT NULL  -- 'open'|'pending'|'auto_resolved'|'proposer_resolved'|'disputed'|'closed'
-winning_side    TEXT           -- 'yes'|'no'|NULL until closed
+winning_side    TEXT           -- 'yes'|'no'|choice text|numeric value|NULL until closed
 created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
 closed_at       TIMESTAMPTZ
 ```
@@ -54,7 +58,7 @@ closed_at       TIMESTAMPTZ
 id          UUID PRIMARY KEY DEFAULT gen_random_uuid()
 bet_id      UUID NOT NULL REFERENCES bets(id)
 user_id     UUID NOT NULL REFERENCES users(id)
-side        TEXT NOT NULL  -- 'yes'|'no'
+side        TEXT NOT NULL  -- 'yes'|'no' for binary; choice text for multiple_choice; numeric string for numeric
 bp_staked   NUMERIC(10,2) NOT NULL
 placed_at   TIMESTAMPTZ NOT NULL DEFAULT now()
 withdrawn_at TIMESTAMPTZ
@@ -77,7 +81,7 @@ Used to calculate `t_win / t_bet` accurately.
 id          UUID PRIMARY KEY DEFAULT gen_random_uuid()
 user_id     UUID NOT NULL REFERENCES users(id)
 amount      NUMERIC(10,2) NOT NULL  -- positive = credit, negative = debit
-reason      TEXT NOT NULL  -- 'signup'|'daily_login'|'daily_allocation'|'bet_placed'|'bet_won'|'withdrawal'|'dispute_opened'|'dispute_won'|'dispute_lost'|'proposer_penalty'
+reason      TEXT NOT NULL  -- 'signup'|'daily_login'|'daily_allocation'|'market_create'|'bet_place'|'own_bet_vote'|'bet_won'|'withdrawal_refund'|'dispute_opened'|'dispute_won'|'dispute_lost'|'proposer_penalty'
 bet_id      UUID REFERENCES bets(id)  -- nullable
 created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
 ```
@@ -97,7 +101,7 @@ created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
 id          UUID PRIMARY KEY DEFAULT gen_random_uuid()
 user_id     UUID NOT NULL REFERENCES users(id)
 amount      INTEGER NOT NULL  -- +1 per upvote
-source_type TEXT NOT NULL  -- 'comment_upvote'|'bet_upvote'
+source_type TEXT NOT NULL  -- 'comment_upvote'|'market_upvote'|'daily_reset'
 source_id   UUID NOT NULL
 day_date    DATE NOT NULL   -- which day this kp counts toward
 created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
@@ -157,6 +161,15 @@ user_id     UUID NOT NULL REFERENCES users(id)
 created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
 PRIMARY KEY (comment_id, user_id)
 ```
+
+### bet_upvotes
+```sql
+bet_id      UUID NOT NULL REFERENCES bets(id)
+user_id     UUID NOT NULL REFERENCES users(id)
+created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+PRIMARY KEY (bet_id, user_id)
+```
+One upvote per user per market. Awards +1 kp to the market proposer.
 
 ---
 
@@ -223,4 +236,4 @@ CREATE INDEX idx_comments_bet ON comments(bet_id, created_at) WHERE deleted_at I
 
 ---
 
-*Last updated: 2026-03-24*
+*Last updated: 2026-03-26*

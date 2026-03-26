@@ -16,7 +16,8 @@ Vox Populi uses four point currencies. No real money involved.
 ## Karma Points (kp)
 
 ### Earning
-- +1 kp per upvote received on any comment or proposed bet
+- +1 kp per upvote received on a comment (`source_type = comment_upvote`)
+- +1 kp per upvote received on a market (`source_type = market_upvote`)
 - Resets **daily at 00:00 UTC**
 
 ### Edge Cases
@@ -37,8 +38,9 @@ Vox Populi uses four point currencies. No real money involved.
 |---|---|
 | Sign-up bonus | +10 bp |
 | Daily login | +1 bp |
-| Daily allocation | +floor(log10(kp + 1)) bp |
+| Daily allocation | +floor(log2(kp + 1)) bp |
 | Winning a bet | +1 bp |
+| Voting on your own market | +1 bp (rebate — net cost is 0) |
 | Successful dispute of a bet | +2 bp |
 
 ## Daily bp Allocation Task
@@ -46,15 +48,15 @@ Vox Populi uses four point currencies. No real money involved.
 - Runs at 00:00 UTC daily
 
 - For each user:
-  - Calculate `karma_bp = floor(log10(kp + 1))`
+  - Calculate `karma_bp = floor(log2(kp + 1))`
   - Insert a bp transaction of `+karma_bp` into `bp_transactions`
   - Reset kp to 0 for the new day
 
 ```
-karma_bp = floor(log10(kp + 1))
+karma_bp = floor(log2(kp + 1))
 ```
 
-- Base: log10 (base 10)
+- Base: log2 (base 2) — chosen for faster growth at low kp counts (early-stage user base)
 - `+1` offset ensures log never goes negative or undefined (handles `kp = 0`)
 - `floor()` truncates to integer — no fractional bp
 - Calculated and credited at **00:00 UTC** using kp from the **previous day**
@@ -65,13 +67,12 @@ karma_bp = floor(log10(kp + 1))
 | kp | karma_bp |
 |---|---|
 | 0 | 0 |
-| 1 | 0 |
-| 9 | 1 |
-| 10 | 1 |
-| 99 | 2 |
-| 100 | 2 |
-| 1000 | 3 |
-| 10000 | 4 |
+| 1 | 1 |
+| 3 | 2 |
+| 7 | 3 |
+| 15 | 4 |
+| 31 | 5 |
+| 63 | 6 |
 
 - Prevents whales from dominating markets regardless of bp balance
 
@@ -173,4 +174,4 @@ Community dispute votes are weighted to penalize self-serving voting:
 
 ---
 
-*Last updated: 2026-03-24*
+*Last updated: 2026-03-26*

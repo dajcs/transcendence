@@ -9,7 +9,7 @@ source:
   - .planning/phases/02-core-betting/02-05-SUMMARY.md
   - .planning/phases/02-core-betting/02-06-SUMMARY.md
 started: 2026-03-25T16:22:20Z
-updated: 2026-03-25T18:55:00Z
+updated: 2026-03-26T00:30:00Z
 ---
 
 ## Current Test
@@ -73,6 +73,17 @@ result: pending
 - Login now supports both username and email across UI and backend payload compatibility.
 - Login form error rendering was hardened to avoid React runtime crashes on structured API validation errors.
 - Access-token inactivity window increased from 15 minutes to 5 hours (JWT expiry + cookie max_age aligned).
+- Voting on your own market now correctly rebates +1 bp (net cost 0); implemented in `bet_service.place_bet`.
+- Top nav balance updates immediately after market creation, betting, and upvoting — `bootstrap()` called in mutation `onSuccess`.
+- Markets support three types: `binary`, `multiple_choice` (choices stored as JSONB), `numeric` (min/max range); DB migration 002.
+- Market listing shows comment count alongside vote count.
+- Market detail shows yes/no vote counts for binary, per-choice progress bars for multichoice, and a histogram for numeric.
+- `BetPlaceRequest.side` changed from `Literal["yes","no"]` to `str` to support multichoice and numeric voting.
+- Market upvotes added (`bet_upvotes` table, migration 003); upvoting a market awards +1 kp to the proposer.
+- Comment upvote KP and market upvote KP now reflected in top nav immediately after action.
+- Daily allocation formula changed from `log10` to `log2` (faster growth at low kp counts).
+- Market creation error messages now show the specific validation reason from the API response.
+- Stale `celerybeat-schedule` file prevented midnight allocation from firing; resolved by deleting the file on restart. Daily allocation was applied manually for the missed cycle.
 
 ## Summary
 

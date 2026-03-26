@@ -134,14 +134,16 @@
 ## Key Abstractions
 
 **Market:**
-- Purpose: Core betting entity; represents a prediction question with YES/NO binary outcome
-- Examples: `backend/app/models/market.py`, `backend/app/schemas/market.py`, `backend/app/services/market.py`
+- Purpose: Core betting entity; represents a prediction question with configurable outcome type
+- Types: `binary` (YES/NO), `multiple_choice` (up to 10 user-defined choices), `numeric` (range with float estimates)
+- Examples: `backend/app/services/market_service.py`, `backend/app/schemas/market.py`, `backend/app/db/models/bet.py`
 - Pattern: SQLAlchemy model + Pydantic schema + service layer for business logic
 
-**Bet:**
-- Purpose: User's position in a market (YES or NO for a given amount)
-- Examples: `backend/app/models/bet.py`, `backend/app/routers/bets.py`
-- Pattern: One bet per user per market; immutable once placed; settlement happens after resolution
+**Bet (Position):**
+- Purpose: User's position in a market; `side` stores the chosen outcome as text
+- Side values: `'yes'`/`'no'` for binary; choice text for multiple_choice; numeric string for numeric markets
+- Examples: `backend/app/services/bet_service.py`
+- Pattern: One position per user per market; immutable once placed; settlement happens after resolution
 
 **User Reputation (Karma, Truth, Spice):**
 - Purpose: Quantify user influence and track record
