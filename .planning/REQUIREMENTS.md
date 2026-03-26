@@ -30,7 +30,7 @@
 - [ ] **BET-05**: bp balance cannot go below 0; checked atomically before deduction
 - [ ] **BET-06**: New user receives 10 bp signup bonus
 - [x] **BET-07**: Daily bp allocation runs at 00:00 UTC: `+floor(log10(kp+1))`
-- [ ] **BET-08**: Daily login bonus: +1 bp
+- [x] **BET-08**: Daily login bonus: +1 bp
 
 ### Discussion
 
