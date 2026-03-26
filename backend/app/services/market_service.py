@@ -266,5 +266,4 @@ async def upvote_market(db: AsyncSession, user_id: uuid.UUID, market_id: uuid.UU
         ))
         await db.commit()
     except IntegrityError:
-        await db.rollback()
-        raise HTTPException(status_code=409, detail="Already upvoted")
+        await db.rollback()  # already upvoted — treat as no-op

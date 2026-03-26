@@ -86,10 +86,6 @@ export default function MarketDetailPage() {
       await queryClient.invalidateQueries({ queryKey: ["comments", marketId] });
       await bootstrap();
     },
-    onError: (err: unknown) => {
-      if ((err as { response?: { status?: number } })?.response?.status === 409) return;
-      console.error(err);
-    },
   });
 
   const upvoteMarket = useMutation({
@@ -97,10 +93,6 @@ export default function MarketDetailPage() {
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["market", marketId] });
       await bootstrap();
-    },
-    onError: (err: unknown) => {
-      if ((err as { response?: { status?: number } })?.response?.status === 409) return;
-      console.error(err);
     },
   });
 
@@ -126,10 +118,24 @@ export default function MarketDetailPage() {
   const refundEstimate = market && myPosition ? estimateRefund(myPosition, market) : null;
 
   const commentItems = commentsQuery.data ?? [];
+  // Build depth map and children map for tree-ordered rendering
   const commentDepthMap = new Map<string, number>();
+  const commentChildrenMap = new Map<string | null, Comment[]>();
   for (const c of commentItems) {
     commentDepthMap.set(c.id, c.parent_id ? (commentDepthMap.get(c.parent_id) ?? 0) + 1 : 0);
+    const key = c.parent_id ?? null;
+    if (!commentChildrenMap.has(key)) commentChildrenMap.set(key, []);
+    commentChildrenMap.get(key)!.push(c);
   }
+  // DFS traversal so each reply appears directly under its parent
+  const orderedComments: Comment[] = [];
+  const dfsComments = (parentId: string | null) => {
+    for (const c of commentChildrenMap.get(parentId) ?? []) {
+      orderedComments.push(c);
+      dfsComments(c.id);
+    }
+  };
+  dfsComments(null);
 
   useEffect(() => {
     if (!market) return;
@@ -371,7 +377,7 @@ export default function MarketDetailPage() {
             </form>
 
             <div className="space-y-2">
-              {commentItems.map((comment) => {
+              {orderedComments.map((comment) => {
                 const depth = commentDepthMap.get(comment.id) ?? 0;
                 return (
                   <div

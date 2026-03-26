@@ -116,5 +116,4 @@ async def upvote_comment(db: AsyncSession, voter_id: uuid.UUID, comment_id: uuid
         )
         await db.commit()
     except IntegrityError:
-        await db.rollback()
-        raise HTTPException(status_code=409, detail="You already upvoted this comment")
+        await db.rollback()  # already upvoted — treat as no-op
