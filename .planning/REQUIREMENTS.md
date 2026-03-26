@@ -36,7 +36,7 @@
 
 - [x] **DISC-01**: Each bet has a threaded comment section
 - [x] **DISC-02**: Users can upvote comments (earns kp for author)
-- [ ] **DISC-03**: Comments support nested replies (1 level deep)
+- [x] **DISC-03**: Comments support nested replies (up to 5 levels deep)
 
 ### Resolution
 

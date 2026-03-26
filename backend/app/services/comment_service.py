@@ -29,8 +29,14 @@ async def create_comment(
             raise HTTPException(status_code=404, detail="Parent comment not found")
         if parent.bet_id != bet_id:
             raise HTTPException(status_code=422, detail="Parent comment belongs to another market")
-        if parent.parent_id is not None:
-            raise HTTPException(status_code=422, detail="Replies to replies are not allowed")
+        # Enforce max 5-level nesting by traversing ancestor chain
+        depth = 0
+        current = parent
+        while current.parent_id is not None:
+            current = (await db.execute(select(Comment).where(Comment.id == current.parent_id))).scalar_one()
+            depth += 1
+        if depth >= 4:
+            raise HTTPException(status_code=422, detail="Maximum reply depth (5 levels) reached")
 
     comment = Comment(
         id=uuid.uuid4(),

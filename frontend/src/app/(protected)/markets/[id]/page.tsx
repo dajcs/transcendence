@@ -86,6 +86,10 @@ export default function MarketDetailPage() {
       await queryClient.invalidateQueries({ queryKey: ["comments", marketId] });
       await bootstrap();
     },
+    onError: (err: unknown) => {
+      if ((err as { response?: { status?: number } })?.response?.status === 409) return;
+      console.error(err);
+    },
   });
 
   const upvoteMarket = useMutation({
@@ -93,6 +97,10 @@ export default function MarketDetailPage() {
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["market", marketId] });
       await bootstrap();
+    },
+    onError: (err: unknown) => {
+      if ((err as { response?: { status?: number } })?.response?.status === 409) return;
+      console.error(err);
     },
   });
 
@@ -140,9 +148,10 @@ export default function MarketDetailPage() {
               <button
                 onClick={() => upvoteMarket.mutate()}
                 disabled={upvoteMarket.isPending}
-                className="shrink-0 rounded border border-gray-300 px-3 py-1 text-sm hover:bg-gray-100 disabled:opacity-50"
+                className="shrink-0 flex flex-col items-center text-gray-400 hover:text-orange-500 transition-colors disabled:opacity-50 px-2"
               >
-                ▲ {market.upvote_count}
+                <span className="text-2xl leading-none">▲</span>
+                <span className="text-xs font-medium">{market.upvote_count}</span>
               </button>
             </div>
             <p className="text-sm text-gray-600">{market.description}</p>
@@ -355,54 +364,69 @@ export default function MarketDetailPage() {
               </button>
             </form>
 
-            <div className="space-y-2">
-              {commentsQuery.data?.map((comment) => (
-                <div
-                  key={comment.id}
-                  className={`rounded border border-gray-200 p-3${comment.parent_id ? " ml-6" : ""}`}
-                >
-                  <p className="text-xs font-medium text-gray-700 mb-1">{comment.author_username}</p>
-                  <p className="text-sm text-gray-800">{comment.content}</p>
-                  <div className="mt-2 flex items-center gap-3 text-xs text-gray-500">
-                    <span>{new Date(comment.created_at).toLocaleString()}</span>
-                    <button
-                      onClick={() => upvoteComment.mutate(comment.id)}
-                      className="rounded border border-gray-300 px-2 py-1 hover:bg-gray-100"
-                    >
-                      Upvote ({comment.upvote_count})
-                    </button>
-                    {comment.parent_id === null && (
-                      <button
-                        onClick={() => setReplyingTo(replyingTo === comment.id ? null : comment.id)}
-                        className="rounded border border-gray-300 px-2 py-1 hover:bg-gray-100"
+            {(() => {
+              const items = commentsQuery.data ?? [];
+              const depthMap = new Map<string, number>();
+              for (const c of items) {
+                depthMap.set(c.id, c.parent_id ? (depthMap.get(c.parent_id) ?? 0) + 1 : 0);
+              }
+              return (
+                <div className="space-y-2">
+                  {items.map((comment) => {
+                    const depth = depthMap.get(comment.id) ?? 0;
+                    return (
+                      <div
+                        key={comment.id}
+                        style={{ marginLeft: `${depth * 24}px` }}
+                        className="rounded border border-gray-200 p-3"
                       >
-                        Reply
-                      </button>
-                    )}
-                  </div>
-                  {replyingTo === comment.id && (
-                    <form
-                      onSubmit={(e) => {
-                        e.preventDefault();
-                        if (!replyText.trim()) return;
-                        postComment.mutate({ content: replyText, parentId: comment.id });
-                      }}
-                      className="mt-2 flex gap-2"
-                    >
-                      <input
-                        value={replyText}
-                        onChange={(e) => setReplyText(e.target.value)}
-                        className="flex-1 rounded border border-gray-300 px-3 py-1 text-sm"
-                        placeholder="Write a reply..."
-                        autoFocus
-                      />
-                      <button type="submit" className="rounded bg-gray-900 px-3 py-1 text-sm text-white">
-                        Post
-                      </button>
-                    </form>
-                  )}
+                        <p className="text-xs font-medium text-gray-700 mb-1">{comment.author_username}</p>
+                        <p className="text-sm text-gray-800">{comment.content}</p>
+                        <div className="mt-2 flex items-center gap-3 text-xs text-gray-500">
+                          <span>{new Date(comment.created_at).toLocaleString()}</span>
+                          <button
+                            onClick={() => upvoteComment.mutate(comment.id)}
+                            className="flex items-center gap-1 text-gray-400 hover:text-orange-500 transition-colors"
+                          >
+                            <span className="text-sm leading-none">▲</span>
+                            <span>{comment.upvote_count}</span>
+                          </button>
+                          {depth < 4 && (
+                            <button
+                              onClick={() => setReplyingTo(replyingTo === comment.id ? null : comment.id)}
+                              className="rounded border border-gray-300 px-2 py-0.5 hover:bg-gray-100"
+                            >
+                              Reply
+                            </button>
+                          )}
+                        </div>
+                        {replyingTo === comment.id && (
+                          <form
+                            onSubmit={(e) => {
+                              e.preventDefault();
+                              if (!replyText.trim()) return;
+                              postComment.mutate({ content: replyText, parentId: comment.id });
+                            }}
+                            className="mt-2 flex gap-2"
+                          >
+                            <input
+                              value={replyText}
+                              onChange={(e) => setReplyText(e.target.value)}
+                              className="flex-1 rounded border border-gray-300 px-3 py-1 text-sm"
+                              placeholder="Write a reply..."
+                              autoFocus
+                            />
+                            <button type="submit" className="rounded bg-gray-900 px-3 py-1 text-sm text-white">
+                              Post
+                            </button>
+                          </form>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
-              ))}
+              );
+            })()}
               {commentsQuery.isLoading && <p className="text-sm text-gray-500">Loading comments...</p>}
             </div>
           </section>

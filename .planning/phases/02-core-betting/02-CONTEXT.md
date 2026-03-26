@@ -45,7 +45,7 @@ Resolution (Tiers 1–3), social features, and real-time updates are separate ph
 - **D-14:** Bet placement and market creation use SELECT FOR UPDATE on user row to prevent double-spend. bp balance check + deduction in a single DB transaction.
 
 ### Comment Threads
-- **D-15:** 1-level deep replies (parent_id supported in Comment model). Flat render with visual indent for replies. No collapse/expand — keep it simple.
+- **D-15:** Up to 5-level deep replies (parent_id supported in Comment model). Flat render with depth-based indent (24px per level). Reply button hidden at depth ≥ 4. Backend enforces max via ancestor chain traversal. No collapse/expand — keep it simple.
 - **D-16:** Upvoting a comment earns +1 kp for the author. Self-upvotes blocked by unique constraint (comment_id, user_id on comment_upvotes). Implemented as atomic insert — duplicate = no-op with 409 response.
 
 ### Dashboard
