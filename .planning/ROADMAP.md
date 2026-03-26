@@ -55,6 +55,19 @@ Plans:
 
 **42 modules:** Standard user management (2pts) — partial
 
+**Plans:** 9 plans (6 complete + 3 gap closure)
+
+Plans:
+- [x] 02-01-PLAN.md — Market model, CRUD API, list + detail pages
+- [x] 02-02-PLAN.md — Betting engine: place/withdraw, odds, economy ledger
+- [x] 02-03-PLAN.md — Points economy: daily allocation, Celery beat, kp events
+- [x] 02-04-PLAN.md — Comment threads, upvotes, market upvotes
+- [x] 02-05-PLAN.md — Dashboard portfolio view
+- [x] 02-06-PLAN.md — UAT fixes: login, nav balance, multichoice/numeric markets
+- [ ] 02-07-PLAN.md — Gap closure: bet cap enforcement + decimal input fix
+- [ ] 02-08-PLAN.md — Gap closure: comment author display + reply UI
+- [ ] 02-09-PLAN.md — Gap closure: dashboard portfolio row cleanup
+
 ---
 
 ## Phase 3 — Social
