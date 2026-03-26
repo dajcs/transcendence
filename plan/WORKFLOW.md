@@ -79,14 +79,20 @@ make seed # Optional: seed the database with test data
 git checkout dev
 git pull origin dev
 
-# Verify everything works
-docker compose up --build
+# Verify everything works, bring up the app
+make dev
+
+# check docker
+docker compose ps # should show all services up
+
+# https://localhost:8443 should load in browser
+curl -k https://localhost:8443/api/health  # should return {"status": "ok"}
 ```
 
 **First time only (Student A, Sprint 0):**
 ```bash
 git checkout -b dev
-git push -u origin dev
+git push origin dev
 ```
 
 ### Daily Workflow
@@ -150,7 +156,7 @@ test: add auth registration tests
 # Push your feature branch
 git push origin feat/my-feature
 
-# After pushing, go to GitHub to create a PR:
+# When feature is ready, go to GitHub to create a PR:
 # 1. Click "Compare & pull request"
 # 2. Base: dev / Compare: feat/my-feature
 # 3. Title: same format as commit messages (e.g., "feat: add market CRUD endpoints")
@@ -166,7 +172,7 @@ git push origin feat/my-feature
 2. Base: `dev` / Compare: `feat/my-feature`
 3. Title: Same format as commit messages (e.g., `feat: add market CRUD endpoints`)
 4. Description: What changed, why, and how to test
-5. Assign a reviewer (one of the other 2 team members)
+5. Assign a reviewer (another team member or copilot)
 6. Wait for review before merging
 
 **PR description template** (copy-paste into every PR):
