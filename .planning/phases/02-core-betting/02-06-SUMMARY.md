@@ -58,3 +58,7 @@ None - plan executed exactly as written.
 
 ## Issues Encountered
 None.
+
+## Post-UAT Fixes
+- Dashboard bet rows made clickable — navigate to market detail page on click.
+- Dashboard withdraw action now routes to market detail with a confirmation dialog before executing withdrawal.

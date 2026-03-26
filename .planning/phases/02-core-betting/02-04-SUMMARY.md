@@ -45,3 +45,6 @@ completed: 2026-03-25
 
 ## Issues Encountered
 - SQLAlchemy transaction state conflicts were resolved with explicit commit/rollback handling.
+
+## Post-UAT Fixes
+- Withdrawal refund changed to probability-weighted: refund = `stake × current_probability_for_side` instead of flat amount, so refund correctly reflects market odds at time of withdrawal.
