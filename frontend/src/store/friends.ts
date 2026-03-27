@@ -23,7 +23,7 @@ export const useFriendsStore = create<FriendsStore>((set, get) => ({
   isLoading: false,
 
   fetch: async () => {
-    set({ isLoading: true });
+    set({ isLoading: true, friends: [], pendingReceived: [], pendingSent: [] });
     try {
       const { data } = await api.get<FriendListResponse>("/api/friends");
       set({
