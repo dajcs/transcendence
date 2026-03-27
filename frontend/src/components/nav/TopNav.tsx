@@ -31,6 +31,9 @@ export default function TopNav() {
             <Link href="/markets" className="text-sm text-blue-600 hover:underline">
               Markets
             </Link>
+            <Link href="/chat" className="text-sm text-blue-600 hover:underline">
+              Chat
+            </Link>
             <button
               onClick={handleLogout}
               className="text-sm px-3 py-1 border border-gray-300 rounded hover:bg-gray-50"
