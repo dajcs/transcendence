@@ -21,7 +21,7 @@ async def send_friend_request(db: AsyncSession, from_user_id: uuid.UUID, to_user
     if not target:
         raise HTTPException(status_code=404, detail="User not found")
 
-    # Check for existing relationship (either direction)
+    # Check for existing relationship (either direction) — use .first() to tolerate duplicates
     existing = (await db.execute(
         select(FriendRequest).where(
             or_(
@@ -29,7 +29,7 @@ async def send_friend_request(db: AsyncSession, from_user_id: uuid.UUID, to_user
                 and_(FriendRequest.from_user_id == to_user_id, FriendRequest.to_user_id == from_user_id),
             )
         )
-    )).scalar_one_or_none()
+    )).scalars().first()
 
     if existing:
         if existing.status == "accepted":
@@ -50,6 +50,7 @@ async def send_friend_request(db: AsyncSession, from_user_id: uuid.UUID, to_user
             existing.from_user_id = from_user_id
             existing.to_user_id = to_user_id
             existing.status = "pending"
+            existing.created_at = datetime.now(timezone.utc)
             existing.updated_at = datetime.now(timezone.utc)
             await db.commit()
             await db.refresh(existing)
@@ -136,9 +137,12 @@ async def block_user(db: AsyncSession, current_user_id: uuid.UUID, target_user_i
                 and_(FriendRequest.from_user_id == target_user_id, FriendRequest.to_user_id == current_user_id),
             )
         )
-    )).scalar_one_or_none()
+    )).scalars().first()
 
     if existing:
+        # Prevent blocked user from overwriting original block via block+unblock
+        if existing.status == "blocked" and existing.from_user_id != current_user_id:
+            raise HTTPException(status_code=403, detail="Cannot block this user")
         existing.from_user_id = current_user_id
         existing.to_user_id = target_user_id
         existing.status = "blocked"
@@ -181,6 +185,20 @@ async def get_friends_list(db: AsyncSession, current_user_id: uuid.UUID) -> Frie
         )
     )).scalars().all()
 
+    # Batch-fetch all involved user IDs to avoid N+1 queries
+    user_ids: set[uuid.UUID] = set()
+    for req in all_requests:
+        user_ids.add(req.from_user_id)
+        user_ids.add(req.to_user_id)
+    user_ids.discard(current_user_id)
+
+    users_map: dict[uuid.UUID, User] = {}
+    if user_ids:
+        users = (await db.execute(
+            select(User).where(User.id.in_(user_ids))
+        )).scalars().all()
+        users_map = {u.id: u for u in users}
+
     friends: list[FriendResponse] = []
     pending_received: list[FriendRequestResponse] = []
     pending_sent: list[FriendRequestResponse] = []
@@ -188,17 +206,35 @@ async def get_friends_list(db: AsyncSession, current_user_id: uuid.UUID) -> Frie
     for req in all_requests:
         if req.status == "accepted":
             friend_id = req.to_user_id if req.from_user_id == current_user_id else req.from_user_id
-            friend_user = (await db.execute(select(User).where(User.id == friend_id))).scalar_one_or_none()
+            friend_user = users_map.get(friend_id)
             if friend_user:
                 friends.append(FriendResponse(
                     user_id=friend_user.id,
                     username=friend_user.username,
                     avatar_url=friend_user.avatar_url,
-                    is_online=False,  # Will be enriched by Redis presence later
+                    is_online=False,
                     since=req.updated_at or req.created_at,
                 ))
         elif req.status == "pending":
-            resp = await _to_request_response(db, req)
+            from_user = users_map.get(req.from_user_id)
+            to_user = users_map.get(req.to_user_id)
+            # If either user was deleted, skip this request
+            if req.from_user_id == current_user_id:
+                from_username = "You"
+                to_username = to_user.username if to_user else "Unknown"
+            else:
+                from_username = from_user.username if from_user else "Unknown"
+                to_username = "You"
+
+            resp = FriendRequestResponse(
+                id=req.id,
+                from_user_id=req.from_user_id,
+                from_username=from_username,
+                to_user_id=req.to_user_id,
+                to_username=to_username,
+                status=req.status,
+                created_at=req.created_at,
+            )
             if req.to_user_id == current_user_id:
                 pending_received.append(resp)
             else:
@@ -239,8 +275,10 @@ async def is_blocked(db: AsyncSession, blocker_id: uuid.UUID, blocked_id: uuid.U
 
 async def _to_request_response(db: AsyncSession, req: FriendRequest) -> FriendRequestResponse:
     """Convert a FriendRequest model to its response schema with usernames."""
-    from_user = (await db.execute(select(User).where(User.id == req.from_user_id))).scalar_one()
-    to_user = (await db.execute(select(User).where(User.id == req.to_user_id))).scalar_one()
+    from_user = (await db.execute(select(User).where(User.id == req.from_user_id))).scalar_one_or_none()
+    to_user = (await db.execute(select(User).where(User.id == req.to_user_id))).scalar_one_or_none()
+    if not from_user or not to_user:
+        raise HTTPException(status_code=404, detail="Referenced user no longer exists")
     return FriendRequestResponse(
         id=req.id,
         from_user_id=req.from_user_id,
