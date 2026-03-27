@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useAuthStore } from "@/store/auth";
 import { useRouter } from "next/navigation";
+import NotificationBell from "@/components/NotificationBell";
 
 export default function TopNav() {
   const { isAuthenticated, user, logout } = useAuthStore();
@@ -31,6 +32,7 @@ export default function TopNav() {
             <Link href="/markets" className="text-sm text-blue-600 hover:underline">
               Markets
             </Link>
+            <NotificationBell />
             <button
               onClick={handleLogout}
               className="text-sm px-3 py-1 border border-gray-300 rounded hover:bg-gray-50"
