@@ -6,7 +6,7 @@ export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Redirect unauthenticated users away from protected routes
-  if (!token && (pathname.startsWith("/dashboard") || pathname.startsWith("/markets") || pathname.startsWith("/chat"))) {
+  if (!token && (pathname.startsWith("/dashboard") || pathname.startsWith("/markets") || pathname.startsWith("/friends") || pathname.startsWith("/chat"))) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
@@ -19,5 +19,5 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/markets/:path*", "/chat/:path*", "/login", "/register"],
+  matcher: ["/dashboard/:path*", "/markets/:path*", "/friends/:path*", "/chat/:path*", "/login", "/register"],
 };

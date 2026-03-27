@@ -31,6 +31,9 @@ export default function TopNav() {
             <Link href="/markets" className="text-sm text-blue-600 hover:underline">
               Markets
             </Link>
+            <Link href="/friends" className="text-sm text-blue-600 hover:underline">
+              Friends
+            </Link>
             <Link href="/chat" className="text-sm text-blue-600 hover:underline">
               Chat
             </Link>
