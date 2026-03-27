@@ -10,6 +10,7 @@ from app.api.routes.chat import router as chat_router
 from app.api.routes.comments import router as comments_router
 from app.api.routes.friends import router as friends_router
 from app.api.routes.markets import router as markets_router
+from app.api.routes.users import router as users_router
 from app.config import settings
 from app.db.session import engine
 
@@ -36,6 +37,7 @@ app.include_router(bets_router, prefix="/api/bets", tags=["bets"])
 app.include_router(chat_router, prefix="/api/chat", tags=["chat"])
 app.include_router(comments_router, prefix="/api", tags=["comments"])
 app.include_router(friends_router, prefix="/api/friends", tags=["friends"])
+app.include_router(users_router, prefix="/api/users", tags=["users"])
 
 
 @app.get("/api/health")
