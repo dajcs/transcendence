@@ -49,14 +49,20 @@ export const useChatStore = create<ChatStore>((set, get) => ({
   },
 
   fetchMessages: async (partnerId: string) => {
-    set({ isLoading: true, activePartnerId: partnerId });
+    set({ isLoading: true, activePartnerId: partnerId, messages: [] });
     try {
       const { data } = await api.get<ChatMessage[]>(`/api/chat/${partnerId}/messages`);
-      set({ messages: data });
+      if (get().activePartnerId === partnerId) {
+        set({ messages: data });
+      }
     } catch {
-      set({ messages: [] });
+      if (get().activePartnerId === partnerId) {
+        set({ messages: [] });
+      }
     } finally {
-      set({ isLoading: false });
+      if (get().activePartnerId === partnerId) {
+        set({ isLoading: false });
+      }
     }
   },
 

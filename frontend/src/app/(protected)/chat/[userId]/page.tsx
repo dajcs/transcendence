@@ -22,6 +22,7 @@ export default function ChatConversationPage() {
     // Poll for new messages every 3 seconds
     const interval = setInterval(() => {
       fetchMessages(partnerId);
+      markRead(partnerId);
     }, 3000);
 
     return () => clearInterval(interval);
@@ -35,7 +36,7 @@ export default function ChatConversationPage() {
     ? (messages[0].from_user_id === partnerId
         ? messages[0].from_username
         : messages[0].to_username)
-    : "User";
+    : "";
 
   const handleSend = async (e: FormEvent) => {
     e.preventDefault();
@@ -60,14 +61,18 @@ export default function ChatConversationPage() {
           &larr;
         </Link>
         <div className="h-8 w-8 rounded-full bg-gray-300 flex items-center justify-center text-sm font-medium text-gray-700">
-          {partnerUsername[0].toUpperCase()}
+          {partnerUsername ? partnerUsername[0].toUpperCase() : "?"}
         </div>
-        <Link
-          href={`/profile/${partnerUsername}`}
-          className="font-medium text-gray-900 hover:text-blue-600"
-        >
-          {partnerUsername}
-        </Link>
+        {partnerUsername ? (
+          <Link
+            href={`/profile/${encodeURIComponent(partnerUsername)}`}
+            className="font-medium text-gray-900 hover:text-blue-600"
+          >
+            {partnerUsername}
+          </Link>
+        ) : (
+          <span className="font-medium text-gray-400">Loading...</span>
+        )}
       </div>
 
       {/* Messages */}
