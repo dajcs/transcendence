@@ -5,23 +5,39 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import { useChatStore } from "@/store/chat";
 import { useAuthStore } from "@/store/auth";
+import { useSocketStore } from "@/store/socket";
 
 export default function ChatConversationPage() {
   const params = useParams<{ userId: string }>();
   const partnerId = params.userId;
   const { user: currentUser } = useAuthStore();
   const { messages, isLoading, fetchMessages, sendMessage, markRead } = useChatStore();
+  const socket = useSocketStore((s) => s.socket);
   const [newMessage, setNewMessage] = useState("");
   const [sending, setSending] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  // Initial load (REST)
   useEffect(() => {
     fetchMessages(partnerId);
     markRead(partnerId);
-
-    const interval = setInterval(() => { fetchMessages(partnerId); markRead(partnerId); }, 3000);
-    return () => clearInterval(interval);
   }, [partnerId, fetchMessages, markRead]);
+
+  // Socket listener for incoming messages (replaces 3s poll per D-11)
+  useEffect(() => {
+    if (!socket) return;
+
+    const handler = (_data: { from_user_id: string; from_username: string; content: string; sent_at: string }) => {
+      // Refetch the full conversation so the message renders correctly
+      fetchMessages(partnerId);
+      markRead(partnerId);
+    };
+
+    socket.on("chat:message", handler);
+    return () => {
+      socket.off("chat:message", handler);
+    };
+  }, [socket, partnerId, fetchMessages, markRead]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
