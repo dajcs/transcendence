@@ -210,6 +210,21 @@ async def send_message(
     await db.commit()
     await db.refresh(msg)
 
+    try:
+        from app.socket.server import sio
+        await sio.emit(
+            "chat:message",
+            {
+                "from_user_id": str(from_user_id),
+                "from_username": sender.username,
+                "content": msg.content,
+                "sent_at": msg.sent_at.isoformat(),
+            },
+            room=f"user:{to_user_id}",
+        )
+    except Exception:
+        pass
+
     return MessageResponse(
         id=msg.id,
         from_user_id=msg.from_user_id,

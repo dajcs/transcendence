@@ -26,6 +26,20 @@ async def create_notification(
     db.add(notif)
     await db.commit()
     await db.refresh(notif)
+    try:
+        from app.socket.server import sio
+        await sio.emit(
+            f"notification:{notif.type}",
+            {
+                "id": str(notif.id),
+                "type": notif.type,
+                "payload": notif.payload,
+                "created_at": notif.created_at.isoformat(),
+            },
+            room=f"user:{user_id}",
+        )
+    except Exception:
+        pass
     return notif
 
 

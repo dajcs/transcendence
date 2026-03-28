@@ -2,10 +2,12 @@
 import uuid
 from datetime import datetime, timezone
 
+import redis.asyncio as aioredis
 from fastapi import HTTPException
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.config import settings
 from app.db.models.bet import Bet, BetPosition, PositionHistory
 from app.db.models.transaction import KpEvent
 from app.schemas.bet import (
@@ -23,6 +25,29 @@ from app.services.economy_service import (
     deduct_bp,
     get_bet_odds,
 )
+
+
+async def _emit_odds_update(db: AsyncSession, bet_id: uuid.UUID) -> None:
+    """Emit bet:odds_updated with 500ms throttle via Redis NX key."""
+    try:
+        from app.socket.server import sio
+        r = aioredis.from_url(settings.redis_url, decode_responses=True)
+        throttle_key = f"throttle:odds:{bet_id}"
+        if not await r.set(throttle_key, "1", nx=True, px=500):
+            return  # within 500ms window — skip
+        odds = await get_bet_odds(db, bet_id)
+        await sio.emit(
+            "bet:odds_updated",
+            {
+                "bet_id": str(bet_id),
+                "yes_pct": float(odds["yes_pct"]),
+                "no_pct": float(odds["no_pct"]),
+                "total_votes": int(odds.get("total_votes", 0)),
+            },
+            room=f"bet:{bet_id}",
+        )
+    except Exception:
+        pass
 
 
 async def _check_bet_cap(db: AsyncSession, user_id: uuid.UUID, amount: float) -> None:
@@ -87,6 +112,21 @@ async def place_bet(db: AsyncSession, user_id: uuid.UUID, data: BetPlaceRequest)
     await db.commit()
     await db.refresh(position)
 
+    try:
+        from app.socket.server import sio
+        await _emit_odds_update(db, data.bet_id)
+        await sio.emit(
+            "bet:position_added",
+            {
+                "user_id": str(user_id),
+                "side": data.side,
+                "placed_at": position.placed_at.isoformat(),
+            },
+            room=f"bet:{data.bet_id}",
+        )
+    except Exception:
+        pass
+
     return BetPositionResponse.model_validate(position)
 
 
@@ -125,6 +165,17 @@ async def withdraw_bet(db: AsyncSession, user_id: uuid.UUID, position_id: uuid.U
     position.withdrawn_at = datetime.now(timezone.utc)
     position.refund_bp = refund
     await db.commit()
+
+    try:
+        from app.socket.server import sio
+        await _emit_odds_update(db, position.bet_id)
+        await sio.emit(
+            "bet:position_withdrawn",
+            {"user_id": str(user_id)},
+            room=f"bet:{position.bet_id}",
+        )
+    except Exception:
+        pass
 
     return BetWithdrawResponse(id=position.id, refund_bp=float(refund), message="Position withdrawn")
 
