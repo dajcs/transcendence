@@ -3,6 +3,10 @@ import tempfile
 from pathlib import Path
 
 import pytest
+from sqlalchemy.dialects.sqlite.base import SQLiteTypeCompiler
+
+# SQLite doesn't know JSONB — teach it to treat it as JSON
+SQLiteTypeCompiler.visit_JSONB = SQLiteTypeCompiler.visit_JSON  # type: ignore[attr-defined]
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 from fakeredis.aioredis import FakeRedis

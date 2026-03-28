@@ -1,4 +1,5 @@
 """Pydantic schemas for auth endpoints."""
+import re
 import uuid
 from datetime import datetime
 
@@ -26,6 +27,8 @@ class RegisterRequest(BaseModel):
     def username_valid(cls, v: str) -> str:
         if len(v) < 3 or len(v) > 32:
             raise ValueError("Username must be 3–32 characters")
+        if not re.fullmatch(r"[A-Za-z0-9_\-]+", v):
+            raise ValueError("Username may only contain letters, digits, underscores, and hyphens")
         return v
 
 

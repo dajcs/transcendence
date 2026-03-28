@@ -2,10 +2,13 @@
 
 import Link from "next/link";
 import { useAuthStore } from "@/store/auth";
+import { useFriendsStore } from "@/store/friends";
 import { useRouter } from "next/navigation";
+import UserSearch from "@/components/UserSearch";
 
 export default function TopNav() {
   const { isAuthenticated, user, logout } = useAuthStore();
+  const pendingCount = useFriendsStore((s) => s.pendingReceived.length);
   const router = useRouter();
 
   const handleLogout = async () => {
@@ -21,7 +24,10 @@ export default function TopNav() {
       <div className="flex items-center gap-4">
         {isAuthenticated ? (
           <>
-            <span className="text-sm text-gray-600">{user?.username}</span>
+            <UserSearch />
+            <Link href={`/profile/${encodeURIComponent(user?.username ?? "")}`} className="text-sm text-gray-600 hover:text-blue-600 hover:underline">
+              {user?.username}
+            </Link>
             <span className="text-xs text-gray-500">
               BP {user?.bp ?? 0} · KP {user?.kp ?? 0} · TP {user?.tp ?? 0}
             </span>
@@ -30,6 +36,14 @@ export default function TopNav() {
             </Link>
             <Link href="/markets" className="text-sm text-blue-600 hover:underline">
               Markets
+            </Link>
+            <Link href="/friends" className="relative text-sm text-blue-600 hover:underline">
+              Friends
+              {pendingCount > 0 && (
+                <span className="absolute -top-2 -right-4 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">
+                  {pendingCount}
+                </span>
+              )}
             </Link>
             <button
               onClick={handleLogout}
