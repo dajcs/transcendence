@@ -43,14 +43,18 @@ export const useFriendsStore = create<FriendsStore>()((set, get) => ({
   },
 
   sendRequest: async (userId: string): Promise<string | null> => {
-    const { data } = await api.post<{ success: boolean; detail?: string }>(
-      `/api/friends/request/${userId}`
-    );
-    if (!data.success) {
-      return data.detail ?? "Could not send request";
+    try {
+      const { data } = await api.post<{ success: boolean; detail?: string }>(
+        `/api/friends/request/${userId}`
+      );
+      if (!data.success) {
+        return data.detail ?? "Could not send request";
+      }
+      await get().fetch();
+      return null;
+    } catch {
+      return "Could not send request";
     }
-    await get().fetch();
-    return null;
   },
 
   acceptRequest: async (requestId: string) => {
@@ -82,8 +86,11 @@ export const useFriendsStore = create<FriendsStore>()((set, get) => ({
   },
 
   blockUser: async (userId: string) => {
-    await api.post(`/api/friends/block/${userId}`);
-    await get().fetch();
+    try {
+      await api.post(`/api/friends/block/${userId}`);
+    } finally {
+      await get().fetch();
+    }
   },
 
   unblockUser: async (userId: string) => {

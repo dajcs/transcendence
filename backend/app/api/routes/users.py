@@ -31,7 +31,7 @@ async def search_users(
         .where(
             func.lower(User.username).like(func.lower(f"{q}%")),
             User.id != user.id,
-            User.is_active == True,
+            User.is_active.is_(True),
         )
         .limit(20)
     )).all()

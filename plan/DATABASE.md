@@ -289,6 +289,7 @@ CREATE UNIQUE INDEX uq_friend_pair_symmetric
 | 004 | `004_drop_bet_positions_unique.py` | Relax bet_positions unique constraint |
 | 005 | `005_friend_request_unique_constraint.py` | Directional unique constraint (superseded) |
 | 006 | `006_symmetric_friend_constraint.py` | Replace with symmetric LEAST/GREATEST unique index |
+| 007 | `007_friend_request_query_indexes.py` | Composite indexes on `(from_user_id, status)` and `(to_user_id, status)` |
 
 ---
 

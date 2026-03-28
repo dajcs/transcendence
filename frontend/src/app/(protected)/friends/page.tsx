@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
-import Link from "next/link";
 import { useFriendsStore } from "@/store/friends";
 import type { BlockedUser } from "@/lib/friends-types";
 import { api } from "@/lib/api";
@@ -21,27 +20,35 @@ function UserSearch() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const { sendRequest } = useFriendsStore();
   const debounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const abortRef = useRef<AbortController | undefined>(undefined);
 
-  useEffect(() => () => { if (debounceRef.current) clearTimeout(debounceRef.current); }, []);
+  useEffect(() => () => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    abortRef.current?.abort();
+  }, []);
 
   const handleSearch = (value: string) => {
     setQuery(value);
     if (debounceRef.current) clearTimeout(debounceRef.current);
+    abortRef.current?.abort();
     if (!value.trim()) {
       setResults([]);
       return;
     }
     debounceRef.current = setTimeout(async () => {
+      const controller = new AbortController();
+      abortRef.current = controller;
       setSearching(true);
       try {
         const { data } = await api.get<SearchResult[]>("/api/users/search", {
           params: { q: value.trim() },
+          signal: controller.signal,
         });
         setResults(data);
       } catch {
-        setResults([]);
+        if (!controller.signal.aborted) setResults([]);
       } finally {
-        setSearching(false);
+        if (!controller.signal.aborted) setSearching(false);
       }
     }, 300);
   };
