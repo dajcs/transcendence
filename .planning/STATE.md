@@ -4,12 +4,12 @@ milestone: v21.0
 milestone_name: milestone
 current_plan: 1
 status: Executing Phase 04
-last_updated: "2026-03-28T23:31:24.882Z"
+last_updated: "2026-03-28T23:36:48.962Z"
 progress:
   total_phases: 4
   completed_phases: 2
   total_plans: 18
-  completed_plans: 15
+  completed_plans: 16
 ---
 
 # Project State
@@ -25,7 +25,7 @@ See: `.planning/PROJECT.md` (updated 2026-03-24)
 
 **Phase:** 03 complete → 04 next
 **Current Plan:** 1
-**Last session:** 2026-03-28T23:31:24.834Z
+**Last session:** 2026-03-28T23:36:48.945Z
 **Resume file:** None
 
 ## Decisions
@@ -55,6 +55,8 @@ See: `.planning/PROJECT.md` (updated 2026-03-24)
 - [Phase 02-08]: Join User in both list_comments and create_comment rather than a separate lookup — keeps API contract simple
 - [Phase 04]: useSocketStore.getState() in logout() — Zustand outside-React pattern for non-component action calls
 - [Phase 04]: Socket connects with withCredentials: true, no auth token field — D-04 httpOnly cookie constraint
+- [Phase 04-01]: importlib.import_module used in main.py to register socket events without shadowing FastAPI app variable
+- [Phase 04-01]: cors_allowed_origins=[] on AsyncServer singleton — Nginx handles CORS, wildcard conflicts with withCredentials cookie auth
 
 ## Performance Metrics
 
@@ -70,6 +72,7 @@ See: `.planning/PROJECT.md` (updated 2026-03-24)
 | Phase 02 P07 | 2min | 2 tasks | 4 files |
 | Phase 02 P08 | 2 | 2 tasks | 4 files |
 | Phase 04 P03 | 3min | 2 tasks | 3 files |
+| Phase 04 P01 | 8min | 2 tasks | 8 files |
 
 ## Session History
 
