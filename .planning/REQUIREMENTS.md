@@ -57,9 +57,9 @@
 
 ### Real-time
 
-- [ ] **RT-01**: Bet odds update live via Socket.IO when positions change
-- [ ] **RT-02**: New comments appear live in bet threads
-- [ ] **RT-03**: Notifications delivered in real-time
+- [x] **RT-01**: Bet odds update live via Socket.IO when positions change
+- [x] **RT-02**: New comments appear live in bet threads
+- [x] **RT-03**: Notifications delivered in real-time
 
 ### Intelligence
 
