@@ -1,13 +1,14 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
+import Link from "next/link";
 import { useFriendsStore } from "@/store/friends";
 import type { BlockedUser } from "@/lib/friends-types";
 import { api } from "@/lib/api";
 import UserLink from "@/components/UserLink";
 
 interface SearchResult {
-  user_id: string;
+  id: string;
   username: string;
   avatar_url: string | null;
 }
@@ -83,7 +84,7 @@ function UserSearch() {
       {results.length > 0 && (
         <ul className="mt-2 divide-y divide-gray-100">
           {results.map((user) => (
-            <li key={user.user_id} className="flex items-center justify-between py-2">
+            <li key={user.id} className="flex items-center justify-between py-2">
               <div className="flex items-center gap-2">
                 <div className="h-8 w-8 rounded-full bg-gray-300 flex items-center justify-center text-xs font-medium text-gray-700">
                   {user.username[0].toUpperCase()}
@@ -92,18 +93,18 @@ function UserSearch() {
               </div>
               <div className="flex flex-col items-end gap-1">
                 <button
-                  onClick={() => handleSendRequest(user.user_id)}
-                  disabled={sendingTo === user.user_id || sentTo.has(user.user_id)}
+                  onClick={() => handleSendRequest(user.id)}
+                  disabled={sendingTo === user.id || sentTo.has(user.id)}
                   className={`rounded px-3 py-1 text-sm text-white ${
-                    sentTo.has(user.user_id)
+                    sentTo.has(user.id)
                       ? "bg-gray-400 cursor-default"
                       : "bg-blue-600 hover:bg-blue-700 disabled:opacity-50"
                   }`}
                 >
-                  {sentTo.has(user.user_id) ? "Sent" : sendingTo === user.user_id ? "Sending..." : "Add Friend"}
+                  {sentTo.has(user.id) ? "Sent" : sendingTo === user.id ? "Sending..." : "Add Friend"}
                 </button>
-                {errors[user.user_id] && (
-                  <span className="text-xs text-red-500">{errors[user.user_id]}</span>
+                {errors[user.id] && (
+                  <span className="text-xs text-red-500">{errors[user.id]}</span>
                 )}
               </div>
             </li>
@@ -229,6 +230,12 @@ export default function FriendsPage() {
                 </div>
               </div>
               <div className="flex gap-2">
+                <Link
+                  href={`/chat/${friend.user_id}`}
+                  className="rounded bg-blue-600 px-3 py-1 text-sm text-white hover:bg-blue-700"
+                >
+                  Chat
+                </Link>
                 <button
                   onClick={() => removeFriend(friend.user_id)}
                   className="rounded border border-red-300 px-3 py-1 text-sm text-red-700 hover:bg-red-50"

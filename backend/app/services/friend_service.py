@@ -192,7 +192,7 @@ async def unblock_user(db: AsyncSession, current_user_id: uuid.UUID, target_user
 
 
 async def get_friends_list(db: AsyncSession, current_user_id: uuid.UUID) -> FriendListResponse:
-    """Return friends, pending received, and pending sent requests."""
+    """Return friends, pending received, pending sent, and blocked users."""
     # Get all friend requests involving current user
     all_requests = (await db.execute(
         select(FriendRequest).where(

@@ -67,7 +67,7 @@ async def remove_friend(user_id: uuid.UUID, request: Request, db: AsyncSession =
 
 @router.post("/block/{user_id}", status_code=204)
 async def block_user(user_id: uuid.UUID, request: Request, db: AsyncSession = Depends(get_db)):
-    """Block a user (removes friendship if any)."""
+    """Block a user."""
     user = await _get_current_user(request, db)
     await friend_service.block_user(db, user.id, user_id)
 
