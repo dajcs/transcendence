@@ -27,7 +27,7 @@ interface MarketState {
   reset: () => void;
 }
 
-export const useMarketStore = create<MarketState>((set, get) => ({
+export const useMarketStore = create<MarketState>()((set, get) => ({
   sort: "deadline",
   sortDir: "asc",
   filter: "all",
