@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 
 from fastapi import HTTPException
 from sqlalchemy import and_, or_, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models.social import FriendRequest
@@ -63,7 +64,11 @@ async def send_friend_request(db: AsyncSession, from_user_id: uuid.UUID, to_user
         status="pending",
     )
     db.add(req)
-    await db.commit()
+    try:
+        await db.commit()
+    except IntegrityError:
+        await db.rollback()
+        raise HTTPException(status_code=409, detail="Friend request already sent")
     await db.refresh(req)
     return await _to_request_response(db, req)
 
@@ -125,7 +130,7 @@ async def remove_friend(db: AsyncSession, current_user_id: uuid.UUID, friend_use
                 and_(FriendRequest.from_user_id == friend_user_id, FriendRequest.to_user_id == current_user_id),
             ),
         )
-    )).scalar_one_or_none()
+    )).scalars().first()
     if not req:
         raise HTTPException(status_code=404, detail="Friendship not found")
 
@@ -280,7 +285,7 @@ async def are_friends(db: AsyncSession, user_a: uuid.UUID, user_b: uuid.UUID) ->
                 and_(FriendRequest.from_user_id == user_b, FriendRequest.to_user_id == user_a),
             ),
         )
-    )).scalar_one_or_none()
+    )).scalars().first()
     return result is not None
 
 

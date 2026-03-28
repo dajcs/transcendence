@@ -1,6 +1,4 @@
 """User search API routes: /api/users/*"""
-import uuid
-
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession

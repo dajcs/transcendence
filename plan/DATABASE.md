@@ -173,6 +173,43 @@ One upvote per user per market. Awards +1 kp to the market proposer.
 
 ---
 
+## Social Tables
+
+### friend_requests
+```sql
+id           UUID PRIMARY KEY DEFAULT gen_random_uuid()
+from_user_id UUID NOT NULL REFERENCES users(id)
+to_user_id   UUID NOT NULL REFERENCES users(id)
+status       TEXT NOT NULL DEFAULT 'pending'  -- 'pending'|'accepted'|'declined'|'blocked'
+created_at   TIMESTAMPTZ NOT NULL DEFAULT now()
+updated_at   TIMESTAMPTZ
+```
+One row per user-pair (enforced symmetrically — see Indexes). Covers the full
+relationship lifecycle: pending request → accepted friendship → blocked.
+`status = 'blocked'` always has `from_user_id = blocker`.
+
+### messages
+```sql
+id           UUID PRIMARY KEY DEFAULT gen_random_uuid()
+from_user_id UUID NOT NULL REFERENCES users(id)
+to_user_id   UUID NOT NULL REFERENCES users(id)
+content      TEXT NOT NULL
+sent_at      TIMESTAMPTZ NOT NULL DEFAULT now()
+read_at      TIMESTAMPTZ
+```
+
+### notifications
+```sql
+id         UUID PRIMARY KEY DEFAULT gen_random_uuid()
+user_id    UUID NOT NULL REFERENCES users(id)
+type       TEXT NOT NULL  -- 'friend_request'|'bet_resolved'|'bet_disputed'
+payload    TEXT           -- JSON string with context data
+is_read    BOOLEAN NOT NULL DEFAULT FALSE
+created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+```
+
+---
+
 ## Concurrency Model
 
 ### Balance Updates (bp, tp, kp)
@@ -210,6 +247,14 @@ CREATE INDEX idx_bet_positions_bet ON bet_positions(bet_id);
 CREATE INDEX idx_bp_transactions_user ON bp_transactions(user_id, created_at DESC);
 CREATE INDEX idx_kp_events_user_day ON kp_events(user_id, day_date);
 CREATE INDEX idx_comments_bet ON comments(bet_id, created_at) WHERE deleted_at IS NULL;
+
+-- Symmetric pair uniqueness for friend_requests
+-- Treats (A→B) and (B→A) as the same pair; prevents concurrent duplicate requests
+CREATE UNIQUE INDEX uq_friend_pair_symmetric
+    ON friend_requests (
+        LEAST(from_user_id::text, to_user_id::text),
+        GREATEST(from_user_id::text, to_user_id::text)
+    );
 ```
 
 ---
@@ -231,9 +276,20 @@ CREATE INDEX idx_comments_bet ON comments(bet_id, created_at) WHERE deleted_at I
 
 - All schema changes via Alembic: `uv run alembic revision --autogenerate -m "description"`
 - Never edit migration files after they are committed
-- Migration naming: `YYYYMMDD_short_description`
+- Migration naming: sequential number prefix `NNN_short_description`
 - Rollback: Alembic downgrade supported for all migrations
+
+### Applied migrations
+
+| # | File | Description |
+|---|---|---|
+| 001 | `001_initial_schema.py` | Initial schema (users, bets, positions, transactions, comments, upvotes) |
+| 002 | `002_market_types.py` | Market type extensions (multiple_choice, numeric) |
+| 003 | `003_bet_upvotes.py` | Bet upvotes table |
+| 004 | `004_drop_bet_positions_unique.py` | Relax bet_positions unique constraint |
+| 005 | `005_friend_request_unique_constraint.py` | Directional unique constraint (superseded) |
+| 006 | `006_symmetric_friend_constraint.py` | Replace with symmetric LEAST/GREATEST unique index |
 
 ---
 
-*Last updated: 2026-03-26*
+*Last updated: 2026-03-28*

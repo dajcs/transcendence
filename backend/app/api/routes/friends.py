@@ -26,11 +26,15 @@ async def list_friends(request: Request, db: AsyncSession = Depends(get_db)):
     return await friend_service.get_friends_list(db, user.id)
 
 
-@router.post("/request/{user_id}", response_model=FriendRequestResponse, status_code=201)
+@router.post("/request/{user_id}", status_code=200)
 async def send_request(user_id: uuid.UUID, request: Request, db: AsyncSession = Depends(get_db)):
-    """Send a friend request to user_id."""
+    """Send a friend request to user_id. Always returns 200 to avoid browser console errors."""
     user = await _get_current_user(request, db)
-    return await friend_service.send_friend_request(db, user.id, user_id)
+    try:
+        await friend_service.send_friend_request(db, user.id, user_id)
+        return {"success": True}
+    except HTTPException as e:
+        return {"success": False, "detail": e.detail}
 
 
 @router.post("/accept/{request_id}", response_model=FriendRequestResponse)

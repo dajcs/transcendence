@@ -9,7 +9,7 @@ interface FriendsStore {
   blocked: BlockedUser[];
   isLoading: boolean;
   fetch: () => Promise<void>;
-  sendRequest: (userId: string) => Promise<void>;
+  sendRequest: (userId: string) => Promise<string | null>;
   acceptRequest: (requestId: string) => Promise<void>;
   cancelRequest: (requestId: string) => Promise<void>;
   rejectRequest: (requestId: string) => Promise<void>;
@@ -18,7 +18,7 @@ interface FriendsStore {
   unblockUser: (userId: string) => Promise<void>;
 }
 
-export const useFriendsStore = create<FriendsStore>((set, get) => ({
+export const useFriendsStore = create<FriendsStore>()((set, get) => ({
   friends: [],
   pendingReceived: [],
   pendingSent: [],
@@ -42,9 +42,15 @@ export const useFriendsStore = create<FriendsStore>((set, get) => ({
     }
   },
 
-  sendRequest: async (userId: string) => {
-    await api.post(`/api/friends/request/${userId}`);
+  sendRequest: async (userId: string): Promise<string | null> => {
+    const { data } = await api.post<{ success: boolean; detail?: string }>(
+      `/api/friends/request/${userId}`
+    );
+    if (!data.success) {
+      return data.detail ?? "Could not send request";
+    }
     await get().fetch();
+    return null;
   },
 
   acceptRequest: async (requestId: string) => {
@@ -54,8 +60,11 @@ export const useFriendsStore = create<FriendsStore>((set, get) => ({
 
   cancelRequest: async (requestId: string) => {
     set((state) => ({ pendingSent: state.pendingSent.filter((r) => r.id !== requestId) }));
-    await api.delete(`/api/friends/request/${requestId}`);
-    await get().fetch();
+    try {
+      await api.delete(`/api/friends/request/${requestId}`);
+    } finally {
+      await get().fetch();
+    }
   },
 
   rejectRequest: async (requestId: string) => {
@@ -65,8 +74,11 @@ export const useFriendsStore = create<FriendsStore>((set, get) => ({
 
   removeFriend: async (userId: string) => {
     set((state) => ({ friends: state.friends.filter((f) => f.user_id !== userId) }));
-    await api.delete(`/api/friends/${userId}`);
-    await get().fetch();
+    try {
+      await api.delete(`/api/friends/${userId}`);
+    } finally {
+      await get().fetch();
+    }
   },
 
   blockUser: async (userId: string) => {
@@ -76,7 +88,10 @@ export const useFriendsStore = create<FriendsStore>((set, get) => ({
 
   unblockUser: async (userId: string) => {
     set((state) => ({ blocked: state.blocked.filter((u) => u.user_id !== userId) }));
-    await api.post(`/api/friends/unblock/${userId}`);
-    await get().fetch();
+    try {
+      await api.post(`/api/friends/unblock/${userId}`);
+    } finally {
+      await get().fetch();
+    }
   },
 }));

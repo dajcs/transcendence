@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import { useFriendsStore } from "@/store/friends";
+import type { BlockedUser } from "@/lib/friends-types";
 import { api } from "@/lib/api";
 
 interface SearchResult {
@@ -18,8 +19,10 @@ function UserSearch() {
   const [sendingTo, setSendingTo] = useState<string | null>(null);
   const [sentTo, setSentTo] = useState<Set<string>>(new Set());
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const { sendRequest, fetch: fetchFriends } = useFriendsStore();
-  const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const { sendRequest } = useFriendsStore();
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+
+  useEffect(() => () => { if (debounceRef.current) clearTimeout(debounceRef.current); }, []);
 
   const handleSearch = (value: string) => {
     setQuery(value);
@@ -46,18 +49,13 @@ function UserSearch() {
   const handleSendRequest = async (userId: string) => {
     setSendingTo(userId);
     setErrors((prev) => { const e = { ...prev }; delete e[userId]; return e; });
-    try {
-      await sendRequest(userId);
+    const error = await sendRequest(userId);
+    if (error) {
+      setErrors((prev) => ({ ...prev, [userId]: error }));
+    } else {
       setSentTo((prev) => new Set(prev).add(userId));
-      await fetchFriends();
-    } catch (err: unknown) {
-      const msg =
-        (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ??
-        "Could not send request";
-      setErrors((prev) => ({ ...prev, [userId]: msg }));
-    } finally {
-      setSendingTo(null);
     }
+    setSendingTo(null);
   };
 
   return (
@@ -284,7 +282,7 @@ export default function FriendsPage() {
       {/* Blocked users */}
       {activeTab === "blocked" && (
         <div className="space-y-2">
-          {blocked.map((u) => (
+          {blocked.map((u: BlockedUser) => (
             <div
               key={u.user_id}
               className="flex items-center justify-between rounded border border-gray-200 bg-white p-4"

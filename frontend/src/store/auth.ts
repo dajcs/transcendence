@@ -18,7 +18,7 @@ interface AuthStore {
   logout: () => Promise<void>;
 }
 
-export const useAuthStore = create<AuthStore>((set) => ({
+export const useAuthStore = create<AuthStore>()((set) => ({
   user: null,
   isAuthenticated: false,
 
