@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v21.0
 milestone_name: milestone
 current_plan: Not started
-status: Milestone complete
-last_updated: "2026-03-26T18:22:14.896Z"
+status: In progress
+last_updated: "2026-03-28T00:00:00.000Z"
 progress:
-  total_phases: 2
-  completed_phases: 2
-  total_plans: 14
-  completed_plans: 14
+  total_phases: 7
+  completed_phases: 3
+  total_plans: 18
+  completed_plans: 18
 ---
 
 # Project State
@@ -19,13 +19,13 @@ progress:
 See: `.planning/PROJECT.md` (updated 2026-03-24)
 
 **Core value:** Users can bet on real-world outcomes, argue their position, and earn a verifiable reputation score — without real money.
-**Current focus:** Phase 02 — core-betting
+**Current focus:** Phase 04 — real-time
 
 ## Current Status
 
-**Phase:** 02
+**Phase:** 03 complete → 04 next
 **Current Plan:** Not started
-**Last session:** 2026-03-26T13:22:11.234Z
+**Last session:** 2026-03-28T00:00:00.000Z
 **Resume file:** None
 
 ## Decisions
@@ -77,3 +77,5 @@ See: `.planning/PROJECT.md` (updated 2026-03-24)
 | 2026-03-24 | Completed 01-foundation/01-03-PLAN.md — Auth API: register, login, /me, refresh, logout, reset |
 | 2026-03-24 | Completed 01-foundation/01-04-PLAN.md — Next.js 16 frontend: auth UI, Zustand store, proxy route guard |
 | 2026-03-24 | Completed 01-foundation/01-05-PLAN.md — Dev seed + full stack smoke test; Phase 1 complete |
+| 2026-03-26 | Phase 2 complete — markets, betting, economy, comments, dashboard |
+| 2026-03-28 | Phase 3 complete (via Claude Code) — friend system, user profiles, chat, notifications |

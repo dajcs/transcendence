@@ -88,6 +88,14 @@ Plans:
 
 **42 modules:** User interaction — chat, profiles, friends (2pts); Standard user management (2pts); Notification system (1pt)
 
+**Plans:** 4/4 plans complete (implemented directly by Claude Code)
+
+Plans:
+- [x] 03-01 — Friend system (request/accept/decline/block, symmetric constraint)
+- [x] 03-02 — User profiles (avatar upload, bio, stats, user search)
+- [x] 03-03 — Direct messaging chat (persistent threads, paginated history)
+- [x] 03-04 — Notification system (bell dropdown, friend/bet/market events)
+
 ---
 
 ## Phase 4 — Real-time
