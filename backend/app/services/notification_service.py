@@ -1,8 +1,8 @@
 """Notification system business logic."""
 import json
 import uuid
-from datetime import datetime, timezone
 
+from fastapi import HTTPException
 from sqlalchemy import desc, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -67,12 +67,12 @@ async def get_notifications(
 
 async def get_unread_count(db: AsyncSession, user_id: uuid.UUID) -> int:
     """Get the count of unread notifications."""
-    return (await db.execute(
+    return int((await db.execute(
         select(func.count(Notification.id)).where(
             Notification.user_id == user_id,
             Notification.is_read.is_(False),
         )
-    )).scalar_one()
+    )).scalar_one())
 
 
 async def mark_as_read(
@@ -110,8 +110,6 @@ async def mark_all_as_read(db: AsyncSession, user_id: uuid.UUID) -> int:
 
 async def delete_notification(db: AsyncSession, user_id: uuid.UUID, notification_id: uuid.UUID) -> None:
     """Delete a single notification."""
-    from fastapi import HTTPException
-
     notif = (await db.execute(
         select(Notification).where(
             Notification.id == notification_id,

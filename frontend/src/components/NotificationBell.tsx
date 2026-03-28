@@ -112,9 +112,9 @@ export default function NotificationBell() {
             {notifications.map((notif) => {
               const data = parsePayload(notif.payload);
               return (
-                <div
+                <button
                   key={notif.id}
-                  className={`flex items-start gap-3 px-4 py-3 border-b border-gray-50 hover:bg-gray-50 transition-colors ${
+                  className={`w-full text-left flex items-start gap-3 px-4 py-3 border-b border-gray-50 hover:bg-gray-50 transition-colors ${
                     !notif.is_read ? "bg-blue-50" : ""
                   }`}
                   onClick={() => {
@@ -135,7 +135,7 @@ export default function NotificationBell() {
                   {!notif.is_read && (
                     <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-blue-500" />
                   )}
-                </div>
+                </button>
               );
             })}
           </div>

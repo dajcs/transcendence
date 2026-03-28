@@ -41,12 +41,15 @@ async def send_friend_request(db: AsyncSession, from_user_id: uuid.UUID, to_user
         if existing.status == "pending":
             # If they already sent us a request, auto-accept
             if existing.from_user_id == to_user_id:
-                sender = (await db.execute(select(User).where(User.id == from_user_id))).scalar_one()
+                acceptor = (await db.execute(select(User).where(User.id == from_user_id))).scalar_one()
                 existing.status = "accepted"
                 existing.updated_at = datetime.now(timezone.utc)
                 await db.commit()
                 await db.refresh(existing)
-                await notify_friend_accepted(db, to_user_id, sender.username)
+                try:
+                    await notify_friend_accepted(db, to_user_id, acceptor.username)
+                except Exception:
+                    pass
                 return await _to_request_response(db, existing)
             raise HTTPException(status_code=409, detail="Friend request already sent")
         # If declined, allow re-sending by updating the existing record
@@ -59,7 +62,10 @@ async def send_friend_request(db: AsyncSession, from_user_id: uuid.UUID, to_user
             existing.updated_at = datetime.now(timezone.utc)
             await db.commit()
             await db.refresh(existing)
-            await notify_friend_request(db, to_user_id, sender.username)
+            try:
+                await notify_friend_request(db, to_user_id, sender.username)
+            except Exception:
+                pass
             return await _to_request_response(db, existing)
 
     # Create new request
@@ -76,7 +82,10 @@ async def send_friend_request(db: AsyncSession, from_user_id: uuid.UUID, to_user
         await db.rollback()
         raise HTTPException(status_code=409, detail="Friend request already sent")
     await db.refresh(req)
-    await notify_friend_request(db, to_user_id, sender.username)
+    try:
+        await notify_friend_request(db, to_user_id, sender.username)
+    except Exception:
+        pass
     return await _to_request_response(db, req)
 
 
@@ -95,7 +104,10 @@ async def accept_friend_request(db: AsyncSession, request_id: uuid.UUID, current
     req.updated_at = datetime.now(timezone.utc)
     await db.commit()
     await db.refresh(req)
-    await notify_friend_accepted(db, req.from_user_id, acceptor.username)
+    try:
+        await notify_friend_accepted(db, req.from_user_id, acceptor.username)
+    except Exception:
+        pass
     return await _to_request_response(db, req)
 
 

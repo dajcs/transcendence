@@ -19,7 +19,7 @@ export default function ChatConversationPage() {
     fetchMessages(partnerId);
     markRead(partnerId);
 
-    const interval = setInterval(() => fetchMessages(partnerId), 3000);
+    const interval = setInterval(() => { fetchMessages(partnerId); markRead(partnerId); }, 3000);
     return () => clearInterval(interval);
   }, [partnerId, fetchMessages, markRead]);
 

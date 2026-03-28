@@ -49,12 +49,14 @@ export const useNotificationStore = create<NotificationStore>((set, get) => ({
 
   markAsRead: async (ids: string[]) => {
     await api.post("/api/notifications/mark-read", { notification_ids: ids });
-    set((state) => ({
-      notifications: state.notifications.map((n) =>
-        ids.includes(n.id) ? { ...n, is_read: true } : n
-      ),
-      unreadCount: Math.max(0, state.unreadCount - ids.length),
-    }));
+    set((state) => {
+      const idSet = new Set(ids);
+      const newlyRead = state.notifications.filter((n) => idSet.has(n.id) && !n.is_read).length;
+      return {
+        notifications: state.notifications.map((n) => idSet.has(n.id) ? { ...n, is_read: true } : n),
+        unreadCount: Math.max(0, state.unreadCount - newlyRead),
+      };
+    });
   },
 
   markAllAsRead: async () => {
@@ -67,12 +69,13 @@ export const useNotificationStore = create<NotificationStore>((set, get) => ({
 
   deleteNotification: async (id: string) => {
     await api.delete(`/api/notifications/${id}`);
-    set((state) => ({
-      notifications: state.notifications.filter((n) => n.id !== id),
-      unreadCount: state.notifications.find((n) => n.id === id && !n.is_read)
-        ? state.unreadCount - 1
-        : state.unreadCount,
-    }));
+    set((state) => {
+      const target = state.notifications.find((n) => n.id === id);
+      return {
+        notifications: state.notifications.filter((n) => n.id !== id),
+        unreadCount: target && !target.is_read ? Math.max(0, state.unreadCount - 1) : state.unreadCount,
+      };
+    });
   },
 
   toggle: () => set((state) => ({ isOpen: !state.isOpen })),
