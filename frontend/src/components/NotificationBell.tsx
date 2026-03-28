@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { useNotificationStore } from "@/store/notifications";
+import { useSocketStore } from "@/store/socket";
 
 function parsePayload(payload: string | null): { message?: string } {
   if (!payload) return {};
@@ -33,14 +34,36 @@ export default function NotificationBell() {
     close,
   } = useNotificationStore();
 
+  const socket = useSocketStore((s) => s.socket);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Poll unread count every 10 seconds
+  // Initial fetch on mount (REST — for already-stored notifications)
   useEffect(() => {
     fetchUnreadCount();
-    const interval = setInterval(fetchUnreadCount, 10000);
-    return () => clearInterval(interval);
   }, [fetchUnreadCount]);
+
+  // Socket listener for new notification events (replaces 10s poll per D-10)
+  useEffect(() => {
+    if (!socket) return;
+
+    const handler = () => {
+      fetchUnreadCount();
+    };
+
+    socket.on("notification:friend_request", handler);
+    socket.on("notification:friend_accepted", handler);
+    socket.on("notification:new_message", handler);
+    socket.on("notification:bet_resolved", handler);
+    socket.on("notification:bet_disputed", handler);
+
+    return () => {
+      socket.off("notification:friend_request", handler);
+      socket.off("notification:friend_accepted", handler);
+      socket.off("notification:new_message", handler);
+      socket.off("notification:bet_resolved", handler);
+      socket.off("notification:bet_disputed", handler);
+    };
+  }, [socket, fetchUnreadCount]);
 
   // Fetch full list when dropdown opens
   useEffect(() => {
