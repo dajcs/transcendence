@@ -115,6 +115,14 @@ Plans:
 
 **42 modules:** Real-time features / WebSockets (2pts)
 
+**Plans:** 4 plans
+
+Plans:
+- [ ] 04-01-PLAN.md — Backend socket server: AsyncServer singleton, ASGI wrapper, connect auth, test scaffold
+- [ ] 04-02-PLAN.md — Backend service emit hooks: bet odds (throttled), comments, notifications, chat
+- [ ] 04-03-PLAN.md — Frontend socket store + AuthBootstrap/logout wiring
+- [ ] 04-04-PLAN.md — Frontend live updates: replace polling in NotificationBell, chat, market detail
+
 ---
 
 ## Phase 5 — Intelligence & Resolution
