@@ -16,8 +16,15 @@ export interface Friend {
   since: string;
 }
 
+export interface BlockedUser {
+  user_id: string;
+  username: string;
+  avatar_url: string | null;
+}
+
 export interface FriendListResponse {
   friends: Friend[];
   pending_received: FriendRequest[];
   pending_sent: FriendRequest[];
+  blocked: BlockedUser[];
 }

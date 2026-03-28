@@ -40,6 +40,13 @@ async def accept_request(request_id: uuid.UUID, request: Request, db: AsyncSessi
     return await friend_service.accept_friend_request(db, request_id, user.id)
 
 
+@router.delete("/request/{request_id}", status_code=204)
+async def cancel_request(request_id: uuid.UUID, request: Request, db: AsyncSession = Depends(get_db)):
+    """Cancel a pending friend request sent by the current user."""
+    user = await _get_current_user(request, db)
+    await friend_service.cancel_friend_request(db, request_id, user.id)
+
+
 @router.post("/reject/{request_id}", response_model=FriendRequestResponse)
 async def reject_request(request_id: uuid.UUID, request: Request, db: AsyncSession = Depends(get_db)):
     """Decline a pending friend request."""

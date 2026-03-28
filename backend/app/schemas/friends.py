@@ -27,7 +27,16 @@ class FriendResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class BlockedUserResponse(BaseModel):
+    user_id: uuid.UUID
+    username: str
+    avatar_url: str | None = None
+
+    model_config = {"from_attributes": True}
+
+
 class FriendListResponse(BaseModel):
     friends: list[FriendResponse]
     pending_received: list[FriendRequestResponse]
     pending_sent: list[FriendRequestResponse]
+    blocked: list[BlockedUserResponse] = []

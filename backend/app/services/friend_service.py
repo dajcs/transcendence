@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models.social import FriendRequest
 from app.db.models.user import User
-from app.schemas.friends import FriendListResponse, FriendRequestResponse, FriendResponse
+from app.schemas.friends import BlockedUserResponse, FriendListResponse, FriendRequestResponse, FriendResponse
 
 
 async def send_friend_request(db: AsyncSession, from_user_id: uuid.UUID, to_user_id: uuid.UUID) -> FriendRequestResponse:
@@ -83,6 +83,19 @@ async def accept_friend_request(db: AsyncSession, request_id: uuid.UUID, current
     await db.commit()
     await db.refresh(req)
     return await _to_request_response(db, req)
+
+
+async def cancel_friend_request(db: AsyncSession, request_id: uuid.UUID, current_user_id: uuid.UUID) -> None:
+    """Cancel a pending friend request sent by current_user_id."""
+    req = (await db.execute(select(FriendRequest).where(FriendRequest.id == request_id))).scalar_one_or_none()
+    if not req:
+        raise HTTPException(status_code=404, detail="Friend request not found")
+    if req.from_user_id != current_user_id:
+        raise HTTPException(status_code=403, detail="Not your request to cancel")
+    if req.status != "pending":
+        raise HTTPException(status_code=400, detail=f"Request is already {req.status}")
+    await db.delete(req)
+    await db.commit()
 
 
 async def reject_friend_request(db: AsyncSession, request_id: uuid.UUID, current_user_id: uuid.UUID) -> FriendRequestResponse:
@@ -202,6 +215,7 @@ async def get_friends_list(db: AsyncSession, current_user_id: uuid.UUID) -> Frie
     friends: list[FriendResponse] = []
     pending_received: list[FriendRequestResponse] = []
     pending_sent: list[FriendRequestResponse] = []
+    blocked: list[BlockedUserResponse] = []
 
     for req in all_requests:
         if req.status == "accepted":
@@ -239,11 +253,20 @@ async def get_friends_list(db: AsyncSession, current_user_id: uuid.UUID) -> Frie
                 pending_received.append(resp)
             else:
                 pending_sent.append(resp)
+        elif req.status == "blocked" and req.from_user_id == current_user_id:
+            blocked_user = users_map.get(req.to_user_id)
+            if blocked_user:
+                blocked.append(BlockedUserResponse(
+                    user_id=blocked_user.id,
+                    username=blocked_user.username,
+                    avatar_url=blocked_user.avatar_url,
+                ))
 
     return FriendListResponse(
         friends=friends,
         pending_received=pending_received,
         pending_sent=pending_sent,
+        blocked=blocked,
     )
 
 

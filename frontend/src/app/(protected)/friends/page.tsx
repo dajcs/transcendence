@@ -17,8 +17,9 @@ function UserSearch() {
   const [searching, setSearching] = useState(false);
   const [sendingTo, setSendingTo] = useState<string | null>(null);
   const [sentTo, setSentTo] = useState<Set<string>>(new Set());
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const { sendRequest, fetch: fetchFriends } = useFriendsStore();
-  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   const handleSearch = (value: string) => {
     setQuery(value);
@@ -44,12 +45,16 @@ function UserSearch() {
 
   const handleSendRequest = async (userId: string) => {
     setSendingTo(userId);
+    setErrors((prev) => { const e = { ...prev }; delete e[userId]; return e; });
     try {
       await sendRequest(userId);
       setSentTo((prev) => new Set(prev).add(userId));
       await fetchFriends();
-    } catch {
-      // error already handled by store
+    } catch (err: unknown) {
+      const msg =
+        (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ??
+        "Could not send request";
+      setErrors((prev) => ({ ...prev, [userId]: msg }));
     } finally {
       setSendingTo(null);
     }
@@ -79,17 +84,22 @@ function UserSearch() {
                 </div>
                 <span className="text-sm font-medium text-gray-900">{user.username}</span>
               </div>
-              <button
-                onClick={() => handleSendRequest(user.user_id)}
-                disabled={sendingTo === user.user_id || sentTo.has(user.user_id)}
-                className={`rounded px-3 py-1 text-sm text-white ${
-                  sentTo.has(user.user_id)
-                    ? "bg-gray-400 cursor-default"
-                    : "bg-blue-600 hover:bg-blue-700 disabled:opacity-50"
-                }`}
-              >
-                {sentTo.has(user.user_id) ? "Sent" : sendingTo === user.user_id ? "Sending..." : "Add Friend"}
-              </button>
+              <div className="flex flex-col items-end gap-1">
+                <button
+                  onClick={() => handleSendRequest(user.user_id)}
+                  disabled={sendingTo === user.user_id || sentTo.has(user.user_id)}
+                  className={`rounded px-3 py-1 text-sm text-white ${
+                    sentTo.has(user.user_id)
+                      ? "bg-gray-400 cursor-default"
+                      : "bg-blue-600 hover:bg-blue-700 disabled:opacity-50"
+                  }`}
+                >
+                  {sentTo.has(user.user_id) ? "Sent" : sendingTo === user.user_id ? "Sending..." : "Add Friend"}
+                </button>
+                {errors[user.user_id] && (
+                  <span className="text-xs text-red-500">{errors[user.user_id]}</span>
+                )}
+              </div>
             </li>
           ))}
         </ul>
@@ -106,15 +116,18 @@ export default function FriendsPage() {
     friends,
     pendingReceived,
     pendingSent,
+    blocked,
     isLoading,
     fetch,
     acceptRequest,
     rejectRequest,
     removeFriend,
     blockUser,
+    unblockUser,
+    cancelRequest,
   } = useFriendsStore();
 
-  const [activeTab, setActiveTab] = useState<"friends" | "received" | "sent">("friends");
+  const [activeTab, setActiveTab] = useState<"friends" | "received" | "sent" | "blocked">("friends");
 
   useEffect(() => {
     fetch();
@@ -164,6 +177,18 @@ export default function FriendsPage() {
         >
           Sent ({pendingSent.length})
         </button>
+        {blocked.length > 0 && (
+          <button
+            onClick={() => setActiveTab("blocked")}
+            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+              activeTab === "blocked"
+                ? "border-red-600 text-red-600"
+                : "border-transparent text-gray-500 hover:text-gray-700"
+            }`}
+          >
+            Blocked ({blocked.length})
+          </button>
+        )}
       </div>
 
       {isLoading && <p className="text-sm text-gray-500">Loading...</p>}
@@ -239,7 +264,7 @@ export default function FriendsPage() {
               </div>
               <div className="flex gap-2">
                 <button
-                  onClick={() => acceptRequest(req.id)}
+                  onClick={async () => { await acceptRequest(req.id); setActiveTab("friends"); }}
                   className="rounded bg-green-600 px-3 py-1 text-sm text-white hover:bg-green-700"
                 >
                   Accept
@@ -251,6 +276,31 @@ export default function FriendsPage() {
                   Decline
                 </button>
               </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Blocked users */}
+      {activeTab === "blocked" && (
+        <div className="space-y-2">
+          {blocked.map((u) => (
+            <div
+              key={u.user_id}
+              className="flex items-center justify-between rounded border border-gray-200 bg-white p-4"
+            >
+              <div className="flex items-center gap-2">
+                <div className="h-8 w-8 rounded-full bg-gray-300 flex items-center justify-center text-xs font-medium text-gray-700">
+                  {u.username[0].toUpperCase()}
+                </div>
+                <span className="text-sm font-medium text-gray-900">{u.username}</span>
+              </div>
+              <button
+                onClick={() => unblockUser(u.user_id)}
+                className="rounded border border-gray-300 px-3 py-1 text-sm text-gray-700 hover:bg-gray-50"
+              >
+                Unblock
+              </button>
             </div>
           ))}
         </div>
@@ -275,7 +325,12 @@ export default function FriendsPage() {
                   Sent {new Date(req.created_at).toLocaleDateString()}
                 </p>
               </div>
-              <span className="rounded bg-gray-100 px-2 py-1 text-xs text-gray-600">Pending</span>
+              <button
+                onClick={() => cancelRequest(req.id)}
+                className="rounded border border-red-300 px-3 py-1 text-sm text-red-700 hover:bg-red-50"
+              >
+                Cancel
+              </button>
             </div>
           ))}
         </div>
