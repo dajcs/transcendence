@@ -49,7 +49,8 @@ export const useChatStore = create<ChatStore>((set, get) => ({
   },
 
   fetchMessages: async (partnerId: string) => {
-    set({ isLoading: true, activePartnerId: partnerId, messages: [] });
+    const switching = get().activePartnerId !== partnerId;
+    set({ isLoading: true, activePartnerId: partnerId, ...(switching ? { messages: [] } : {}) });
     try {
       const { data } = await api.get<ChatMessage[]>(`/api/chat/${partnerId}/messages`);
       if (get().activePartnerId === partnerId) {

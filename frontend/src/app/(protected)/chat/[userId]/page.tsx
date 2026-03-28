@@ -19,12 +19,7 @@ export default function ChatConversationPage() {
     fetchMessages(partnerId);
     markRead(partnerId);
 
-    // Poll for new messages every 3 seconds
-    const interval = setInterval(() => {
-      fetchMessages(partnerId);
-      markRead(partnerId);
-    }, 3000);
-
+    const interval = setInterval(() => { fetchMessages(partnerId); markRead(partnerId); }, 3000);
     return () => clearInterval(interval);
   }, [partnerId, fetchMessages, markRead]);
 

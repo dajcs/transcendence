@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.models.social import FriendRequest
 from app.db.models.user import User
 from app.schemas.friends import BlockedUserResponse, FriendListResponse, FriendRequestResponse, FriendResponse
+from app.services.notification_service import notify_friend_accepted, notify_friend_request
 
 
 async def send_friend_request(db: AsyncSession, from_user_id: uuid.UUID, to_user_id: uuid.UUID) -> FriendRequestResponse:
@@ -40,14 +41,20 @@ async def send_friend_request(db: AsyncSession, from_user_id: uuid.UUID, to_user
         if existing.status == "pending":
             # If they already sent us a request, auto-accept
             if existing.from_user_id == to_user_id:
+                acceptor = (await db.execute(select(User).where(User.id == from_user_id))).scalar_one()
                 existing.status = "accepted"
                 existing.updated_at = datetime.now(timezone.utc)
                 await db.commit()
                 await db.refresh(existing)
+                try:
+                    await notify_friend_accepted(db, to_user_id, acceptor.username)
+                except Exception:
+                    pass
                 return await _to_request_response(db, existing)
             raise HTTPException(status_code=409, detail="Friend request already sent")
         # If declined, allow re-sending by updating the existing record
         if existing.status == "declined":
+            sender = (await db.execute(select(User).where(User.id == from_user_id))).scalar_one()
             existing.from_user_id = from_user_id
             existing.to_user_id = to_user_id
             existing.status = "pending"
@@ -55,9 +62,14 @@ async def send_friend_request(db: AsyncSession, from_user_id: uuid.UUID, to_user
             existing.updated_at = datetime.now(timezone.utc)
             await db.commit()
             await db.refresh(existing)
+            try:
+                await notify_friend_request(db, to_user_id, sender.username)
+            except Exception:
+                pass
             return await _to_request_response(db, existing)
 
     # Create new request
+    sender = (await db.execute(select(User).where(User.id == from_user_id))).scalar_one()
     req = FriendRequest(
         from_user_id=from_user_id,
         to_user_id=to_user_id,
@@ -70,6 +82,10 @@ async def send_friend_request(db: AsyncSession, from_user_id: uuid.UUID, to_user
         await db.rollback()
         raise HTTPException(status_code=409, detail="Friend request already sent")
     await db.refresh(req)
+    try:
+        await notify_friend_request(db, to_user_id, sender.username)
+    except Exception:
+        pass
     return await _to_request_response(db, req)
 
 
@@ -83,10 +99,15 @@ async def accept_friend_request(db: AsyncSession, request_id: uuid.UUID, current
     if req.status != "pending":
         raise HTTPException(status_code=400, detail=f"Request is already {req.status}")
 
+    acceptor = (await db.execute(select(User).where(User.id == current_user_id))).scalar_one()
     req.status = "accepted"
     req.updated_at = datetime.now(timezone.utc)
     await db.commit()
     await db.refresh(req)
+    try:
+        await notify_friend_accepted(db, req.from_user_id, acceptor.username)
+    except Exception:
+        pass
     return await _to_request_response(db, req)
 
 
@@ -237,7 +258,6 @@ async def get_friends_list(db: AsyncSession, current_user_id: uuid.UUID) -> Frie
         elif req.status == "pending":
             from_user = users_map.get(req.from_user_id)
             to_user = users_map.get(req.to_user_id)
-            # If either user was deleted, skip this request
             if req.from_user_id == current_user_id:
                 from_username = "You"
                 to_username = to_user.username if to_user else "Unknown"
