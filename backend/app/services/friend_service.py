@@ -4,11 +4,12 @@ from datetime import datetime, timezone
 
 from fastapi import HTTPException
 from sqlalchemy import and_, or_, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models.social import FriendRequest
 from app.db.models.user import User
-from app.schemas.friends import FriendListResponse, FriendRequestResponse, FriendResponse
+from app.schemas.friends import BlockedUserResponse, FriendListResponse, FriendRequestResponse, FriendResponse
 
 
 async def send_friend_request(db: AsyncSession, from_user_id: uuid.UUID, to_user_id: uuid.UUID) -> FriendRequestResponse:
@@ -63,7 +64,11 @@ async def send_friend_request(db: AsyncSession, from_user_id: uuid.UUID, to_user
         status="pending",
     )
     db.add(req)
-    await db.commit()
+    try:
+        await db.commit()
+    except IntegrityError:
+        await db.rollback()
+        raise HTTPException(status_code=409, detail="Friend request already sent")
     await db.refresh(req)
     return await _to_request_response(db, req)
 
@@ -83,6 +88,19 @@ async def accept_friend_request(db: AsyncSession, request_id: uuid.UUID, current
     await db.commit()
     await db.refresh(req)
     return await _to_request_response(db, req)
+
+
+async def cancel_friend_request(db: AsyncSession, request_id: uuid.UUID, current_user_id: uuid.UUID) -> None:
+    """Cancel a pending friend request sent by current_user_id."""
+    req = (await db.execute(select(FriendRequest).where(FriendRequest.id == request_id))).scalar_one_or_none()
+    if not req:
+        raise HTTPException(status_code=404, detail="Friend request not found")
+    if req.from_user_id != current_user_id:
+        raise HTTPException(status_code=403, detail="Not your request to cancel")
+    if req.status != "pending":
+        raise HTTPException(status_code=400, detail=f"Request is already {req.status}")
+    await db.delete(req)
+    await db.commit()
 
 
 async def reject_friend_request(db: AsyncSession, request_id: uuid.UUID, current_user_id: uuid.UUID) -> FriendRequestResponse:
@@ -112,7 +130,7 @@ async def remove_friend(db: AsyncSession, current_user_id: uuid.UUID, friend_use
                 and_(FriendRequest.from_user_id == friend_user_id, FriendRequest.to_user_id == current_user_id),
             ),
         )
-    )).scalar_one_or_none()
+    )).scalars().first()
     if not req:
         raise HTTPException(status_code=404, detail="Friendship not found")
 
@@ -174,7 +192,7 @@ async def unblock_user(db: AsyncSession, current_user_id: uuid.UUID, target_user
 
 
 async def get_friends_list(db: AsyncSession, current_user_id: uuid.UUID) -> FriendListResponse:
-    """Return friends, pending received, and pending sent requests."""
+    """Return friends, pending received, pending sent, and blocked users."""
     # Get all friend requests involving current user
     all_requests = (await db.execute(
         select(FriendRequest).where(
@@ -202,6 +220,7 @@ async def get_friends_list(db: AsyncSession, current_user_id: uuid.UUID) -> Frie
     friends: list[FriendResponse] = []
     pending_received: list[FriendRequestResponse] = []
     pending_sent: list[FriendRequestResponse] = []
+    blocked: list[BlockedUserResponse] = []
 
     for req in all_requests:
         if req.status == "accepted":
@@ -239,11 +258,20 @@ async def get_friends_list(db: AsyncSession, current_user_id: uuid.UUID) -> Frie
                 pending_received.append(resp)
             else:
                 pending_sent.append(resp)
+        elif req.status == "blocked" and req.from_user_id == current_user_id:
+            blocked_user = users_map.get(req.to_user_id)
+            if blocked_user:
+                blocked.append(BlockedUserResponse(
+                    user_id=blocked_user.id,
+                    username=blocked_user.username,
+                    avatar_url=blocked_user.avatar_url,
+                ))
 
     return FriendListResponse(
         friends=friends,
         pending_received=pending_received,
         pending_sent=pending_sent,
+        blocked=blocked,
     )
 
 
@@ -257,7 +285,7 @@ async def are_friends(db: AsyncSession, user_a: uuid.UUID, user_b: uuid.UUID) ->
                 and_(FriendRequest.from_user_id == user_b, FriendRequest.to_user_id == user_a),
             ),
         )
-    )).scalar_one_or_none()
+    )).scalars().first()
     return result is not None
 
 

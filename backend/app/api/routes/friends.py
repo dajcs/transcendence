@@ -26,11 +26,15 @@ async def list_friends(request: Request, db: AsyncSession = Depends(get_db)):
     return await friend_service.get_friends_list(db, user.id)
 
 
-@router.post("/request/{user_id}", response_model=FriendRequestResponse, status_code=201)
+@router.post("/request/{user_id}", status_code=200)
 async def send_request(user_id: uuid.UUID, request: Request, db: AsyncSession = Depends(get_db)):
-    """Send a friend request to user_id."""
+    """Send a friend request to user_id. Always returns 200 to avoid browser console errors."""
     user = await _get_current_user(request, db)
-    return await friend_service.send_friend_request(db, user.id, user_id)
+    try:
+        await friend_service.send_friend_request(db, user.id, user_id)
+        return {"success": True}
+    except HTTPException as e:
+        return {"success": False, "detail": e.detail}
 
 
 @router.post("/accept/{request_id}", response_model=FriendRequestResponse)
@@ -38,6 +42,13 @@ async def accept_request(request_id: uuid.UUID, request: Request, db: AsyncSessi
     """Accept a pending friend request."""
     user = await _get_current_user(request, db)
     return await friend_service.accept_friend_request(db, request_id, user.id)
+
+
+@router.delete("/request/{request_id}", status_code=204)
+async def cancel_request(request_id: uuid.UUID, request: Request, db: AsyncSession = Depends(get_db)):
+    """Cancel a pending friend request sent by the current user."""
+    user = await _get_current_user(request, db)
+    await friend_service.cancel_friend_request(db, request_id, user.id)
 
 
 @router.post("/reject/{request_id}", response_model=FriendRequestResponse)
@@ -56,7 +67,7 @@ async def remove_friend(user_id: uuid.UUID, request: Request, db: AsyncSession =
 
 @router.post("/block/{user_id}", status_code=204)
 async def block_user(user_id: uuid.UUID, request: Request, db: AsyncSession = Depends(get_db)):
-    """Block a user (removes friendship if any)."""
+    """Block a user."""
     user = await _get_current_user(request, db)
     await friend_service.block_user(db, user.id, user_id)
 

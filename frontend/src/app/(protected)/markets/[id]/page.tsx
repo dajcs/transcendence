@@ -7,6 +7,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { useAuthStore } from "@/store/auth";
 import type { BetPosition, BetPositionsListResponse, Comment, Market } from "@/lib/types";
+import UserLink from "@/components/UserLink";
 
 function estimateRefund(position: { side: string }, market: Market): { bp: number; reason: string } {
   if (market.market_type === "numeric") {
@@ -385,7 +386,7 @@ export default function MarketDetailPage() {
                     style={{ marginLeft: `${depth * 24}px` }}
                     className="rounded border border-gray-200 p-3"
                   >
-                    <p className="text-xs font-medium text-gray-700 mb-1">{comment.author_username}</p>
+                    <UserLink username={comment.author_username} className="text-xs font-medium text-gray-700 mb-1 block" />
                     <p className="text-sm text-gray-800">{comment.content}</p>
                     <div className="mt-2 flex items-center gap-3 text-xs text-gray-500">
                       <span>{new Date(comment.created_at).toLocaleString()}</span>
