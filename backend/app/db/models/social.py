@@ -11,6 +11,7 @@ from app.db.base import Base
 
 class FriendRequest(Base):
     __tablename__ = "friend_requests"
+    # Symmetric uniqueness enforced by DB index uq_friend_pair_symmetric (managed in migrations)
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     from_user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)

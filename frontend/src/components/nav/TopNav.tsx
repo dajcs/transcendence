@@ -2,10 +2,12 @@
 
 import Link from "next/link";
 import { useAuthStore } from "@/store/auth";
+import { useFriendsStore } from "@/store/friends";
 import { useRouter } from "next/navigation";
 
 export default function TopNav() {
   const { isAuthenticated, user, logout } = useAuthStore();
+  const pendingCount = useFriendsStore((s) => s.pendingReceived.length);
   const router = useRouter();
 
   const handleLogout = async () => {
@@ -30,6 +32,14 @@ export default function TopNav() {
             </Link>
             <Link href="/markets" className="text-sm text-blue-600 hover:underline">
               Markets
+            </Link>
+            <Link href="/friends" className="relative text-sm text-blue-600 hover:underline">
+              Friends
+              {pendingCount > 0 && (
+                <span className="absolute -top-2 -right-4 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">
+                  {pendingCount}
+                </span>
+              )}
             </Link>
             <button
               onClick={handleLogout}
