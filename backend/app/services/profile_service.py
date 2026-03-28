@@ -16,7 +16,9 @@ async def get_public_profile(
     db: AsyncSession, username: str, current_user_id: uuid.UUID | None = None
 ) -> PublicProfileResponse:
     """Fetch a user's public profile by username."""
-    user = (await db.execute(select(User).where(User.username == username))).scalar_one_or_none()
+    user = (await db.execute(
+        select(User).where(User.username == username, User.is_active.is_(True))
+    )).scalar_one_or_none()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
@@ -69,7 +71,7 @@ async def get_public_profile(
         id=user.id,
         username=user.username,
         avatar_url=user.avatar_url,
-        bio=getattr(user, "bio", None),
+        bio=user.bio,
         created_at=user.created_at,
         kp=int(balances["kp"]),
         tp=float(balances["tp"]),
@@ -93,7 +95,7 @@ async def update_profile(db: AsyncSession, user_id: uuid.UUID, data: UpdateProfi
         user.username = data.username
 
     if data.bio is not None:
-        user.bio = data.bio  # type: ignore[attr-defined]
+        user.bio = data.bio
 
     if data.avatar_url is not None:
         user.avatar_url = data.avatar_url
@@ -110,7 +112,7 @@ async def search_users(db: AsyncSession, q: str, limit: int = 20) -> list[UserSe
 
     results = (await db.execute(
         select(User)
-        .where(User.username.ilike(f"%{q}%"), User.is_active.is_(True))
+        .where(User.username.ilike(f"{q}%"), User.is_active.is_(True))
         .order_by(User.username)
         .limit(limit)
     )).scalars().all()

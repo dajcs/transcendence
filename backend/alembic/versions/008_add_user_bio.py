@@ -13,13 +13,7 @@ depends_on = None
 
 
 def upgrade() -> None:
-    conn = op.get_bind()
-    result = conn.execute(sa.text(
-        "SELECT 1 FROM information_schema.columns "
-        "WHERE table_name='users' AND column_name='bio'"
-    ))
-    if result.fetchone() is None:
-        op.add_column("users", sa.Column("bio", sa.Text, nullable=True))
+    op.add_column("users", sa.Column("bio", sa.Text, nullable=True))
 
 
 def downgrade() -> None:

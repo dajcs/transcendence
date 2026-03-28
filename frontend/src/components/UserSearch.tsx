@@ -17,22 +17,34 @@ export default function UserSearch() {
   const wrapperRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (query.length < 2) {
+    const trimmed = query.trim();
+    if (trimmed.length < 2) {
       setResults([]);
+      setIsOpen(false);
       return;
     }
 
+    const controller = new AbortController();
     const timer = setTimeout(async () => {
       try {
-        const { data } = await api.get<UserResult[]>(`/api/users/search?q=${encodeURIComponent(query)}`);
+        const { data } = await api.get<UserResult[]>(
+          `/api/users/search?q=${encodeURIComponent(trimmed)}`,
+          { signal: controller.signal },
+        );
         setResults(data);
         setIsOpen(true);
       } catch {
-        setResults([]);
+        if (!controller.signal.aborted) {
+          setResults([]);
+          setIsOpen(false);
+        }
       }
-    }, 300); // debounce
+    }, 300);
 
-    return () => clearTimeout(timer);
+    return () => {
+      controller.abort();
+      clearTimeout(timer);
+    };
   }, [query]);
 
   // Close dropdown on outside click
@@ -61,7 +73,7 @@ export default function UserSearch() {
           {results.map((user) => (
             <Link
               key={user.id}
-              href={`/profile/${user.username}`}
+              href={`/profile/${encodeURIComponent(user.username)}`}
               onClick={() => {
                 setIsOpen(false);
                 setQuery("");

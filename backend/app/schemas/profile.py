@@ -1,4 +1,5 @@
 """Pydantic schemas for user profile endpoints."""
+import re
 import uuid
 from datetime import datetime
 
@@ -29,8 +30,12 @@ class UpdateProfileRequest(BaseModel):
     @field_validator("username")
     @classmethod
     def username_valid(cls, v: str | None) -> str | None:
-        if v is not None and (len(v) < 3 or len(v) > 32):
+        if v is None:
+            return v
+        if len(v) < 3 or len(v) > 32:
             raise ValueError("Username must be 3-32 characters")
+        if not re.fullmatch(r"[A-Za-z0-9_\-]+", v):
+            raise ValueError("Username may only contain letters, digits, underscores, and hyphens")
         return v
 
     @field_validator("bio")

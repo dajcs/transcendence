@@ -8,7 +8,7 @@ interface UserLinkProps {
 export default function UserLink({ username, className = "" }: UserLinkProps) {
   return (
     <Link
-      href={`/profile/${username}`}
+      href={`/profile/${encodeURIComponent(username)}`}
       className={`hover:underline ${className}`}
     >
       {username}

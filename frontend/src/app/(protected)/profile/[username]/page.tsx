@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
@@ -33,11 +33,18 @@ export default function ProfilePage() {
   const profileQuery = useQuery<Profile>({
     queryKey: ["profile", params.username],
     queryFn: async () => {
-      const { data } = await api.get(`/api/users/${params.username}`);
-      setBio(data.bio || "");
+      const { data } = await api.get(`/api/users/${encodeURIComponent(params.username)}`);
       return data;
     },
   });
+
+  const profile = profileQuery.data;
+
+  useEffect(() => {
+    if (profile && !editing) {
+      setBio(profile.bio || "");
+    }
+  }, [profile?.bio, editing]);
 
   const updateProfile = useMutation({
     mutationFn: async (data: { bio?: string }) => api.put("/api/users/me", data),
@@ -53,8 +60,6 @@ export default function ProfilePage() {
       await queryClient.invalidateQueries({ queryKey: ["profile", params.username] });
     },
   });
-
-  const profile = profileQuery.data;
 
   return (
     <div className="space-y-6">

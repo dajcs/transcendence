@@ -43,7 +43,6 @@ async def update_my_profile(
 @router.get("/search", response_model=list[UserSearchResult])
 async def search_users(
     q: str = Query(min_length=2, max_length=50),
-    request: Request = None,  # type: ignore[assignment]
     db: AsyncSession = Depends(get_db),
 ):
     """Search users by username."""

@@ -25,7 +25,7 @@ export default function TopNav() {
         {isAuthenticated ? (
           <>
             <UserSearch />
-            <Link href={`/profile/${user?.username}`} className="text-sm text-gray-600 hover:text-blue-600 hover:underline">
+            <Link href={`/profile/${encodeURIComponent(user?.username ?? "")}`} className="text-sm text-gray-600 hover:text-blue-600 hover:underline">
               {user?.username}
             </Link>
             <span className="text-xs text-gray-500">
