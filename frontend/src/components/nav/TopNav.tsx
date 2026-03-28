@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useAuthStore } from "@/store/auth";
 import { useFriendsStore } from "@/store/friends";
 import { useRouter } from "next/navigation";
+import NotificationBell from "@/components/NotificationBell";
 import UserSearch from "@/components/UserSearch";
 
 export default function TopNav() {
@@ -45,6 +46,10 @@ export default function TopNav() {
                 </span>
               )}
             </Link>
+            <Link href="/chat" className="text-sm text-blue-600 hover:underline">
+              Chat
+            </Link>
+            <NotificationBell />
             <button
               onClick={handleLogout}
               className="text-sm px-3 py-1 border border-gray-300 rounded hover:bg-gray-50"

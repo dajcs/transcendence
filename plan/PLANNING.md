@@ -1001,15 +1001,15 @@ Run: `npm test` (unit/integration), `npx playwright test` (E2E)
 
 | # | Module | Type | Pts | Status |
 |---|---|---|---|---|
-| 1 | Frontend + Backend frameworks (Next.js + FastAPI) | Major | 2 | Planned |
-| 2 | Real-time features (Socket.IO) | Major | 2 | Planned |
-| 3 | User interaction (chat, profiles, friends) | Major | 2 | Planned |
-| 4 | Standard user management (profile, avatar, friends, online status) | Major | 2 | Planned |
-| 5 | ORM (SQLAlchemy) | Minor | 1 | Planned |
-| 6 | Notification system | Minor | 1 | Planned |
-| 7 | OAuth 2.0 (Google / GitHub / 42) | Minor | 1 | Planned |
-| 8 | LLM interface (market summarizer, resolution assistant) | Major | 2 | Planned |
-| 9 | i18n — 3 languages (EN, FR, DE) | Minor | 1 | Planned |
+| 1 | Frontend + Backend frameworks (Next.js + FastAPI) | Major | 2 | **Done** (Phase 1) |
+| 2 | Real-time features (Socket.IO) | Major | 2 | Planned (Phase 4) |
+| 3 | User interaction (chat, profiles, friends) | Major | 2 | **Done** (Phase 3) |
+| 4 | Standard user management (profile, avatar, friends, online status) | Major | 2 | **Done** (Phase 3) |
+| 5 | ORM (SQLAlchemy) | Minor | 1 | **Done** (Phase 1) |
+| 6 | Notification system | Minor | 1 | **Done** (Phase 3) |
+| 7 | OAuth 2.0 (Google / GitHub / 42) | Minor | 1 | Planned (Phase 6) |
+| 8 | LLM interface (market summarizer, resolution assistant) | Major | 2 | Planned (Phase 5) |
+| 9 | i18n — 3 languages (EN, FR, DE) | Minor | 1 | Planned (Phase 6) |
 | | **Total** | | **14** | |
 
 ### Stretch (bonus, up to +5)
@@ -1025,19 +1025,19 @@ Run: `npm test` (unit/integration), `npx playwright test` (E2E)
 
 ## 15. Implementation Order
 
-### Phase 1 — Foundation
+### Phase 1 — Foundation ✓ (complete)
 1. Docker Compose setup (Nginx + Postgres + Redis)
 2. Backend scaffold: FastAPI + SQLAlchemy + Alembic
 3. User model + auth (register/login/JWT)
 4. Frontend scaffold: Next.js 15 + Tailwind + layout
 
-### Phase 2 — Core Features
+### Phase 2 — Core Features ✓ (complete)
 5. Market CRUD (create, list, detail)
 6. Betting system (place bets, pool tracking)
 7. Comment/discussion threads
 8. Karma system (upvotes → karma)
 
-### Phase 3 — Social
+### Phase 3 — Social ✓ (complete)
 9. Friend system (request/accept/block)
 10. Chat (direct messages)
 11. User profiles + avatars

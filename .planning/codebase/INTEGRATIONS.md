@@ -1,168 +1,154 @@
 # External Integrations
 
-**Analysis Date:** 2026-03-24
+**Analysis Date:** 2026-03-28
 
 ## APIs & External Services
 
 **LLM / AI:**
-- **OpenRouter API** - Market summarization, resolution assistance, chat support
-  - SDK/Client: `httpx` async HTTP client (custom wrapper at `backend/app/utils/openrouter.py`)
-  - Auth: `OPENROUTER_API_KEY` environment variable
-  - Base URL: `OPENROUTER_BASE_URL=https://openrouter.ai/api/v1`
-  - Model: Configurable via `OPENROUTER_MODEL` (default: `anthropic/claude-sonnet-4`)
+- OpenRouter API - Market summarization, resolution assistance (planned)
+  - SDK/Client: `httpx` async HTTP client (no wrapper file found yet — integration pending)
+  - Auth: `OPENROUTER_API_KEY` env var (present in config, defaults to empty string)
+  - Budget: `LLM_MONTHLY_BUDGET_USD` (default 20.0 USD) — configured in `backend/app/config.py`
 
-**OAuth 2.0 Providers:**
-- **Google OAuth 2.0**
-  - Client ID: `OAUTH_GOOGLE_CLIENT_ID`
-  - Client Secret: `OAUTH_GOOGLE_CLIENT_SECRET`
-  - Implementation: `backend/app/utils/security.py` (JWT + OAuth logic)
-
-- **GitHub OAuth 2.0**
-  - Client ID: `OAUTH_GITHUB_CLIENT_ID`
-  - Client Secret: `OAUTH_GITHUB_CLIENT_SECRET`
-  - Implementation: `backend/app/utils/security.py`
-
-- **42 School OAuth 2.0** (intra.42.fr)
-  - Client ID: `OAUTH_42_CLIENT_ID`
-  - Client Secret: `OAUTH_42_CLIENT_SECRET`
-  - Implementation: `backend/app/utils/security.py`
+**OAuth 2.0 Providers (model present, routes not yet implemented):**
+- Google OAuth 2.0
+  - Env vars: `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`
+  - DB model: `OauthAccount` with `provider='google'` (`backend/app/db/models/user.py`)
+- GitHub OAuth 2.0
+  - Env vars: `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`
+  - DB model: `OauthAccount` with `provider='github'`
+- 42 School OAuth 2.0 (intra.42.fr)
+  - Env vars: `FT_CLIENT_ID`, `FT_CLIENT_SECRET`
+  - DB model: `OauthAccount` with `provider='42'`
+  - Note: OAuth route implementation not found in `backend/app/api/routes/auth.py` as of Phase 3
 
 ## Data Storage
 
 **Databases:**
-- **PostgreSQL 16** (Primary)
-  - Connection: `postgresql+asyncpg://voxpopuli:changeme@db:5432/voxpopuli` (via `DATABASE_URL`)
-  - ORM: SQLAlchemy 2 with asyncpg driver
-  - Credentials: `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB` env vars
-  - Models located in: `backend/app/models/` (user.py, market.py, bet.py, comment.py, friendship.py, notification.py, chat.py)
+- PostgreSQL 16-alpine (primary relational store)
+  - Connection: `postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}`
+  - Client: SQLAlchemy 2 async engine via asyncpg driver (`backend/app/db/session.py`)
+  - Env vars: `DATABASE_URL`, `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`
+  - Migrations: Alembic, 8 versions in `backend/alembic/versions/`
+  - Tables: `users`, `oauth_accounts`, `friend_requests`, `messages`, `notifications`, `bets`, `markets`, `transactions`, `kp_events`
 
 **File Storage:**
-- **Local filesystem only** - User avatars and profile images served from frontend public directory
-  - Frontend public path: `frontend/public/avatars/` (example structure, to be implemented)
+- Local filesystem only — no S3 or CDN integration detected
+- Avatar URLs stored as plain text in `users.avatar_url` column
 
 **Caching & Session Store:**
-- **Redis 7**
+- Redis 7-alpine
   - Connection: `redis://redis:6379/0` (via `REDIS_URL`)
-  - Client: `redis-py` async client
+  - Client: `redis.asyncio` (lazy-loaded in `backend/app/services/auth_service.py`)
   - Uses:
-    - Session/token caching (expired tokens, user sessions)
-    - Socket.IO adapter (pub/sub for WebSocket message broadcasting)
-    - Rate limiting bucket storage
-    - Celery message broker (task queue)
-  - Configuration in `backend/app/config.py`
+    - Refresh token storage: `refresh:<token>` keys, 7-day TTL
+    - Login rate limiting: `rate:login:<ip>` keys, 5 attempts / 15 min
+    - Celery broker and result backend (same Redis instance)
 
 ## Authentication & Identity
 
 **Auth Provider:**
-- **Custom JWT-based authentication** with OAuth 2.0 support
-  - Implementation: `backend/app/utils/security.py`
-  - Token types: Access tokens (short-lived) + Refresh tokens (long-lived)
-  - Expiration: `ACCESS_TOKEN_EXPIRE_MINUTES` and `REFRESH_TOKEN_EXPIRE_DAYS`
-  - Secret key: `SECRET_KEY` environment variable (should be a long random string)
+- Custom JWT-based auth with httpOnly cookie transport
+  - Access token: RS256-signed JWT, 5-hour expiry, stored in `access_token` httpOnly cookie (`backend/app/utils/jwt.py`)
+  - Refresh token: opaque `secrets.token_urlsafe(64)`, stored in Redis, 7-day TTL
+  - Refresh cookie restricted to path `/api/auth/refresh` (reduces XSS exposure)
+  - Token rotation on refresh: old token deleted, new pair issued
+  - Implementation: `backend/app/api/routes/auth.py`, `backend/app/services/auth_service.py`
 
 **Password Management:**
-- **bcrypt** + **passlib** for secure password hashing
-  - Used for email/password signup and login
-  - Optional for OAuth users (no password hash if OAuth-authenticated)
+- bcrypt via passlib — `backend/app/utils/password.py`
+- OAuth users have `password_hash=None` (nullable column)
 
-**Frontend Auth Flow:**
-- JWT tokens stored in browser (typically httpOnly cookies or localStorage)
-- Tokens sent with each API request via `Authorization: Bearer <token>` header
-- Socket.IO authentication via JWT handshake
+**Frontend Auth:**
+- Axios client sends cookies automatically (`withCredentials: true`) — `frontend/src/lib/api.ts`
+- Next.js middleware guards protected routes via `access_token` cookie presence — `frontend/src/middleware.ts`
+- Auth state in Zustand `useAuthStore` (`frontend/src/store/auth.ts`), bootstrapped via `/api/auth/me`
+
+**Password Reset:**
+- HMAC-SHA256 signed token (email + expiry timestamp), 1-hour TTL
+- Reset URL delivered via SMTP email (`backend/app/services/email_service.py`)
+- Falls back to stdout logging if `smtp_host` is `localhost` (dev mode)
+
+## Email
+
+**Provider:**
+- SMTP via `aiosmtplib` — configurable host/port/credentials
+  - Env vars: `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `EMAIL_FROM`
+  - Dev default: `SMTP_HOST=localhost` → logs reset URL to stdout instead of sending
+- Implementation: `backend/app/services/email_service.py`
+- Current use: password reset emails only
 
 ## Monitoring & Observability
 
 **Error Tracking:**
-- Not currently integrated (no Sentry, Rollbar, etc.)
+- None — no Sentry or equivalent integrated
 
 **Logs:**
-- Backend: Standard FastAPI logging to stdout (captured by Docker)
-- Frontend: Browser console logs (must be clean for Chrome compatibility per 42 requirements)
-- Approach: Docker container logs via `docker logs <container>`
+- Backend: Python `logging` module to stdout, captured by Docker
+- Frontend: Browser console (must be warning/error free per 42 school requirements)
+- Access logs: Nginx default access log format
 
 ## CI/CD & Deployment
 
 **Hosting:**
-- **Docker Compose** (local/self-hosted)
-- Single command deployment: `docker compose up --build`
-- HTTPS via Nginx reverse proxy on port `:8443`
+- Docker Compose, self-hosted
+- Single command: `docker compose up --build`
+- HTTPS on port 8443
 
 **CI Pipeline:**
-- Not yet implemented
-- Planned: GitHub Actions for testing, linting (backend: `ruff check`, pytest; frontend: `npm run lint`, test)
+- None — no GitHub Actions or equivalent configured
 
 ## Environment Configuration
 
-**Required env vars (see `.env.example` in root):**
-
-Backend configuration:
-- `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB` - Database credentials
-- `DATABASE_URL` - PostgreSQL connection string (e.g., `postgresql+asyncpg://user:pass@db:5432/dbname`)
-- `REDIS_URL` - Redis connection (e.g., `redis://redis:6379/0`)
-- `SECRET_KEY` - JWT signing key (generate with `openssl rand -hex 32`)
-- `ACCESS_TOKEN_EXPIRE_MINUTES` - JWT access token lifetime (e.g., 30)
-- `REFRESH_TOKEN_EXPIRE_DAYS` - Refresh token lifetime (e.g., 7)
-- `BACKEND_CORS_ORIGINS` - Allowed origins (e.g., `https://localhost:8443`)
-
-OAuth configuration:
-- `OAUTH_GOOGLE_CLIENT_ID`, `OAUTH_GOOGLE_CLIENT_SECRET`
-- `OAUTH_GITHUB_CLIENT_ID`, `OAUTH_GITHUB_CLIENT_SECRET`
-- `OAUTH_42_CLIENT_ID`, `OAUTH_42_CLIENT_SECRET`
-
-LLM configuration:
-- `OPENROUTER_API_KEY` - API key for OpenRouter
-- `OPENROUTER_BASE_URL` - Defaults to `https://openrouter.ai/api/v1`
-- `OPENROUTER_MODEL` - Model identifier (e.g., `anthropic/claude-sonnet-4`)
-
-Frontend configuration:
-- `NEXT_PUBLIC_API_URL` - Backend API endpoint (e.g., `https://localhost:8443/api`)
-- `NEXT_PUBLIC_WS_URL` - WebSocket endpoint (e.g., `wss://localhost:8443`)
-
-Nginx configuration:
-- `DOMAIN` - Hostname for SSL certificate generation (e.g., `localhost`)
+**Required env vars (source of truth: `.env.example`):**
+```
+POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD
+SECRET_KEY                        # HMAC signing key, must be non-empty
+JWT_PRIVATE_KEY_PATH              # path to RS256 private PEM
+JWT_PUBLIC_KEY_PATH               # path to RS256 public PEM
+OPENROUTER_API_KEY                # optional, defaults to ""
+SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD, EMAIL_FROM
+GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET
+GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET
+FT_CLIENT_ID, FT_CLIENT_SECRET
+NEXT_PUBLIC_API_URL               # https://localhost:8443
+NEXT_PUBLIC_SOCKET_URL            # https://localhost:8443
+ALLOWED_HOSTS                     # comma-separated CORS allowed origins
+```
 
 **Secrets location:**
 - `.env` file in project root (git-ignored)
-- Must be manually created from `.env.example` template
-- Secrets are NOT committed to repository
+- RS256 keys at `backend/keys/` (git-ignored)
+- SSL cert/key at `nginx/ssl/` (git-ignored)
 
 ## Webhooks & Callbacks
 
 **Incoming:**
-- **None detected** - Platform does not currently receive webhooks from external services
+- OAuth callback routes planned but not yet implemented
 
 **Outgoing:**
-- **None detected** - Background task execution handled internally via Celery
+- None detected
 
-**Future possibilities (Phase 2):**
-- Real-money transaction webhooks (when Spice payments are integrated)
-- External data API polling for automatic bet resolution (sports scores, weather, etc.)
+## Background Tasks
 
-## WebSocket / Real-time Communication
+**Celery Task Queue:**
+- Broker: Redis (`redis://redis:6379/0`)
+- Result backend: Redis (same instance)
+- Worker: `celery` service in `docker-compose.yml`
+- Scheduler: `celery-beat` service in `docker-compose.yml`
+- Implemented tasks:
+  - `app.workers.tasks.daily.daily_allocation` — runs daily at midnight UTC; converts KP to BP for all users (`backend/app/workers/tasks/daily.py`)
+  - `ping` — health check task
+- Task config: `backend/app/workers/celery_app.py`
 
-**Socket.IO Integration:**
-- Server: `python-socketio` on FastAPI (mounted on same ASGI app)
-- Client: `socket.io-client` in Next.js frontend
-- Events defined in: `backend/app/socket/events.py`
-- Manager: `backend/app/socket/manager.py`
-- Adapter: Redis (for multi-instance broadcasting)
-- Connection endpoints: WebSocket via Nginx proxy at `/socket.io/`
+## Real-time (WebSocket)
 
-**Real-time Features:**
-- Live bet probability updates across users
-- Chat message delivery
-- Notification broadcasts
-- Market resolution status updates
-- User online/offline status
-
-## Task Queue
-
-**Background Job Processing:**
-- Framework: **Celery** (Python distributed task queue)
-- Broker: **Redis** (message queue)
-- Worker: `celery -A app.tasks worker` (runs background tasks)
-- Tasks: `backend/app/tasks/` (resolution scheduling, notifications, API polling)
+**Current state:**
+- `socket.io-client` ^4.0.0 present in `frontend/package.json`
+- Nginx configured to proxy `/socket.io/` to `backend:8000`
+- No backend Socket.IO server (python-socketio) found in `backend/app/` — real-time not yet implemented
+- Notifications currently polled via REST API (`/api/notifications/unread-count`)
 
 ---
 
-*Integration audit: 2026-03-24*
+*Integration audit: 2026-03-28*
