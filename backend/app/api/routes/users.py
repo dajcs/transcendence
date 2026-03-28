@@ -1,11 +1,11 @@
-"""User search API routes: /api/users/*"""
+"""User profile API routes: /api/users/*"""
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
-from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_db
-from app.db.models.user import User
+from app.schemas.profile import PublicProfileResponse, UpdateProfileRequest, UserSearchResult
 from app.services import auth_service
+from app.services import profile_service
 
 router = APIRouter()
 
@@ -17,26 +17,45 @@ async def _get_current_user(request: Request, db: AsyncSession):
     return await auth_service.get_current_user(db, access_token)
 
 
-@router.get("/search")
-async def search_users(
+async def _get_optional_user(request: Request, db: AsyncSession):
+    """Return current user or None if not authenticated."""
+    access_token = request.cookies.get("access_token")
+    if not access_token:
+        return None
+    try:
+        return await auth_service.get_current_user(db, access_token)
+    except HTTPException:
+        return None
+
+
+@router.put("/me", response_model=PublicProfileResponse)
+async def update_my_profile(
+    data: UpdateProfileRequest,
     request: Request,
-    q: str = Query(..., min_length=1, max_length=100),
     db: AsyncSession = Depends(get_db),
 ):
-    """Search users by username (case-insensitive prefix match). Excludes current user."""
+    """Update the authenticated user's profile."""
     user = await _get_current_user(request, db)
+    await profile_service.update_profile(db, user.id, data)
+    return await profile_service.get_public_profile(db, user.username, user.id)
 
-    results = (await db.execute(
-        select(User.id, User.username, User.avatar_url)
-        .where(
-            func.lower(User.username).like(func.lower(f"{q}%")),
-            User.id != user.id,
-            User.is_active.is_(True),
-        )
-        .limit(20)
-    )).all()
 
-    return [
-        {"user_id": str(r.id), "username": r.username, "avatar_url": r.avatar_url}
-        for r in results
-    ]
+@router.get("/search", response_model=list[UserSearchResult])
+async def search_users(
+    q: str = Query(min_length=2, max_length=50),
+    db: AsyncSession = Depends(get_db),
+):
+    """Search users by username."""
+    return await profile_service.search_users(db, q)
+
+
+@router.get("/{username}", response_model=PublicProfileResponse)
+async def get_profile(
+    username: str,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+):
+    """Get a user's public profile."""
+    current_user = await _get_optional_user(request, db)
+    current_user_id = current_user.id if current_user else None
+    return await profile_service.get_public_profile(db, username, current_user_id)

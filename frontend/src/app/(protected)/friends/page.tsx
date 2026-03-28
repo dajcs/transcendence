@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from "react";
 import { useFriendsStore } from "@/store/friends";
 import type { BlockedUser } from "@/lib/friends-types";
 import { api } from "@/lib/api";
+import UserLink from "@/components/UserLink";
 
 interface SearchResult {
   user_id: string;
@@ -221,9 +222,7 @@ export default function FriendsPage() {
                   />
                 </div>
                 <div>
-                  <span className="font-medium text-gray-900">
-                    {friend.username}
-                  </span>
+                  <UserLink username={friend.username} className="font-medium text-gray-900" />
                   <p className="text-xs text-gray-500">
                     Friends since {new Date(friend.since).toLocaleDateString()}
                   </p>
@@ -260,9 +259,7 @@ export default function FriendsPage() {
               className="flex items-center justify-between rounded border border-yellow-200 bg-yellow-50 p-4"
             >
               <div>
-                <span className="font-medium text-gray-900">
-                  {req.from_username}
-                </span>
+                <UserLink username={req.from_username} className="font-medium text-gray-900" />
                 <p className="text-xs text-gray-500">
                   Sent {new Date(req.created_at).toLocaleDateString()}
                 </p>
@@ -298,7 +295,7 @@ export default function FriendsPage() {
                 <div className="h-8 w-8 rounded-full bg-gray-300 flex items-center justify-center text-xs font-medium text-gray-700">
                   {u.username[0].toUpperCase()}
                 </div>
-                <span className="text-sm font-medium text-gray-900">{u.username}</span>
+                <UserLink username={u.username} className="text-sm font-medium text-gray-900" />
               </div>
               <button
                 onClick={() => unblockUser(u.user_id)}
@@ -323,9 +320,7 @@ export default function FriendsPage() {
               className="flex items-center justify-between rounded border border-gray-200 bg-white p-4"
             >
               <div>
-                <span className="font-medium text-gray-900">
-                  {req.to_username}
-                </span>
+                <UserLink username={req.to_username} className="font-medium text-gray-900" />
                 <p className="text-xs text-gray-500">
                   Sent {new Date(req.created_at).toLocaleDateString()}
                 </p>

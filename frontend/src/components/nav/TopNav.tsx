@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useAuthStore } from "@/store/auth";
 import { useFriendsStore } from "@/store/friends";
 import { useRouter } from "next/navigation";
+import UserSearch from "@/components/UserSearch";
 
 export default function TopNav() {
   const { isAuthenticated, user, logout } = useAuthStore();
@@ -23,7 +24,10 @@ export default function TopNav() {
       <div className="flex items-center gap-4">
         {isAuthenticated ? (
           <>
-            <span className="text-sm text-gray-600">{user?.username}</span>
+            <UserSearch />
+            <Link href={`/profile/${encodeURIComponent(user?.username ?? "")}`} className="text-sm text-gray-600 hover:text-blue-600 hover:underline">
+              {user?.username}
+            </Link>
             <span className="text-xs text-gray-500">
               BP {user?.bp ?? 0} · KP {user?.kp ?? 0} · TP {user?.tp ?? 0}
             </span>
