@@ -11,7 +11,11 @@ export const useSocketStore = create<SocketStore>()((set, get) => ({
   socket: null,
 
   connect: () => {
-    if (get().socket?.connected) return; // idempotent — no-op if already connected
+    const existing = get().socket;
+    if (existing) {
+      if (!existing.connected) existing.connect(); // reconnect without creating a second instance
+      return;
+    }
     const socket = io(
       process.env.NEXT_PUBLIC_API_URL ?? "https://localhost:8443",
       {

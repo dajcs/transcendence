@@ -70,21 +70,24 @@ export default function MarketDetailPage() {
     socket.emit("join_bet", { bet_id: marketId });
 
     // RT-01: Live odds update — patch React Query cache directly
-    socket.on("bet:odds_updated", (data: { bet_id: string; yes_pct: number; no_pct: number; total_votes: number; choice_counts: Record<string, number>; position_count: number }) => {
+    const onOddsUpdated = (data: { bet_id: string; yes_pct: number; no_pct: number; total_votes: number; choice_counts: Record<string, number>; position_count: number }) => {
       queryClient.setQueryData(["market", marketId], (old: Market | undefined) =>
         old ? { ...old, yes_pct: data.yes_pct, no_pct: data.no_pct, choice_counts: data.choice_counts, position_count: data.position_count } : old
       );
-    });
+    };
 
     // RT-02: Live comment — invalidate query so comment list refetches
-    socket.on("bet:comment_added", () => {
+    const onCommentAdded = () => {
       queryClient.invalidateQueries({ queryKey: ["comments", marketId] });
-    });
+    };
+
+    socket.on("bet:odds_updated", onOddsUpdated);
+    socket.on("bet:comment_added", onCommentAdded);
 
     return () => {
       socket.emit("leave_bet", { bet_id: marketId });
-      socket.off("bet:odds_updated");
-      socket.off("bet:comment_added");
+      socket.off("bet:odds_updated", onOddsUpdated);
+      socket.off("bet:comment_added", onCommentAdded);
     };
   }, [socket, marketId, queryClient]);
 

@@ -140,9 +140,10 @@ async def delete_notification(db: AsyncSession, user_id: uuid.UUID, notification
 
 # --- Convenience helpers for triggering notifications from other services ---
 
-async def notify_friend_request(db: AsyncSession, to_user_id: uuid.UUID, from_username: str) -> None:
+async def notify_friend_request(db: AsyncSession, to_user_id: uuid.UUID, from_user_id: uuid.UUID, from_username: str) -> None:
     """Notify user about incoming friend request."""
     await create_notification(db, to_user_id, "friend_request", {
+        "from_user_id": str(from_user_id),
         "from_username": from_username,
         "message": f"{from_username} sent you a friend request",
     })

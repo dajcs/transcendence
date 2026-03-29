@@ -26,12 +26,22 @@ from app.services.economy_service import (
     get_bet_odds,
 )
 
+_redis_client: aioredis.Redis | None = None
+
+
+def _get_redis() -> aioredis.Redis:
+    """Lazy-initialized shared Redis client."""
+    global _redis_client
+    if _redis_client is None:
+        _redis_client = aioredis.from_url(settings.redis_url, decode_responses=True)
+    return _redis_client
+
 
 async def _emit_odds_update(db: AsyncSession, bet_id: uuid.UUID) -> None:
     """Emit bet:odds_updated with 500ms throttle via Redis NX key."""
     try:
         from app.socket.server import sio
-        r = aioredis.from_url(settings.redis_url, decode_responses=True)
+        r = _get_redis()
         throttle_key = f"throttle:odds:{bet_id}"
         if not await r.set(throttle_key, "1", nx=True, px=500):
             return  # within 500ms window — skip

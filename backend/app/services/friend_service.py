@@ -63,7 +63,7 @@ async def send_friend_request(db: AsyncSession, from_user_id: uuid.UUID, to_user
             await db.commit()
             await db.refresh(existing)
             try:
-                await notify_friend_request(db, to_user_id, sender.username)
+                await notify_friend_request(db, to_user_id, from_user_id, sender.username)
             except Exception:
                 pass
             return await _to_request_response(db, existing)
@@ -83,7 +83,7 @@ async def send_friend_request(db: AsyncSession, from_user_id: uuid.UUID, to_user
         raise HTTPException(status_code=409, detail="Friend request already sent")
     await db.refresh(req)
     try:
-        await notify_friend_request(db, to_user_id, sender.username)
+        await notify_friend_request(db, to_user_id, from_user_id, sender.username)
     except Exception:
         pass
     return await _to_request_response(db, req)
@@ -104,10 +104,14 @@ async def accept_friend_request(db: AsyncSession, request_id: uuid.UUID, current
     req.updated_at = datetime.now(timezone.utc)
     await db.commit()
     await db.refresh(req)
-    # Mark the friend_request notification as read for the acceptor — it's been acted on
+    # Mark only the matching friend_request notification as read (filter by from_user_id in payload)
     await db.execute(
         update(Notification)
-        .where(Notification.user_id == current_user_id, Notification.type == "friend_request")
+        .where(
+            Notification.user_id == current_user_id,
+            Notification.type == "friend_request",
+            Notification.payload.contains(str(req.from_user_id)),
+        )
         .values(is_read=True)
     )
     await db.commit()
@@ -165,7 +169,10 @@ async def remove_friend(db: AsyncSession, current_user_id: uuid.UUID, friend_use
     remover = (await db.execute(select(User).where(User.id == current_user_id))).scalar_one()
     await db.delete(req)
     await db.commit()
-    await notify_friend_removed(db, friend_user_id, remover.username)
+    try:
+        await notify_friend_removed(db, friend_user_id, remover.username)
+    except Exception:
+        pass
 
 
 async def block_user(db: AsyncSession, current_user_id: uuid.UUID, target_user_id: uuid.UUID) -> None:
