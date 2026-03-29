@@ -43,7 +43,7 @@ services:
       timeout: 5s
       retries: 5
       start_period: 30s
-    entrypoint: ["sh", "-c", "uv run alembic upgrade head && uv run uvicorn app.main:app --host 0.0.0.0 --port 8000"]
+    entrypoint: ["sh", "-c", "uv run alembic upgrade head && uv run uvicorn app.main:socket_app --host 0.0.0.0 --port 8000"]
 
   celery:
     build:

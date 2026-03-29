@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.models.social import FriendRequest, Message
 from app.db.models.user import User
 from app.schemas.chat import ConversationResponse, MessageResponse
+from app.services.notification_service import notify_new_message
 
 
 async def _check_not_blocked(db: AsyncSession, user_id: uuid.UUID, partner_id: uuid.UUID) -> None:
@@ -209,6 +210,26 @@ async def send_message(
     db.add(msg)
     await db.commit()
     await db.refresh(msg)
+
+    try:
+        from app.socket.server import sio
+        await sio.emit(
+            "chat:message",
+            {
+                "from_user_id": str(from_user_id),
+                "from_username": sender.username,
+                "content": msg.content,
+                "sent_at": msg.sent_at.isoformat(),
+            },
+            room=f"user:{to_user_id}",
+        )
+    except Exception:
+        pass
+
+    try:
+        await notify_new_message(db, to_user_id, sender.username)
+    except Exception:
+        pass
 
     return MessageResponse(
         id=msg.id,

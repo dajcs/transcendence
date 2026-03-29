@@ -45,3 +45,16 @@ app.include_router(users_router, prefix="/api/users", tags=["users"])
 @app.get("/api/health")
 async def health():
     return {"status": "ok"}
+
+
+# --- Socket.IO ASGI wrapper ---
+# Import events module to register @sio.on decorators at import time.
+# Use importlib to avoid shadowing the `app` FastAPI variable above.
+import importlib as _importlib
+import socketio as _socketio
+from app.socket.server import sio as _sio
+
+_importlib.import_module("app.socket.events")  # registers @sio.on decorators
+
+socket_app = _socketio.ASGIApp(_sio, app)
+# Uvicorn runs socket_app; tests use app (FastAPI instance) directly.
