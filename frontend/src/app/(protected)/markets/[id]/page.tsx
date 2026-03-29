@@ -70,9 +70,9 @@ export default function MarketDetailPage() {
     socket.emit("join_bet", { bet_id: marketId });
 
     // RT-01: Live odds update — patch React Query cache directly
-    socket.on("bet:odds_updated", (data: { bet_id: string; yes_pct: number; no_pct: number; total_votes: number }) => {
+    socket.on("bet:odds_updated", (data: { bet_id: string; yes_pct: number; no_pct: number; total_votes: number; choice_counts: Record<string, number>; position_count: number }) => {
       queryClient.setQueryData(["market", marketId], (old: Market | undefined) =>
-        old ? { ...old, yes_pct: data.yes_pct, no_pct: data.no_pct } : old
+        old ? { ...old, yes_pct: data.yes_pct, no_pct: data.no_pct, choice_counts: data.choice_counts, position_count: data.position_count } : old
       );
     });
 

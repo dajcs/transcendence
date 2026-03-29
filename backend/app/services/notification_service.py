@@ -179,3 +179,16 @@ async def notify_bet_disputed(db: AsyncSession, user_id: uuid.UUID, market_title
         "market_title": market_title,
         "message": f"Market '{market_title}' is being disputed",
     })
+
+
+async def notify_friend_removed(db: AsyncSession, user_id: uuid.UUID, by_username: str) -> None:
+    """Notify user that someone ended the friendship."""
+    await create_notification(db, user_id, "friend_removed", {
+        "by_username": by_username,
+        "message": f"{by_username} ended the friendship",
+    })
+    try:
+        from app.socket.server import sio
+        await sio.emit("friend:removed", {"by": by_username}, room=f"user:{user_id}")
+    except Exception:
+        pass

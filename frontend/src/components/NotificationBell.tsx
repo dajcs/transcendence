@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { useNotificationStore } from "@/store/notifications";
 import { useSocketStore } from "@/store/socket";
 
@@ -16,9 +17,16 @@ function parsePayload(payload: string | null): { message?: string } {
 const TYPE_LABELS: Record<string, string> = {
   friend_request: "Friend Request",
   friend_accepted: "Friend Accepted",
+  friend_removed: "Friendship Ended",
   new_message: "New Message",
   bet_resolved: "Bet Resolved",
   bet_disputed: "Bet Disputed",
+};
+
+const NOTIFICATION_LINKS: Record<string, string> = {
+  friend_request: "/friends?tab=received",
+  friend_accepted: "/friends",
+  new_message: "/chat",
 };
 
 export default function NotificationBell() {
@@ -34,6 +42,7 @@ export default function NotificationBell() {
     close,
   } = useNotificationStore();
 
+  const router = useRouter();
   const socket = useSocketStore((s) => s.socket);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -52,6 +61,7 @@ export default function NotificationBell() {
 
     socket.on("notification:friend_request", handler);
     socket.on("notification:friend_accepted", handler);
+    socket.on("notification:friend_removed", handler);
     socket.on("notification:new_message", handler);
     socket.on("notification:bet_resolved", handler);
     socket.on("notification:bet_disputed", handler);
@@ -59,6 +69,7 @@ export default function NotificationBell() {
     return () => {
       socket.off("notification:friend_request", handler);
       socket.off("notification:friend_accepted", handler);
+      socket.off("notification:friend_removed", handler);
       socket.off("notification:new_message", handler);
       socket.off("notification:bet_resolved", handler);
       socket.off("notification:bet_disputed", handler);
@@ -142,6 +153,14 @@ export default function NotificationBell() {
                   }`}
                   onClick={() => {
                     if (!notif.is_read) markAsRead([notif.id]);
+                    const link = NOTIFICATION_LINKS[notif.type];
+                    if (link) {
+                      close();
+                      if (notif.type === "friend_request") {
+                        window.dispatchEvent(new CustomEvent("friends:open-tab", { detail: "received" }));
+                      }
+                      router.push(link);
+                    }
                   }}
                 >
                   <div className="flex-1 min-w-0">

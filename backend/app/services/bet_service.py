@@ -36,6 +36,14 @@ async def _emit_odds_update(db: AsyncSession, bet_id: uuid.UUID) -> None:
         if not await r.set(throttle_key, "1", nx=True, px=500):
             return  # within 500ms window — skip
         odds = await get_bet_odds(db, bet_id)
+        # choice_counts covers numeric + multiple_choice markets
+        rows = await db.execute(
+            select(BetPosition.side, func.count(BetPosition.id))
+            .where(BetPosition.bet_id == bet_id, BetPosition.withdrawn_at.is_(None))
+            .group_by(BetPosition.side)
+        )
+        choice_counts = {side: int(count) for side, count in rows}
+        position_count = sum(choice_counts.values())
         await sio.emit(
             "bet:odds_updated",
             {
@@ -43,6 +51,8 @@ async def _emit_odds_update(db: AsyncSession, bet_id: uuid.UUID) -> None:
                 "yes_pct": float(odds["yes_pct"]),
                 "no_pct": float(odds["no_pct"]),
                 "total_votes": int(odds.get("total_votes", 0)),
+                "choice_counts": choice_counts,
+                "position_count": position_count,
             },
             room=f"bet:{bet_id}",
         )

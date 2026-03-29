@@ -3,14 +3,14 @@ import uuid
 from datetime import datetime, timezone
 
 from fastapi import HTTPException
-from sqlalchemy import and_, or_, select
+from sqlalchemy import and_, or_, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.models.social import FriendRequest
+from app.db.models.social import FriendRequest, Notification
 from app.db.models.user import User
 from app.schemas.friends import BlockedUserResponse, FriendListResponse, FriendRequestResponse, FriendResponse
-from app.services.notification_service import notify_friend_accepted, notify_friend_request
+from app.services.notification_service import notify_friend_accepted, notify_friend_removed, notify_friend_request
 
 
 async def send_friend_request(db: AsyncSession, from_user_id: uuid.UUID, to_user_id: uuid.UUID) -> FriendRequestResponse:
@@ -104,6 +104,13 @@ async def accept_friend_request(db: AsyncSession, request_id: uuid.UUID, current
     req.updated_at = datetime.now(timezone.utc)
     await db.commit()
     await db.refresh(req)
+    # Mark the friend_request notification as read for the acceptor — it's been acted on
+    await db.execute(
+        update(Notification)
+        .where(Notification.user_id == current_user_id, Notification.type == "friend_request")
+        .values(is_read=True)
+    )
+    await db.commit()
     try:
         await notify_friend_accepted(db, req.from_user_id, acceptor.username)
     except Exception:
@@ -155,8 +162,10 @@ async def remove_friend(db: AsyncSession, current_user_id: uuid.UUID, friend_use
     if not req:
         raise HTTPException(status_code=404, detail="Friendship not found")
 
+    remover = (await db.execute(select(User).where(User.id == current_user_id))).scalar_one()
     await db.delete(req)
     await db.commit()
+    await notify_friend_removed(db, friend_user_id, remover.username)
 
 
 async def block_user(db: AsyncSession, current_user_id: uuid.UUID, target_user_id: uuid.UUID) -> None:
