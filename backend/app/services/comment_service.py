@@ -50,7 +50,7 @@ async def create_comment(
     await db.refresh(comment)
 
     author = (await db.execute(select(User).where(User.id == user_id))).scalar_one()
-    return CommentResponse(
+    response = CommentResponse(
         id=comment.id,
         bet_id=comment.bet_id,
         user_id=comment.user_id,
@@ -60,6 +60,21 @@ async def create_comment(
         created_at=comment.created_at,
         upvote_count=0,
     )
+    try:
+        from app.socket.server import sio
+        await sio.emit(
+            "bet:comment_added",
+            {
+                "comment_id": str(comment.id),
+                "user_id": str(comment.user_id),
+                "content": comment.content,
+                "created_at": comment.created_at.isoformat(),
+            },
+            room=f"bet:{bet_id}",
+        )
+    except Exception:
+        pass
+    return response
 
 
 async def list_comments(db: AsyncSession, bet_id: uuid.UUID) -> list[CommentResponse]:

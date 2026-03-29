@@ -2,11 +2,11 @@
 gsd_state_version: 1.0
 milestone: v21.0
 milestone_name: milestone
-current_plan: Not started
-status: In progress
-last_updated: "2026-03-28T00:00:00.000Z"
+current_plan: 1
+status: "Phase 04 shipped — PR #11"
+last_updated: "2026-03-29T15:53:57.897Z"
 progress:
-  total_phases: 7
+  total_phases: 4
   completed_phases: 3
   total_plans: 18
   completed_plans: 18
@@ -24,8 +24,8 @@ See: `.planning/PROJECT.md` (updated 2026-03-24)
 ## Current Status
 
 **Phase:** 03 complete → 04 next
-**Current Plan:** Not started
-**Last session:** 2026-03-28T00:00:00.000Z
+**Current Plan:** 1
+**Last session:** 2026-03-28T23:36:48.945Z
 **Resume file:** None
 
 ## Decisions
@@ -53,6 +53,10 @@ See: `.planning/PROJECT.md` (updated 2026-03-24)
 - [Phase 02-09]: Display own-side win probability (Win X%) instead of both YES/NO percentages — simpler, user-centric
 - [Phase 02-07]: compute_bet_cap uses log10 (digit count) not log2 — correct BET-04 formula
 - [Phase 02-08]: Join User in both list_comments and create_comment rather than a separate lookup — keeps API contract simple
+- [Phase 04]: useSocketStore.getState() in logout() — Zustand outside-React pattern for non-component action calls
+- [Phase 04]: Socket connects with withCredentials: true, no auth token field — D-04 httpOnly cookie constraint
+- [Phase 04-01]: importlib.import_module used in main.py to register socket events without shadowing FastAPI app variable
+- [Phase 04-01]: cors_allowed_origins=[] on AsyncServer singleton — Nginx handles CORS, wildcard conflicts with withCredentials cookie auth
 
 ## Performance Metrics
 
@@ -67,6 +71,8 @@ See: `.planning/PROJECT.md` (updated 2026-03-24)
 | Phase 02 P09 | 2min | 1 tasks | 1 files |
 | Phase 02 P07 | 2min | 2 tasks | 4 files |
 | Phase 02 P08 | 2 | 2 tasks | 4 files |
+| Phase 04 P03 | 3min | 2 tasks | 3 files |
+| Phase 04 P01 | 8min | 2 tasks | 8 files |
 
 ## Session History
 

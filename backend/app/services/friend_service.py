@@ -3,14 +3,14 @@ import uuid
 from datetime import datetime, timezone
 
 from fastapi import HTTPException
-from sqlalchemy import and_, or_, select
+from sqlalchemy import and_, or_, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.models.social import FriendRequest
+from app.db.models.social import FriendRequest, Notification
 from app.db.models.user import User
 from app.schemas.friends import BlockedUserResponse, FriendListResponse, FriendRequestResponse, FriendResponse
-from app.services.notification_service import notify_friend_accepted, notify_friend_request
+from app.services.notification_service import notify_friend_accepted, notify_friend_removed, notify_friend_request
 
 
 async def send_friend_request(db: AsyncSession, from_user_id: uuid.UUID, to_user_id: uuid.UUID) -> FriendRequestResponse:
@@ -63,7 +63,7 @@ async def send_friend_request(db: AsyncSession, from_user_id: uuid.UUID, to_user
             await db.commit()
             await db.refresh(existing)
             try:
-                await notify_friend_request(db, to_user_id, sender.username)
+                await notify_friend_request(db, to_user_id, from_user_id, sender.username)
             except Exception:
                 pass
             return await _to_request_response(db, existing)
@@ -83,7 +83,7 @@ async def send_friend_request(db: AsyncSession, from_user_id: uuid.UUID, to_user
         raise HTTPException(status_code=409, detail="Friend request already sent")
     await db.refresh(req)
     try:
-        await notify_friend_request(db, to_user_id, sender.username)
+        await notify_friend_request(db, to_user_id, from_user_id, sender.username)
     except Exception:
         pass
     return await _to_request_response(db, req)
@@ -104,6 +104,17 @@ async def accept_friend_request(db: AsyncSession, request_id: uuid.UUID, current
     req.updated_at = datetime.now(timezone.utc)
     await db.commit()
     await db.refresh(req)
+    # Mark only the matching friend_request notification as read (filter by from_user_id in payload)
+    await db.execute(
+        update(Notification)
+        .where(
+            Notification.user_id == current_user_id,
+            Notification.type == "friend_request",
+            Notification.payload.contains(str(req.from_user_id)),
+        )
+        .values(is_read=True)
+    )
+    await db.commit()
     try:
         await notify_friend_accepted(db, req.from_user_id, acceptor.username)
     except Exception:
@@ -155,8 +166,13 @@ async def remove_friend(db: AsyncSession, current_user_id: uuid.UUID, friend_use
     if not req:
         raise HTTPException(status_code=404, detail="Friendship not found")
 
+    remover = (await db.execute(select(User).where(User.id == current_user_id))).scalar_one()
     await db.delete(req)
     await db.commit()
+    try:
+        await notify_friend_removed(db, friend_user_id, remover.username)
+    except Exception:
+        pass
 
 
 async def block_user(db: AsyncSession, current_user_id: uuid.UUID, target_user_id: uuid.UUID) -> None:

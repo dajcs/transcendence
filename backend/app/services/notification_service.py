@@ -26,6 +26,20 @@ async def create_notification(
     db.add(notif)
     await db.commit()
     await db.refresh(notif)
+    try:
+        from app.socket.server import sio
+        await sio.emit(
+            f"notification:{notif.type}",
+            {
+                "id": str(notif.id),
+                "type": notif.type,
+                "payload": notif.payload,
+                "created_at": notif.created_at.isoformat(),
+            },
+            room=f"user:{user_id}",
+        )
+    except Exception:
+        pass
     return notif
 
 
@@ -126,9 +140,10 @@ async def delete_notification(db: AsyncSession, user_id: uuid.UUID, notification
 
 # --- Convenience helpers for triggering notifications from other services ---
 
-async def notify_friend_request(db: AsyncSession, to_user_id: uuid.UUID, from_username: str) -> None:
+async def notify_friend_request(db: AsyncSession, to_user_id: uuid.UUID, from_user_id: uuid.UUID, from_username: str) -> None:
     """Notify user about incoming friend request."""
     await create_notification(db, to_user_id, "friend_request", {
+        "from_user_id": str(from_user_id),
         "from_username": from_username,
         "message": f"{from_username} sent you a friend request",
     })
@@ -165,3 +180,16 @@ async def notify_bet_disputed(db: AsyncSession, user_id: uuid.UUID, market_title
         "market_title": market_title,
         "message": f"Market '{market_title}' is being disputed",
     })
+
+
+async def notify_friend_removed(db: AsyncSession, user_id: uuid.UUID, by_username: str) -> None:
+    """Notify user that someone ended the friendship."""
+    await create_notification(db, user_id, "friend_removed", {
+        "by_username": by_username,
+        "message": f"{by_username} ended the friendship",
+    })
+    try:
+        from app.socket.server import sio
+        await sio.emit("friend:removed", {"by": by_username}, room=f"user:{user_id}")
+    except Exception:
+        pass

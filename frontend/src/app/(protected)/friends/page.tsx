@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import { useFriendsStore } from "@/store/friends";
+import { useSocketStore } from "@/store/socket";
 import type { BlockedUser } from "@/lib/friends-types";
 import { api } from "@/lib/api";
 import UserLink from "@/components/UserLink";
@@ -134,10 +135,35 @@ export default function FriendsPage() {
     cancelRequest,
   } = useFriendsStore();
 
+  const socket = useSocketStore((s) => s.socket);
   const [activeTab, setActiveTab] = useState<"friends" | "received" | "sent" | "blocked">("friends");
 
   useEffect(() => {
+    const tab = new URLSearchParams(window.location.search).get("tab");
+    if (tab === "received") setActiveTab("received");
     fetch();
+  }, [fetch]);
+
+  // Re-fetch when friend status changes via socket
+  useEffect(() => {
+    if (!socket) return;
+    socket.on("notification:friend_accepted", fetch);
+    socket.on("notification:friend_request", fetch);
+    socket.on("friend:removed", fetch);
+    return () => {
+      socket.off("notification:friend_accepted", fetch);
+      socket.off("notification:friend_request", fetch);
+      socket.off("friend:removed", fetch);
+    };
+  }, [socket, fetch]);
+
+  useEffect(() => {
+    const handler = (e: CustomEvent) => {
+      setActiveTab(e.detail as "friends" | "received" | "sent" | "blocked");
+      fetch();
+    };
+    window.addEventListener("friends:open-tab", handler as EventListener);
+    return () => window.removeEventListener("friends:open-tab", handler as EventListener);
   }, [fetch]);
 
   return (

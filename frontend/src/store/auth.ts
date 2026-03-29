@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { api } from "@/lib/api";
+import { useSocketStore } from "@/store/socket";
 
 interface User {
   id: string;
@@ -37,6 +38,7 @@ export const useAuthStore = create<AuthStore>()((set) => ({
     } catch {
       // Ignore errors — clear state regardless
     }
+    useSocketStore.getState().disconnect(); // disconnect before clearing auth state (D-09)
     set({ user: null, isAuthenticated: false });
   },
 }));

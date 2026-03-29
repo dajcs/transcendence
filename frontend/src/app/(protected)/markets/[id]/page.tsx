@@ -6,6 +6,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { api } from "@/lib/api";
 import { useAuthStore } from "@/store/auth";
+import { useSocketStore } from "@/store/socket";
 import type { BetPosition, BetPositionsListResponse, Comment, Market } from "@/lib/types";
 import UserLink from "@/components/UserLink";
 
@@ -36,6 +37,7 @@ export default function MarketDetailPage() {
   const marketId = params.id;
   const queryClient = useQueryClient();
   const bootstrap = useAuthStore((s) => s.bootstrap);
+  const socket = useSocketStore((s) => s.socket);
 
   const [side, setSide] = useState<string>("yes");
   const [commentText, setCommentText] = useState("");
@@ -60,6 +62,34 @@ export default function MarketDetailPage() {
     queryKey: ["comments", marketId],
     queryFn: async () => (await api.get(`/api/markets/${marketId}/comments`)).data,
   });
+
+  // Join bet room on mount, leave on unmount (D-12)
+  useEffect(() => {
+    if (!socket || !marketId) return;
+
+    socket.emit("join_bet", { bet_id: marketId });
+
+    // RT-01: Live odds update — patch React Query cache directly
+    const onOddsUpdated = (data: { bet_id: string; yes_pct: number; no_pct: number; total_votes: number; choice_counts: Record<string, number>; position_count: number }) => {
+      queryClient.setQueryData(["market", marketId], (old: Market | undefined) =>
+        old ? { ...old, yes_pct: data.yes_pct, no_pct: data.no_pct, choice_counts: data.choice_counts, position_count: data.position_count } : old
+      );
+    };
+
+    // RT-02: Live comment — invalidate query so comment list refetches
+    const onCommentAdded = () => {
+      queryClient.invalidateQueries({ queryKey: ["comments", marketId] });
+    };
+
+    socket.on("bet:odds_updated", onOddsUpdated);
+    socket.on("bet:comment_added", onCommentAdded);
+
+    return () => {
+      socket.emit("leave_bet", { bet_id: marketId });
+      socket.off("bet:odds_updated", onOddsUpdated);
+      socket.off("bet:comment_added", onCommentAdded);
+    };
+  }, [socket, marketId, queryClient]);
 
   const placeBet = useMutation({
     mutationFn: async () => (await api.post<BetPosition>("/api/bets", { bet_id: marketId, side })).data,
