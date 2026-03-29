@@ -119,9 +119,9 @@ Plans:
 
 Plans:
 - [x] 04-01-PLAN.md — Backend socket server: AsyncServer singleton, ASGI wrapper, connect auth, test scaffold
-- [ ] 04-02-PLAN.md — Backend service emit hooks: bet odds (throttled), comments, notifications, chat
+- [x] 04-02-PLAN.md — Backend service emit hooks: bet odds (throttled), comments, notifications, chat
 - [x] 04-03-PLAN.md — Frontend socket store + AuthBootstrap/logout wiring
-- [ ] 04-04-PLAN.md — Frontend live updates: replace polling in NotificationBell, chat, market detail
+- [x] 04-04-PLAN.md — Frontend live updates: replace polling in NotificationBell, chat, market detail
 
 ---
 
