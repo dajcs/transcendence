@@ -4,12 +4,12 @@ milestone: v21.0
 milestone_name: milestone
 current_plan: 1
 status: Executing Phase 05
-last_updated: "2026-03-30T22:26:20.384Z"
+last_updated: "2026-03-30T22:27:22.772Z"
 progress:
   total_phases: 5
   completed_phases: 3
   total_plans: 24
-  completed_plans: 19
+  completed_plans: 20
 ---
 
 # Project State
@@ -25,7 +25,7 @@ See: `.planning/PROJECT.md` (updated 2026-03-24)
 
 **Phase:** 03 complete → 04 next
 **Current Plan:** 1
-**Last session:** 2026-03-30T22:26:20.351Z
+**Last session:** 2026-03-30T22:27:22.738Z
 **Resume file:** None
 
 ## Decisions
@@ -58,6 +58,9 @@ See: `.planning/PROJECT.md` (updated 2026-03-24)
 - [Phase 04-01]: importlib.import_module used in main.py to register socket events without shadowing FastAPI app variable
 - [Phase 04-01]: cors_allowed_origins=[] on AsyncServer singleton — Nginx handles CORS, wildcard conflicts with withCredentials cookie auth
 - [Phase 05]: Replaced collection-breaking test_llm.py with xfail stubs where service imports are inside test bodies — Wave 0 Nyquist compliance
+- [Phase 05-02]: TpTransaction has no reason field — omitted from constructor call (plan's sample code was incorrect)
+- [Phase 05-02]: Proposer penalty clamped to current balance to avoid 402 mid-payout transaction
+- [Phase 05-02]: Socket emit in trigger_payout fire-and-forget (try/except pass) so socket failure never rolls back payout
 
 ## Performance Metrics
 
@@ -75,6 +78,7 @@ See: `.planning/PROJECT.md` (updated 2026-03-24)
 | Phase 04 P03 | 3min | 2 tasks | 3 files |
 | Phase 04 P01 | 8min | 2 tasks | 8 files |
 | Phase 05 P01 | 8min | 2 tasks | 3 files |
+| Phase 05 P02 | 5min | 2 tasks | 4 files |
 
 ## Session History
 

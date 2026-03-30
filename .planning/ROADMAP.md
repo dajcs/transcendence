@@ -145,11 +145,11 @@ Plans:
 
 **42 modules:** LLM interface (2pts)
 
-**Plans:** 1/6 plans executed
+**Plans:** 2/6 plans executed
 
 Plans:
 - [x] 05-01-PLAN.md — Wave 0: test scaffolds (test_resolution.py, test_llm.py, fake_redis fixture)
-- [ ] 05-02-PLAN.md — Migration 009 (llm_opt_out) + resolution_service.py (payout, vote weights, tp)
+- [x] 05-02-PLAN.md — Migration 009 (llm_opt_out) + resolution_service.py (payout, vote weights, tp)
 - [ ] 05-03-PLAN.md — LLM service (OpenRouter, rate-limit, budget cap) + LLM API routes
 - [ ] 05-04-PLAN.md — Celery resolution tasks (auto-resolution, dispute deadlines) + REST routes
 - [ ] 05-05-PLAN.md — Frontend: inline ResolutionSection, DisputeSection, LLM buttons, settings page
