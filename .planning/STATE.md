@@ -4,12 +4,12 @@ milestone: v21.0
 milestone_name: milestone
 current_plan: 1
 status: Executing Phase 05
-last_updated: "2026-03-30T22:37:59.516Z"
+last_updated: "2026-03-30T22:43:53.301Z"
 progress:
   total_phases: 5
   completed_phases: 3
   total_plans: 24
-  completed_plans: 22
+  completed_plans: 23
 ---
 
 # Project State
@@ -25,7 +25,7 @@ See: `.planning/PROJECT.md` (updated 2026-03-24)
 
 **Phase:** 03 complete → 04 next
 **Current Plan:** 1
-**Last session:** 2026-03-30T22:37:59.486Z
+**Last session:** 2026-03-30T22:43:53.240Z
 **Resume file:** None
 
 ## Decisions
@@ -65,6 +65,8 @@ See: `.planning/PROJECT.md` (updated 2026-03-24)
 - [Phase 05-03]: Routes use cookie-based auth (_get_current_user from request cookies) — get_current_user not in deps.py
 - [Phase 05-04]: Tier 1 auto-resolution uses status='proposer_resolved' same as Tier 2 — only Resolution.tier differentiates them
 - [Phase 05-04]: Resolution routes use cookie-based auth (_get_current_user from request) — consistent with bets.py, no get_current_user in deps.py
+- [Phase 05-05]: GET /api/users/me added alongside PATCH — settings page needs to read current llm_opt_out value; route ordering before /{username} required for FastAPI priority
+- [Phase 05-05]: resolutionQuery enabled only when market.status !== open to avoid 404 on open markets (no resolution record yet)
 
 ## Performance Metrics
 
@@ -85,6 +87,7 @@ See: `.planning/PROJECT.md` (updated 2026-03-24)
 | Phase 05 P02 | 5min | 2 tasks | 4 files |
 | Phase 05 P03 | 12min | 2 tasks | 4 files |
 | Phase 05 P04 | 15min | 2 tasks | 4 files |
+| Phase 05 P05 | 10min | 2 tasks | 4 files |
 
 ## Session History
 
