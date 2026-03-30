@@ -1,10 +1,11 @@
 ---
 phase: 4
 slug: real-time
-status: draft
-nyquist_compliant: false
-wave_0_complete: false
+status: complete
+nyquist_compliant: true
+wave_0_complete: true
 created: 2026-03-29
+updated: 2026-03-30
 ---
 
 # Phase 4 — Validation Strategy
@@ -17,18 +18,18 @@ created: 2026-03-29
 
 | Property | Value |
 |----------|-------|
-| **Framework** | pytest 8.3+ with pytest-asyncio 0.24+ |
+| **Framework** | pytest 9.0.2 + pytest-asyncio 1.3.0 |
 | **Config file** | `backend/pyproject.toml` (`[tool.pytest.ini_options]`) |
-| **Quick run command** | `docker compose exec backend uv run pytest tests/test_socket.py -x` |
-| **Full suite command** | `docker compose exec backend uv run pytest` |
+| **Quick run command** | `cd backend && uv run pytest tests/test_socket.py -v` |
+| **Full suite command** | `cd backend && uv run pytest` |
 | **Estimated runtime** | ~30 seconds |
 
 ---
 
 ## Sampling Rate
 
-- **After every task commit:** Run `docker compose exec backend uv run pytest tests/test_socket.py -x`
-- **After every plan wave:** Run `docker compose exec backend uv run pytest`
+- **After every task commit:** Run `cd backend && uv run pytest tests/test_socket.py -x`
+- **After every plan wave:** Run `cd backend && uv run pytest`
 - **Before `/gsd:verify-work`:** Full suite must be green
 - **Max feedback latency:** 30 seconds
 
@@ -38,23 +39,16 @@ created: 2026-03-29
 
 | Task ID | Plan | Wave | Requirement | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|-----------|-------------------|-------------|--------|
-| 4-xx-01 | 01 | 0 | RT-01..03 | unit | `docker compose exec backend uv run pytest tests/test_socket.py -x` | ❌ W0 | ⬜ pending |
-| 4-xx-02 | 01 | 1 | RT-01 | unit (mock sio.emit) | `docker compose exec backend uv run pytest tests/test_socket.py::test_bet_emits_odds -x` | ❌ W0 | ⬜ pending |
-| 4-xx-03 | 01 | 1 | RT-01 | unit (fake Redis) | `docker compose exec backend uv run pytest tests/test_socket.py::test_odds_throttle -x` | ❌ W0 | ⬜ pending |
-| 4-xx-04 | 01 | 1 | RT-02 | unit (mock sio.emit) | `docker compose exec backend uv run pytest tests/test_socket.py::test_comment_emits -x` | ❌ W0 | ⬜ pending |
-| 4-xx-05 | 01 | 1 | RT-03 | unit (mock sio.emit) | `docker compose exec backend uv run pytest tests/test_socket.py::test_notification_emits -x` | ❌ W0 | ⬜ pending |
-| 4-xx-06 | 01 | 1 | RT-01..03 | unit (mock environ) | `docker compose exec backend uv run pytest tests/test_socket.py::test_connect_auth -x` | ❌ W0 | ⬜ pending |
+| 4-01-T1 | 01 | 1 | RT-01..03 | unit (sio import) | `uv run pytest tests/test_socket.py -x` | ✅ | ✅ green |
+| 4-01-T2 | 01 | 1 | RT-01..03 | unit (connect auth) | `uv run pytest tests/test_socket.py::TestConnectAuth -v` | ✅ | ✅ green |
+| 4-02-T1 | 02 | 1 | RT-01 | unit (mock sio.emit) | `uv run pytest tests/test_socket.py::TestBetEmits::test_bet_emits_odds -x` | ✅ | ✅ green |
+| 4-02-T2 | 02 | 1 | RT-01 | unit (mock + fake Redis NX) | `uv run pytest tests/test_socket.py::TestBetEmits::test_odds_throttle -x` | ✅ | ✅ green |
+| 4-02-T3 | 02 | 1 | RT-02 | unit (mock sio.emit) | `uv run pytest tests/test_socket.py::TestCommentEmits::test_comment_emits -x` | ✅ | ✅ green |
+| 4-02-T4 | 02 | 1 | RT-03 | unit (mock sio.emit) | `uv run pytest tests/test_socket.py::TestNotificationEmits::test_notification_emits -x` | ✅ | ✅ green |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
----
-
-## Wave 0 Requirements
-
-- [ ] `backend/tests/test_socket.py` — stubs for RT-01, RT-02, RT-03, connect auth
-- [ ] `uv add "python-socketio[asyncio_client]"` — package not yet installed
-
-*Note: python-socketio services tested by mocking `sio.emit` via `unittest.mock.AsyncMock`. The existing `fakeredis` fixture in conftest.py covers the Redis throttle key.*
+**Total: 7 tests collected, 7 passed**
 
 ---
 
@@ -69,11 +63,27 @@ created: 2026-03-29
 
 ## Validation Sign-Off
 
-- [ ] All tasks have `<automated>` verify or Wave 0 dependencies
-- [ ] Sampling continuity: no 3 consecutive tasks without automated verify
-- [ ] Wave 0 covers all MISSING references
-- [ ] No watch-mode flags
-- [ ] Feedback latency < 30s
-- [ ] `nyquist_compliant: true` set in frontmatter
+- [x] All tasks have `<automated>` verify or Wave 0 dependencies
+- [x] Sampling continuity: no 3 consecutive tasks without automated verify
+- [x] Wave 0 covers all MISSING references
+- [x] No watch-mode flags
+- [x] Feedback latency < 30s
+- [x] `nyquist_compliant: true` set in frontmatter
 
-**Approval:** pending
+**Approval:** ✅ PASSED 2026-03-30
+
+---
+
+## Validation Audit 2026-03-30
+
+| Metric | Count |
+|--------|-------|
+| Gaps found | 1 |
+| Resolved | 1 |
+| Escalated | 0 |
+
+### Gap: test_odds_throttle PARTIAL → green
+
+**Root cause:** `_get_redis()` is a module-level singleton. After `test_bet_emits_odds` ran, `_redis_client` was already set to that test's `FakeRedis` instance. Patching `aioredis.from_url` in `test_odds_throttle` had no effect — the singleton bypassed the patch. The throttle key was pre-set on a *different* `FakeRedis` than the one `_emit_odds_update` used.
+
+**Fix:** Changed the patch target from `app.services.bet_service.aioredis.from_url` to `app.services.bet_service._get_redis` (the function that returns the singleton), ensuring the test's fake instance is used regardless of singleton state.
