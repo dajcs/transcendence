@@ -110,7 +110,9 @@ class TestBetEmits:
         # Pre-set the throttle key so the window is active
         await fake_redis.set(f"throttle:odds:{bet_id}", "1", px=500)
 
-        with patch("app.services.bet_service.aioredis.from_url", return_value=fake_redis), \
+        # Patch _get_redis directly — the singleton may already be set from a prior test,
+        # so patching aioredis.from_url wouldn't route to our fake instance.
+        with patch("app.services.bet_service._get_redis", return_value=fake_redis), \
              patch.object(sio, "emit", new_callable=AsyncMock) as mock_emit:
             await _emit_odds_update(db_session, bet_id)
 
