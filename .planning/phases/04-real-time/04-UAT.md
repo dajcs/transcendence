@@ -1,20 +1,14 @@
 ---
-status: testing
+status: complete
 phase: 04-real-time
 source: [04-01-SUMMARY.md, 04-02-SUMMARY.md, 04-03-SUMMARY.md, 04-04-SUMMARY.md]
 started: 2026-03-30T00:00:00Z
-updated: 2026-03-30T00:00:00Z
+updated: 2026-03-30T10:45:00Z
 ---
 
 ## Current Test
 
-number: 7
-name: Live chat message delivery (RT-03/chat)
-expected: |
-  Open a chat conversation between User A and User B. User B sends a message.
-  User A sees the new message appear in the chat window without refreshing —
-  no 3s delay, pushed immediately via WebSocket.
-awaiting: blocked - chat route 404
+[testing complete]
 
 ## Tests
 
@@ -45,18 +39,17 @@ result: pass
 
 ### 7. Live chat message delivery (RT-03/chat)
 expected: Open a chat conversation between User A and User B. User B sends a message. User A sees the new message appear in the chat window without refreshing — no 3s delay, pushed immediately via WebSocket.
-result: blocked
-blocked_by: other
-reason: "/chat/[userId] returns 404 in Docker production. Route IS compiled (manifest correct, files present, identical structure to working /markets/[id]). Root cause unidentified — needs /gsd:debug session."
+result: pass
+note: Was blocked by stale Turbopack dev cache (missing chat/[userId] route). Debug agent triggered compilation; fixed docker-compose.override.yml to clear turbopack cache on startup.
 
 ## Summary
 
 total: 7
-passed: 6
+passed: 7
 issues: 0
 pending: 0
 skipped: 0
-blocked: 1
+blocked: 0
 
 ## Gaps
 
