@@ -7,7 +7,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { useAuthStore } from "@/store/auth";
 import { useSocketStore } from "@/store/socket";
-import type { BetPosition, BetPositionsListResponse, Comment, Market } from "@/lib/types";
+import type { BetPosition, BetPositionsListResponse, Comment, Market, ResolutionState } from "@/lib/types";
 import UserLink from "@/components/UserLink";
 
 function estimateRefund(position: { side: string }, market: Market): { bp: number; reason: string } {
@@ -44,6 +44,15 @@ export default function MarketDetailPage() {
   const [showWithdrawConfirm, setShowWithdrawConfirm] = useState(false);
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [replyText, setReplyText] = useState("");
+  const [resolutionOutcome, setResolutionOutcome] = useState<"yes" | "no">("yes");
+  const [resolutionJustification, setResolutionJustification] = useState("");
+  const [evidenceText, setEvidenceText] = useState("");
+  const [hint, setHint] = useState<string | null>(null);
+  const [hintLoading, setHintLoading] = useState(false);
+  const [summary, setSummary] = useState<string | null>(null);
+  const [summaryLoading, setSummaryLoading] = useState(false);
+  const [payoutBanner, setPayoutBanner] = useState<string | null>(null);
+  const currentUser = useAuthStore((s) => s.user);
 
   const positionsQuery = useQuery<BetPositionsListResponse>({
     queryKey: ["positions"],
@@ -61,6 +70,12 @@ export default function MarketDetailPage() {
   const commentsQuery = useQuery<Comment[]>({
     queryKey: ["comments", marketId],
     queryFn: async () => (await api.get(`/api/markets/${marketId}/comments`)).data,
+  });
+
+  const resolutionQuery = useQuery<ResolutionState>({
+    queryKey: ["resolution", marketId],
+    queryFn: async () => (await api.get(`/api/bets/${marketId}/resolution`)).data,
+    enabled: !!marketId && !!market && market.status !== "open",
   });
 
   // Join bet room on mount, leave on unmount (D-12)
@@ -136,6 +151,60 @@ export default function MarketDetailPage() {
       await bootstrap();
     },
   });
+
+  const submitResolution = useMutation({
+    mutationFn: async () =>
+      (await api.post(`/api/bets/${marketId}/resolve`, {
+        outcome: resolutionOutcome,
+        justification: resolutionJustification,
+      })).data,
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["market", marketId] });
+      await queryClient.invalidateQueries({ queryKey: ["resolution", marketId] });
+    },
+  });
+
+  const openDispute = useMutation({
+    mutationFn: async () => (await api.post(`/api/bets/${marketId}/dispute`)).data,
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["market", marketId] });
+      await queryClient.invalidateQueries({ queryKey: ["resolution", marketId] });
+      await bootstrap();
+    },
+  });
+
+  const castVote = useMutation({
+    mutationFn: async (vote: "yes" | "no") =>
+      (await api.post(`/api/bets/${marketId}/vote`, { vote })).data,
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["resolution", marketId] });
+    },
+  });
+
+  const handleGetHint = async () => {
+    if (!evidenceText.trim()) return;
+    setHintLoading(true);
+    try {
+      const resp = await api.post(`/api/bets/${marketId}/resolution-hint`, { evidence: evidenceText });
+      setHint(resp.data.hint ?? "No suggestion available.");
+    } catch {
+      setHint("AI suggestion unavailable.");
+    } finally {
+      setHintLoading(false);
+    }
+  };
+
+  const handleGetSummary = async () => {
+    setSummaryLoading(true);
+    try {
+      const resp = await api.post(`/api/bets/${marketId}/summary`);
+      setSummary(resp.data.summary ?? "Summary unavailable.");
+    } catch {
+      setSummary("Summary unavailable.");
+    } finally {
+      setSummaryLoading(false);
+    }
+  };
 
   const onSubmitComment = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -332,6 +401,149 @@ export default function MarketDetailPage() {
             </section>
           )}
 
+          {/* ResolutionSection: visible when bet is not open */}
+          {market.status !== "open" && (
+            <section className="rounded border border-yellow-200 bg-yellow-50 p-4 space-y-3">
+              <h2 className="text-lg font-semibold text-yellow-900">Resolution</h2>
+
+              {/* Payout banner */}
+              {payoutBanner && (
+                <div className="rounded bg-green-100 border border-green-300 p-3 text-sm text-green-800">
+                  {payoutBanner}
+                </div>
+              )}
+
+              {/* Status display */}
+              <p className="text-sm text-yellow-800">
+                Status: <span className="font-medium capitalize">{market.status.replace(/_/g, " ")}</span>
+              </p>
+
+              {/* Proposer resolution form: visible to proposer when pending_resolution */}
+              {market.status === "pending_resolution" && currentUser?.id === market.proposer_id && (
+                <div className="space-y-3 border-t border-yellow-200 pt-3">
+                  <p className="text-sm font-medium text-yellow-900">Submit Resolution</p>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setResolutionOutcome("yes")}
+                      className={`rounded px-3 py-1 text-sm ${resolutionOutcome === "yes" ? "bg-green-600 text-white" : "bg-gray-200"}`}
+                    >YES</button>
+                    <button
+                      onClick={() => setResolutionOutcome("no")}
+                      className={`rounded px-3 py-1 text-sm ${resolutionOutcome === "no" ? "bg-red-600 text-white" : "bg-gray-200"}`}
+                    >NO</button>
+                  </div>
+                  <textarea
+                    value={resolutionJustification}
+                    onChange={(e) => setResolutionJustification(e.target.value)}
+                    placeholder="Justification (min 20 chars)"
+                    className="w-full rounded border border-gray-300 px-3 py-2 text-sm"
+                    rows={3}
+                  />
+
+                  {/* AI suggestion inline */}
+                  <div className="space-y-2">
+                    <textarea
+                      value={evidenceText}
+                      onChange={(e) => setEvidenceText(e.target.value.slice(0, 500))}
+                      placeholder="Evidence for AI (max 500 chars)"
+                      className="w-full rounded border border-gray-300 px-3 py-2 text-sm"
+                      rows={2}
+                    />
+                    <button
+                      onClick={handleGetHint}
+                      disabled={hintLoading || !evidenceText.trim()}
+                      className="rounded border border-blue-300 px-3 py-1 text-sm text-blue-700 hover:bg-blue-50 disabled:opacity-50"
+                    >
+                      {hintLoading ? "Getting suggestion..." : "Get AI suggestion"}
+                    </button>
+                    {hint && (
+                      <div className="rounded bg-blue-50 border border-blue-200 p-2 text-sm text-blue-900">
+                        {hint}
+                      </div>
+                    )}
+                  </div>
+
+                  <button
+                    onClick={() => submitResolution.mutate()}
+                    disabled={submitResolution.isPending || resolutionJustification.length < 20}
+                    className="rounded bg-yellow-700 px-4 py-2 text-sm text-white hover:bg-yellow-800 disabled:opacity-50"
+                  >
+                    {submitResolution.isPending ? "Submitting..." : "Submit Resolution"}
+                  </button>
+                  {submitResolution.isError && (
+                    <p className="text-sm text-red-600">
+                      {(submitResolution.error as { response?: { data?: { detail?: string } } })?.response?.data?.detail ?? "Failed to submit"}
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {/* Show existing resolution */}
+              {resolutionQuery.data?.resolution && (
+                <div className="border-t border-yellow-200 pt-3 text-sm text-yellow-800 space-y-1">
+                  <p>Outcome: <span className="font-bold uppercase">{resolutionQuery.data.resolution.outcome}</span></p>
+                  {resolutionQuery.data.resolution.justification && (
+                    <p className="text-xs text-yellow-700">{resolutionQuery.data.resolution.justification}</p>
+                  )}
+                  {resolutionQuery.data.resolution.overturned && (
+                    <p className="text-xs text-red-600 font-medium">Resolution was overturned by community vote</p>
+                  )}
+                </div>
+              )}
+            </section>
+          )}
+
+          {/* DisputeSection: visible when proposer_resolved or disputed */}
+          {(market.status === "proposer_resolved" || market.status === "disputed") && (
+            <section className="rounded border border-red-200 bg-red-50 p-4 space-y-3">
+              <h2 className="text-lg font-semibold text-red-900">Community Dispute</h2>
+              {resolutionQuery.data?.dispute ? (
+                <>
+                  <p className="text-sm text-red-800">
+                    Window closes: {new Date(resolutionQuery.data.dispute.closes_at).toLocaleString()}
+                  </p>
+                  <div className="flex gap-4 text-sm">
+                    <span className="text-green-700 font-medium">YES {resolutionQuery.data.dispute.yes_weight.toFixed(1)}w</span>
+                    <span className="text-red-700 font-medium">NO {resolutionQuery.data.dispute.no_weight.toFixed(1)}w</span>
+                  </div>
+                  {resolutionQuery.data.dispute.status === "open" && (
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => castVote.mutate("yes")}
+                        disabled={castVote.isPending}
+                        className="rounded bg-green-600 px-3 py-1 text-sm text-white hover:bg-green-700 disabled:opacity-50"
+                      >Vote YES</button>
+                      <button
+                        onClick={() => castVote.mutate("no")}
+                        disabled={castVote.isPending}
+                        className="rounded bg-red-600 px-3 py-1 text-sm text-white hover:bg-red-700 disabled:opacity-50"
+                      >Vote NO</button>
+                    </div>
+                  )}
+                  {castVote.isError && <p className="text-sm text-red-600">Vote failed — you may have already voted.</p>}
+                </>
+              ) : (
+                /* No active dispute — show Open Dispute button to participants */
+                myPosition && market.status === "proposer_resolved" && (
+                  <div>
+                    <button
+                      onClick={() => openDispute.mutate()}
+                      disabled={openDispute.isPending}
+                      className="rounded border border-red-400 px-3 py-2 text-sm text-red-700 hover:bg-red-100 disabled:opacity-50"
+                    >
+                      {openDispute.isPending ? "Opening..." : "Open Dispute — costs 1 BP"}
+                    </button>
+                    {openDispute.isError && (
+                      <p className="mt-1 text-sm text-red-600">
+                        {(openDispute.error as { response?: { data?: { detail?: string } } })?.response?.data?.detail ?? "Failed to open dispute"}
+                      </p>
+                    )}
+                  </div>
+                )
+              )}
+            </section>
+          )}
+
           {!myPosition && <section className="rounded border border-gray-200 bg-white p-4">
             <h2 className="mb-3 text-lg font-semibold">Place Bet</h2>
             {market.market_type === "binary" && (
@@ -391,6 +603,26 @@ export default function MarketDetailPage() {
 
           <section className="rounded border border-gray-200 bg-white p-4">
             <h2 className="mb-3 text-lg font-semibold">Comments</h2>
+            {/* LLM summary button — D-13 */}
+            <div className="mb-3">
+              {summary ? (
+                <div className="rounded bg-gray-50 border border-gray-200 p-3 text-sm text-gray-800 space-y-1">
+                  <p className="text-xs font-medium text-gray-500">AI Summary</p>
+                  <p>{summary}</p>
+                  <button onClick={() => setSummary(null)} className="text-xs text-blue-600 hover:underline">
+                    Refresh
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={handleGetSummary}
+                  disabled={summaryLoading}
+                  className="rounded border border-gray-300 px-3 py-1 text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-50"
+                >
+                  {summaryLoading ? "Summarizing..." : "Summarize discussion"}
+                </button>
+              )}
+            </div>
             <form onSubmit={onSubmitComment} className="mb-4 flex gap-2">
               <input
                 value={commentText}

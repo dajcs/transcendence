@@ -1,5 +1,6 @@
 """User profile API routes: /api/users/*"""
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_db
@@ -26,6 +27,34 @@ async def _get_optional_user(request: Request, db: AsyncSession):
         return await auth_service.get_current_user(db, access_token)
     except HTTPException:
         return None
+
+
+class UpdateUserRequest(BaseModel):
+    llm_opt_out: bool | None = None
+
+
+@router.get("/me")
+async def get_my_settings(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+):
+    """Get per-user settings for the authenticated user."""
+    user = await _get_current_user(request, db)
+    return {"llm_opt_out": user.llm_opt_out}
+
+
+@router.patch("/me")
+async def patch_my_settings(
+    data: UpdateUserRequest,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+):
+    """Update per-user settings (e.g. LLM opt-out)."""
+    user = await _get_current_user(request, db)
+    if data.llm_opt_out is not None:
+        user.llm_opt_out = data.llm_opt_out
+    await db.commit()
+    return {"ok": True, "llm_opt_out": user.llm_opt_out}
 
 
 @router.put("/me", response_model=PublicProfileResponse)
