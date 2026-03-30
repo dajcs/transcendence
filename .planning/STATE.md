@@ -4,12 +4,12 @@ milestone: v21.0
 milestone_name: milestone
 current_plan: 1
 status: Executing Phase 05
-last_updated: "2026-03-30T22:27:22.772Z"
+last_updated: "2026-03-30T22:29:12.385Z"
 progress:
   total_phases: 5
   completed_phases: 3
   total_plans: 24
-  completed_plans: 20
+  completed_plans: 21
 ---
 
 # Project State
@@ -25,7 +25,7 @@ See: `.planning/PROJECT.md` (updated 2026-03-24)
 
 **Phase:** 03 complete → 04 next
 **Current Plan:** 1
-**Last session:** 2026-03-30T22:27:22.738Z
+**Last session:** 2026-03-30T22:29:12.330Z
 **Resume file:** None
 
 ## Decisions
@@ -61,6 +61,8 @@ See: `.planning/PROJECT.md` (updated 2026-03-24)
 - [Phase 05-02]: TpTransaction has no reason field — omitted from constructor call (plan's sample code was incorrect)
 - [Phase 05-02]: Proposer penalty clamped to current balance to avoid 402 mid-payout transaction
 - [Phase 05-02]: Socket emit in trigger_payout fire-and-forget (try/except pass) so socket failure never rolls back payout
+- [Phase 05-03]: EXPIREAT (not EXPIRE) for rate limit keys ensures exact EOD UTC expiry regardless of creation time
+- [Phase 05-03]: Routes use cookie-based auth (_get_current_user from request cookies) — get_current_user not in deps.py
 
 ## Performance Metrics
 
@@ -79,6 +81,7 @@ See: `.planning/PROJECT.md` (updated 2026-03-24)
 | Phase 04 P01 | 8min | 2 tasks | 8 files |
 | Phase 05 P01 | 8min | 2 tasks | 3 files |
 | Phase 05 P02 | 5min | 2 tasks | 4 files |
+| Phase 05 P03 | 12min | 2 tasks | 4 files |
 
 ## Session History
 
