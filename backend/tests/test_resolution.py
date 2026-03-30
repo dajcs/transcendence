@@ -66,7 +66,7 @@ def test_vote_weights():
 
 # RES-05: Proposer penalty in payout when resolution overturned
 @pytest.mark.xfail(reason="resolution_service not yet implemented", strict=False)
-async def test_proposer_penalty(db):
+async def test_proposer_penalty(db_session):
     from app.services.resolution_service import compute_proposer_penalty
     # 50% of staked, floor, min 0
     assert compute_proposer_penalty(staked=10.0) == 5.0
