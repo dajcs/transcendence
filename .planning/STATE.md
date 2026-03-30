@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v21.0
 milestone_name: milestone
 current_plan: 1
-status: "Phase 04 shipped — PR #11"
-last_updated: "2026-03-30T13:57:58.042Z"
+status: Executing Phase 05
+last_updated: "2026-03-30T22:26:20.384Z"
 progress:
   total_phases: 5
   completed_phases: 3
-  total_plans: 18
-  completed_plans: 18
+  total_plans: 24
+  completed_plans: 19
 ---
 
 # Project State
@@ -19,14 +19,14 @@ progress:
 See: `.planning/PROJECT.md` (updated 2026-03-24)
 
 **Core value:** Users can bet on real-world outcomes, argue their position, and earn a verifiable reputation score — without real money.
-**Current focus:** Phase 04 — real-time
+**Current focus:** Phase 05 — intelligence-resolution
 
 ## Current Status
 
 **Phase:** 03 complete → 04 next
 **Current Plan:** 1
-**Last session:** 2026-03-30T13:57:58.018Z
-**Resume file:** .planning/phases/05-intelligence-resolution/05-CONTEXT.md
+**Last session:** 2026-03-30T22:26:20.351Z
+**Resume file:** None
 
 ## Decisions
 
@@ -57,6 +57,7 @@ See: `.planning/PROJECT.md` (updated 2026-03-24)
 - [Phase 04]: Socket connects with withCredentials: true, no auth token field — D-04 httpOnly cookie constraint
 - [Phase 04-01]: importlib.import_module used in main.py to register socket events without shadowing FastAPI app variable
 - [Phase 04-01]: cors_allowed_origins=[] on AsyncServer singleton — Nginx handles CORS, wildcard conflicts with withCredentials cookie auth
+- [Phase 05]: Replaced collection-breaking test_llm.py with xfail stubs where service imports are inside test bodies — Wave 0 Nyquist compliance
 
 ## Performance Metrics
 
@@ -73,6 +74,7 @@ See: `.planning/PROJECT.md` (updated 2026-03-24)
 | Phase 02 P08 | 2 | 2 tasks | 4 files |
 | Phase 04 P03 | 3min | 2 tasks | 3 files |
 | Phase 04 P01 | 8min | 2 tasks | 8 files |
+| Phase 05 P01 | 8min | 2 tasks | 3 files |
 
 ## Session History
 
