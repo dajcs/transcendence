@@ -32,8 +32,9 @@ export const useSocketStore = create<SocketStore>()((set, get) => ({
   disconnect: () => {
     const socket = get().socket;
     if (socket) {
-      socket.disconnect();      // sends DISCONNECT packet + destroys namespace
-      socket.io._close();       // force-closes the Manager/transport directly
+      socket.io.reconnection(false); // disable auto-reconnect before forced close
+      socket.disconnect();           // sends DISCONNECT packet + destroys namespace
+      socket.io.engine.close();      // force-closes the Manager transport (public engine API)
     }
     set({ socket: null });
   },
