@@ -23,7 +23,7 @@ result: pass
 ### 3. WebSocket disconnects on logout
 expected: While logged in with DevTools WS tab open, click Logout. The WebSocket connection closes (status changes to "Finished" or disappears). No new connection is established until you log back in.
 result: pass
-note: Fixed — socket.io._close() added. 101 status in DevTools is normal (upgrade handshake code); duration replacing Pending confirms close.
+note: Fixed — socket.io.engine.close() called after socket.disconnect(). 101 status in DevTools is normal (upgrade handshake code); duration replacing Pending confirms close.
 
 ### 4. Live odds update (RT-01)
 expected: Open a market detail page in two browser tabs (both logged in). In Tab B, place a bet on the market. Without refreshing Tab A, the odds/percentage display updates automatically within ~1 second to reflect the new bet.
@@ -58,10 +58,10 @@ blocked: 0
   reason: "User reported: The WebSocket connection is not closed: Status Code: 101 Switching Protocols, State (Time column): Pending"
   severity: major
   test: 3
-  root_cause: "socket.disconnect() calls manager._destroy() which skips _close() if any namespace socket still reports active=true (subs not yet undefined). Added explicit socket.io._close() to force-close the Manager/transport directly, bypassing namespace state checks."
+  root_cause: "socket.disconnect() calls manager._destroy() which skips engine close if any namespace socket still reports active=true (subs not yet undefined). Added explicit socket.io.engine.close() to force-close the transport via the public Engine.IO API."
   artifacts:
     - path: "frontend/src/store/socket.ts"
-      issue: "disconnect() only called socket.disconnect() — manager._close() not guaranteed"
+      issue: "disconnect() only called socket.disconnect() — engine close not guaranteed"
   missing:
-    - "Added socket.io._close() after socket.disconnect() in store disconnect()"
+    - "Added socket.io.engine.close() after socket.disconnect() in store disconnect()"
   debug_session: ""

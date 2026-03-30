@@ -1,5 +1,5 @@
 ---
-status: fixing
+status: resolved
 trigger: "chat-route-404: Navigating to /chat/[userId] returns 404 even though the route file exists"
 created: 2026-03-30T00:00:00Z
 updated: 2026-03-30T10:25:00Z
@@ -65,5 +65,6 @@ started: Route file exists (frontend/src/app/(protected)/chat/[userId]/page.tsx)
 
 root_cause: Turbopack dev server (Next.js 16.2.1) has a stale route cache (.next/dev/cache/turbopack) that does not include the chat/[userId] route in the app-paths-manifest. As a result, any request to /chat/[UUID] falls through to _not-found (404). The production build routes-manifest correctly registers the route, but the dev server ignores it and uses its own compiled route graph, which is incomplete.
 fix: clear Turbopack cache by deleting .next/dev/cache/turbopack and restart the dev server so it rescans all routes from source
-verification:
-files_changed: []
+verification: manual UAT (test 7) — chat route loads after cache clear
+files_changed:
+  - docker-compose.override.yml  # clears .next/dev/cache/turbopack before npm run dev

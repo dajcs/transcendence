@@ -51,6 +51,15 @@ def patch_jwt_key_paths(rsa_key_pair, monkeypatch):
     monkeypatch.setattr(settings, "jwt_public_key_path", pub_path)
 
 
+@pytest.fixture(autouse=True)
+def reset_redis_singleton():
+    """Reset bet_service Redis singleton between tests to prevent state leakage."""
+    import app.services.bet_service as bet_svc
+    bet_svc._redis_client = None
+    yield
+    bet_svc._redis_client = None
+
+
 @pytest.fixture
 async def db_engine():
     engine = create_async_engine(
