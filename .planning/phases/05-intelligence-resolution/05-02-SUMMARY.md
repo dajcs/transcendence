@@ -117,3 +117,12 @@ None - no external service configuration required.
 ---
 *Phase: 05-intelligence-resolution*
 *Completed: 2026-03-30*
+
+## Self-Check: PASSED
+- FOUND: backend/alembic/versions/009_add_llm_opt_out.py
+- FOUND: backend/app/db/models/user.py (with llm_opt_out)
+- FOUND: backend/app/services/resolution_service.py
+- FOUND: .planning/phases/05-intelligence-resolution/05-02-SUMMARY.md
+- FOUND commit b845870: feat(05-02): add llm_opt_out migration 009 and User model field
+- FOUND commit a688ae1: feat(05-02): implement resolution_service.py with payout helpers and trigger_payout
+- All 3 target tests XPASS: test_vote_weights, test_payout_formula, test_proposer_penalty
