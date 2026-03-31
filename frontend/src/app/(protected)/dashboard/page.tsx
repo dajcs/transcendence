@@ -8,7 +8,7 @@ import { api } from "@/lib/api";
 import type { BetPositionsListResponse, MarketListResponse } from "@/lib/types";
 import { useAuthStore } from "@/store/auth";
 
-type Tab = "active_bets" | "my_markets";
+type Tab = "active_bets" | "my_markets" | "resolved";
 
 export default function DashboardPage() {
   const { user } = useAuthStore();
@@ -28,6 +28,7 @@ export default function DashboardPage() {
   const tabs: { id: Tab; label: string }[] = [
     { id: "active_bets", label: "Active Bets" },
     { id: "my_markets", label: "My Markets" },
+    { id: "resolved", label: "Resolved / Withdrawn" },
   ];
 
   return (
@@ -114,28 +115,30 @@ export default function DashboardPage() {
         </section>
       )}
 
-      <section className="space-y-3">
-        <h2 className="text-lg font-semibold">Recent Resolved / Withdrawn</h2>
-        {positionsQuery.data?.resolved.length ? (
-          <div className="space-y-2">
-            {positionsQuery.data.resolved.map((position) => (
-              <Link
-                key={position.id}
-                href={`/markets/${position.bet_id}`}
-                className="block rounded border border-gray-200 bg-white p-3 text-sm text-gray-700 hover:border-gray-300"
-              >
-                <p className="font-medium text-gray-900">{position.market_title}</p>
-                <p className="mt-1">
-                  {position.side.toUpperCase()} · Stake {position.bp_staked} BP · Refund{" "}
-                  {position.refund_bp ?? 0} BP
-                </p>
-              </Link>
-            ))}
-          </div>
-        ) : (
-          <p className="text-sm text-gray-500">No resolved positions yet.</p>
-        )}
-      </section>
+      {/* Resolved / Withdrawn */}
+      {tab === "resolved" && (
+        <section className="space-y-3">
+          {positionsQuery.data?.resolved.length ? (
+            <div className="space-y-2">
+              {positionsQuery.data.resolved.map((position) => (
+                <Link
+                  key={position.id}
+                  href={`/markets/${position.bet_id}`}
+                  className="block rounded border border-gray-200 bg-white p-3 text-sm text-gray-700 hover:border-gray-300"
+                >
+                  <p className="font-medium text-gray-900">{position.market_title}</p>
+                  <p className="mt-1">
+                    {position.side.toUpperCase()} · Stake {position.bp_staked} BP · Refund{" "}
+                    {position.refund_bp ?? 0} BP
+                  </p>
+                </Link>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-gray-500">No resolved positions yet.</p>
+          )}
+        </section>
+      )}
     </div>
   );
 }
