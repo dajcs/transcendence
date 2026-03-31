@@ -5,14 +5,16 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 
 import { api } from "@/lib/api";
-import type { BetPositionsListResponse, MarketListResponse } from "@/lib/types";
+import type { BetPositionsListResponse, Market, MarketListResponse } from "@/lib/types";
 import { useAuthStore } from "@/store/auth";
 
-type Tab = "active_bets" | "my_markets" | "resolved";
+type Tab = "my_bets" | "my_markets";
+
+const CLOSED_STATUSES = new Set(["closed"]);
 
 export default function DashboardPage() {
   const { user } = useAuthStore();
-  const [tab, setTab] = useState<Tab>("active_bets");
+  const [tab, setTab] = useState<Tab>("my_bets");
 
   const positionsQuery = useQuery<BetPositionsListResponse>({
     queryKey: ["positions"],
@@ -21,14 +23,20 @@ export default function DashboardPage() {
 
   const myMarketsQuery = useQuery<MarketListResponse>({
     queryKey: ["markets", "mine"],
-    queryFn: async () => (await api.get("/api/markets?my_markets=true&limit=20")).data,
+    queryFn: async () => (await api.get("/api/markets?my_markets=true&limit=100")).data,
     enabled: tab === "my_markets",
   });
 
+  const activeMarkets = myMarketsQuery.data?.items.filter(
+    (m: Market) => !CLOSED_STATUSES.has(m.status)
+  ) ?? [];
+  const closedMarkets = myMarketsQuery.data?.items.filter(
+    (m: Market) => CLOSED_STATUSES.has(m.status)
+  ) ?? [];
+
   const tabs: { id: Tab; label: string }[] = [
-    { id: "active_bets", label: "Active Bets" },
+    { id: "my_bets", label: "My Bets" },
     { id: "my_markets", label: "My Markets" },
-    { id: "resolved", label: "Resolved / Withdrawn" },
   ];
 
   return (
@@ -60,84 +68,111 @@ export default function DashboardPage() {
         ))}
       </div>
 
-      {/* Active Bets */}
-      {tab === "active_bets" && (
-        <section className="space-y-3">
-          {positionsQuery.data?.active.length ? (
-            <div className="space-y-2">
-              {positionsQuery.data.active.map((position) => (
-                <Link
-                  key={position.id}
-                  href={`/markets/${position.bet_id}`}
-                  className="block rounded border border-gray-200 bg-white p-3 hover:border-gray-300"
-                >
-                  <p className="font-medium text-gray-900">{position.market_title}</p>
-                  <p className="mt-1 text-sm text-gray-600">
-                    {position.side.toUpperCase()} · {position.bp_staked} BP staked ·{" "}
-                    Win {position.side === "yes" ? position.yes_pct : position.no_pct}%
-                  </p>
-                </Link>
-              ))}
-            </div>
-          ) : (
-            <p className="text-sm text-gray-500">No active bets.</p>
-          )}
-        </section>
+      {/* My Bets */}
+      {tab === "my_bets" && (
+        <div className="space-y-6">
+          <section className="space-y-3">
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">Active</h2>
+            {positionsQuery.data?.active.length ? (
+              <div className="space-y-2">
+                {positionsQuery.data.active.map((position) => (
+                  <Link
+                    key={position.id}
+                    href={`/markets/${position.bet_id}`}
+                    className="block rounded border border-gray-200 bg-white p-3 hover:border-gray-300"
+                  >
+                    <p className="font-medium text-gray-900">{position.market_title}</p>
+                    <p className="mt-1 text-sm text-gray-600">
+                      {position.side.toUpperCase()} · {position.bp_staked} BP staked ·{" "}
+                      Win {position.side === "yes" ? position.yes_pct : position.no_pct}%
+                    </p>
+                  </Link>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-gray-500">No active bets.</p>
+            )}
+          </section>
+
+          <section className="space-y-3">
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">Resolved / Withdrawn</h2>
+            {positionsQuery.data?.resolved.length ? (
+              <div className="space-y-2">
+                {positionsQuery.data.resolved.map((position) => (
+                  <Link
+                    key={position.id}
+                    href={`/markets/${position.bet_id}`}
+                    className="block rounded border border-gray-200 bg-white p-3 text-sm text-gray-700 hover:border-gray-300"
+                  >
+                    <p className="font-medium text-gray-900">{position.market_title}</p>
+                    <p className="mt-1">
+                      {position.side.toUpperCase()} · Stake {position.bp_staked} BP · Refund{" "}
+                      {position.refund_bp ?? 0} BP
+                    </p>
+                  </Link>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-gray-500">No resolved positions yet.</p>
+            )}
+          </section>
+        </div>
       )}
 
       {/* My Markets */}
       {tab === "my_markets" && (
-        <section className="space-y-3">
-          {myMarketsQuery.data?.items.length ? (
-            <div className="space-y-2">
-              {myMarketsQuery.data.items.map((market) => (
-                <Link
-                  key={market.id}
-                  href={`/markets/${market.id}`}
-                  className="block rounded border border-gray-200 bg-white p-3 hover:border-gray-300"
-                >
-                  <p className="font-medium text-gray-900">{market.title}</p>
-                  <p className="mt-1 text-sm text-gray-600">
-                    {market.status.replace(/_/g, " ")} · deadline{" "}
-                    {new Date(market.deadline).toLocaleDateString()}
-                  </p>
+        <div className="space-y-6">
+          <section className="space-y-3">
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">Active</h2>
+            {activeMarkets.length ? (
+              <div className="space-y-2">
+                {activeMarkets.map((market) => (
+                  <Link
+                    key={market.id}
+                    href={`/markets/${market.id}`}
+                    className="block rounded border border-gray-200 bg-white p-3 hover:border-gray-300"
+                  >
+                    <p className="font-medium text-gray-900">{market.title}</p>
+                    <p className="mt-1 text-sm text-gray-600">
+                      {market.status.replace(/_/g, " ")} · deadline{" "}
+                      {new Date(market.deadline).toLocaleDateString()}
+                    </p>
+                  </Link>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-gray-500">
+                No active markets.{" "}
+                <Link href="/markets/new" className="text-blue-600 hover:underline">
+                  Create one
                 </Link>
-              ))}
-            </div>
-          ) : (
-            <p className="text-sm text-gray-500">
-              No markets created yet.{" "}
-              <Link href="/markets/new" className="text-blue-600 hover:underline">
-                Create one
-              </Link>
-            </p>
-          )}
-        </section>
-      )}
+              </p>
+            )}
+          </section>
 
-      {/* Resolved / Withdrawn */}
-      {tab === "resolved" && (
-        <section className="space-y-3">
-          {positionsQuery.data?.resolved.length ? (
-            <div className="space-y-2">
-              {positionsQuery.data.resolved.map((position) => (
-                <Link
-                  key={position.id}
-                  href={`/markets/${position.bet_id}`}
-                  className="block rounded border border-gray-200 bg-white p-3 text-sm text-gray-700 hover:border-gray-300"
-                >
-                  <p className="font-medium text-gray-900">{position.market_title}</p>
-                  <p className="mt-1">
-                    {position.side.toUpperCase()} · Stake {position.bp_staked} BP · Refund{" "}
-                    {position.refund_bp ?? 0} BP
-                  </p>
-                </Link>
-              ))}
-            </div>
-          ) : (
-            <p className="text-sm text-gray-500">No resolved positions yet.</p>
-          )}
-        </section>
+          <section className="space-y-3">
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">Resolved / Withdrawn</h2>
+            {closedMarkets.length ? (
+              <div className="space-y-2">
+                {closedMarkets.map((market) => (
+                  <Link
+                    key={market.id}
+                    href={`/markets/${market.id}`}
+                    className="block rounded border border-gray-200 bg-white p-3 text-sm text-gray-700 hover:border-gray-300"
+                  >
+                    <p className="font-medium text-gray-900">{market.title}</p>
+                    <p className="mt-1 text-gray-600">
+                      {market.status.replace(/_/g, " ")} · deadline{" "}
+                      {new Date(market.deadline).toLocaleDateString()}
+                    </p>
+                  </Link>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-gray-500">No closed markets yet.</p>
+            )}
+          </section>
+        </div>
       )}
     </div>
   );
