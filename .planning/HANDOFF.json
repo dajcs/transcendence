@@ -1,0 +1,56 @@
+{
+  "version": "1.0",
+  "timestamp": "2026-03-31T10:17:15.490Z",
+  "phase": "05",
+  "phase_name": "intelligence-resolution",
+  "phase_dir": ".planning/phases/05-intelligence-resolution",
+  "plan": 6,
+  "task": 1,
+  "total_tasks": 1,
+  "status": "paused",
+  "completed_tasks": [
+    {"id": "05-01", "name": "Test scaffolds (xfail stubs)", "status": "done", "commit": "496086a"},
+    {"id": "05-02", "name": "Resolution service + migration 009", "status": "done", "commit": "a688ae1"},
+    {"id": "05-03", "name": "LLM service + routes", "status": "done", "commit": "2143861"},
+    {"id": "05-04", "name": "Celery resolution tasks + REST endpoints", "status": "done", "commit": "53cc8a8"},
+    {"id": "05-05", "name": "Resolution/dispute UI + LLM buttons + settings page", "status": "done", "commit": "cf28d00"},
+    {"id": "hotfix-1", "name": "TypeScript use-before-declaration fix", "status": "done", "commit": "2a184d3"},
+    {"id": "hotfix-2", "name": "Celery NullPool asyncpg event-loop fix", "status": "done", "commit": "bf3a2a4"},
+    {"id": "hotfix-3", "name": "suppressHydrationWarning on body", "status": "done", "commit": "7ad5f6b"},
+    {"id": "hotfix-4", "name": "Dashboard My Bets / My Markets two-tab", "status": "done", "commit": "bc29d96"},
+    {"id": "hotfix-5", "name": "Resolution form market-type-aware selector", "status": "done", "commit": "f7a12d8"}
+  ],
+  "remaining_tasks": [
+    {"id": "05-06", "name": "Socket event wiring + Navbar /settings link", "status": "not_started",
+     "description": "Wire bet:resolved, dispute:opened, dispute:voted, dispute:closed socket events on market detail page. Add /settings link to Navbar."}
+  ],
+  "blockers": [
+    {
+      "description": "05-05 checkpoint approval not explicitly given — user was mid-testing with hotfixes applied",
+      "type": "human_action",
+      "workaround": "Ask user to confirm 05-05 is approved before spawning 05-06 agent"
+    }
+  ],
+  "human_actions_pending": [
+    {
+      "action": "Confirm plan 05-05 is approved (resolution UI, settings page, LLM buttons)",
+      "context": "Checkpoint plan requires explicit approval before Wave 4 (05-06) executes",
+      "blocking": true
+    }
+  ],
+  "decisions": [
+    {"decision": "NullPool for all Celery tasks", "rationale": "Prevents asyncpg event-loop mismatch after fork; applied to both resolution.py and daily.py", "phase": "05"},
+    {"decision": "deadlinePassed client-side check for resolution UI", "rationale": "Show form immediately after deadline without waiting for Celery 5-min tick", "phase": "05"},
+    {"decision": "Dashboard: two tabs (My Bets / My Markets) with Active + Resolved sub-sections", "rationale": "User requested filter-based layout over stacked sections", "phase": "05"},
+    {"decision": "my_markets filter: proposer_id == user_id", "rationale": "Markets created by user, distinct from my_bets (BetPosition join)", "phase": "05"},
+    {"decision": "Resolution outcome selector seeds via useEffect on market_type", "rationale": "binary→yes, multiple_choice→first choice, numeric→empty string", "phase": "05"}
+  ],
+  "uncommitted_files": [
+    ".planning/phases/05-intelligence-resolution/05-02-SUMMARY.md",
+    "README.md",
+    "plan/PLANNING.md",
+    ".planning/phases/05-intelligence-resolution/05-VALIDATION.md"
+  ],
+  "next_action": "Ask user to confirm 05-05 approved, then spawn gsd-executor for plan 05-06 (Wave 4)",
+  "context_notes": "Phase 5 is 5/6 plans done. Session shifted from plan execution to iterative UI debugging. All fixes committed. 05-06 is small — just socket listeners and a navbar link. After 05-06 completes, run phase verification."
+}
