@@ -75,7 +75,7 @@ export default function MarketDetailPage() {
   const resolutionQuery = useQuery<ResolutionState>({
     queryKey: ["resolution", marketId],
     queryFn: async () => (await api.get(`/api/bets/${marketId}/resolution`)).data,
-    enabled: !!marketId && !!market && market.status !== "open",
+    enabled: !!marketId && !!marketQuery.data && marketQuery.data.status !== "open",
   });
 
   // Join bet room on mount, leave on unmount (D-12)
