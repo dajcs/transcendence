@@ -18,6 +18,7 @@ from app.services import auth_service
 from app.services.llm_service import (
     _check_budget,
     _get_redis,
+    call_custom_provider,
     get_resolution_hint,
     summarize_thread,
 )
@@ -47,7 +48,7 @@ async def create_summary(
     """
     current_user = await _get_current_user(request, db)
 
-    if current_user.llm_opt_out:
+    if current_user.llm_mode == "disabled":
         raise HTTPException(status_code=403, detail="LLM features disabled in your settings")
 
     bet = (await db.execute(select(Bet).where(Bet.id == bet_id))).scalar_one_or_none()
@@ -75,14 +76,19 @@ async def create_summary(
     if not await _check_budget(r):
         raise HTTPException(status_code=503, detail="LLM service temporarily unavailable")
 
-    summary = await summarize_thread(
-        bet_title=bet.title,
-        bet_description=bet.description,
-        resolution_criteria=bet.resolution_criteria,
-        comments=comment_texts,
-        redis=r,
-        user_id=current_user.id,
-    )
+    if current_user.llm_mode == "custom" and current_user.llm_provider and current_user.llm_api_key:
+        from app.services.llm_service import _build_summarize_messages
+        msgs = _build_summarize_messages(bet.title, bet.description, bet.resolution_criteria, comment_texts)
+        summary = await call_custom_provider(msgs, current_user.llm_provider, current_user.llm_api_key)
+    else:
+        summary = await summarize_thread(
+            bet_title=bet.title,
+            bet_description=bet.description,
+            resolution_criteria=bet.resolution_criteria,
+            comments=comment_texts,
+            redis=r,
+            user_id=current_user.id,
+        )
     return {"summary": summary}
 
 
@@ -98,7 +104,7 @@ async def create_resolution_hint(
     """
     current_user = await _get_current_user(request, db)
 
-    if current_user.llm_opt_out:
+    if current_user.llm_mode == "disabled":
         raise HTTPException(status_code=403, detail="LLM features disabled in your settings")
 
     bet = (await db.execute(select(Bet).where(Bet.id == bet_id))).scalar_one_or_none()
@@ -119,13 +125,18 @@ async def create_resolution_hint(
     if not await _check_budget(r):
         raise HTTPException(status_code=503, detail="LLM service temporarily unavailable")
 
-    hint = await get_resolution_hint(
-        bet_title=bet.title,
-        bet_description=bet.description,
-        resolution_criteria=bet.resolution_criteria,
-        deadline=bet.deadline,
-        evidence=body.evidence,
-        redis=r,
-        user_id=current_user.id,
-    )
+    if current_user.llm_mode == "custom" and current_user.llm_provider and current_user.llm_api_key:
+        from app.services.llm_service import _build_hint_messages
+        msgs = _build_hint_messages(bet.title, bet.description, bet.resolution_criteria, bet.deadline, body.evidence)
+        hint = await call_custom_provider(msgs, current_user.llm_provider, current_user.llm_api_key)
+    else:
+        hint = await get_resolution_hint(
+            bet_title=bet.title,
+            bet_description=bet.description,
+            resolution_criteria=bet.resolution_criteria,
+            deadline=bet.deadline,
+            evidence=body.evidence,
+            redis=r,
+            user_id=current_user.id,
+        )
     return {"hint": hint}
