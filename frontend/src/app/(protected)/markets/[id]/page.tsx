@@ -216,6 +216,7 @@ export default function MarketDetailPage() {
 
   const market = marketQuery.data;
   const refundEstimate = market && myPosition ? estimateRefund(myPosition, market) : null;
+  const deadlinePassed = market ? new Date(market.deadline) < new Date() : false;
 
   const commentItems = commentsQuery.data ?? [];
   // Build depth map and children map for tree-ordered rendering
@@ -401,8 +402,8 @@ export default function MarketDetailPage() {
             </section>
           )}
 
-          {/* ResolutionSection: visible when bet is not open */}
-          {market.status !== "open" && (
+          {/* ResolutionSection: visible when deadline passed or status is in resolution */}
+          {(deadlinePassed || market.status !== "open") && (
             <section className="rounded border border-yellow-200 bg-yellow-50 p-4 space-y-3">
               <h2 className="text-lg font-semibold text-yellow-900">Resolution</h2>
 
@@ -418,8 +419,8 @@ export default function MarketDetailPage() {
                 Status: <span className="font-medium capitalize">{market.status.replace(/_/g, " ")}</span>
               </p>
 
-              {/* Proposer resolution form: visible to proposer when pending_resolution */}
-              {market.status === "pending_resolution" && currentUser?.id === market.proposer_id && (
+              {/* Proposer resolution form: visible to proposer when deadline passed and not yet closed */}
+              {(market.status === "pending_resolution" || (deadlinePassed && market.status === "open")) && currentUser?.id === market.proposer_id && (
                 <div className="space-y-3 border-t border-yellow-200 pt-3">
                   <p className="text-sm font-medium text-yellow-900">Submit Resolution</p>
                   <div className="flex gap-2">
