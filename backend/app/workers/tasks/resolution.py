@@ -14,7 +14,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models.bet import Bet, Dispute, Resolution
-from app.db.session import AsyncSessionLocal
+from app.db.session import make_task_session
 from app.workers.celery_app import celery_app
 
 logger = logging.getLogger(__name__)
@@ -212,7 +212,7 @@ async def _process_dispute_deadlines(db: AsyncSession) -> None:
             dispute.final_outcome = original_outcome
             await db.flush()
             await db.commit()
-            async with AsyncSessionLocal() as payout_db:
+            async with make_task_session()() as payout_db:
                 from app.services.resolution_service import trigger_payout
                 await trigger_payout(payout_db, dispute.bet_id, original_outcome, overturned=False)
             continue
@@ -262,9 +262,10 @@ def check_auto_resolution() -> str:
 
 
 async def _run_auto_resolution() -> None:
-    async with AsyncSessionLocal() as db:
+    TaskSession = make_task_session()
+    async with TaskSession() as db:
         await _process_auto_resolution(db)
-    async with AsyncSessionLocal() as db:
+    async with TaskSession() as db:
         await _escalate_overdue_proposer(db)
 
 
@@ -277,5 +278,6 @@ def check_dispute_deadlines() -> str:
 
 
 async def _run_dispute_deadlines() -> None:
-    async with AsyncSessionLocal() as db:
+    TaskSession = make_task_session()
+    async with TaskSession() as db:
         await _process_dispute_deadlines(db)
