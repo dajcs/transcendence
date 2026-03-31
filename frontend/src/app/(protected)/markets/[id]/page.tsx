@@ -44,7 +44,7 @@ export default function MarketDetailPage() {
   const [showWithdrawConfirm, setShowWithdrawConfirm] = useState(false);
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [replyText, setReplyText] = useState("");
-  const [resolutionOutcome, setResolutionOutcome] = useState<"yes" | "no">("yes");
+  const [resolutionOutcome, setResolutionOutcome] = useState<string>("yes");
   const [resolutionJustification, setResolutionJustification] = useState("");
   const [evidenceText, setEvidenceText] = useState("");
   const [hint, setHint] = useState<string | null>(null);
@@ -217,6 +217,14 @@ export default function MarketDetailPage() {
   const market = marketQuery.data;
   const refundEstimate = market && myPosition ? estimateRefund(myPosition, market) : null;
   const deadlinePassed = market ? new Date(market.deadline) < new Date() : false;
+
+  // Seed outcome selector once market type is known
+  useEffect(() => {
+    if (!market) return;
+    if (market.market_type === "binary") setResolutionOutcome("yes");
+    else if (market.market_type === "multiple_choice") setResolutionOutcome(market.choices?.[0] ?? "");
+    else setResolutionOutcome("");
+  }, [market?.market_type]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const commentItems = commentsQuery.data ?? [];
   // Build depth map and children map for tree-ordered rendering
@@ -423,16 +431,57 @@ export default function MarketDetailPage() {
               {(market.status === "pending_resolution" || (deadlinePassed && market.status === "open")) && currentUser?.id === market.proposer_id && (
                 <div className="space-y-3 border-t border-yellow-200 pt-3">
                   <p className="text-sm font-medium text-yellow-900">Submit Resolution</p>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => setResolutionOutcome("yes")}
-                      className={`rounded px-3 py-1 text-sm ${resolutionOutcome === "yes" ? "bg-green-600 text-white" : "bg-gray-200"}`}
-                    >YES</button>
-                    <button
-                      onClick={() => setResolutionOutcome("no")}
-                      className={`rounded px-3 py-1 text-sm ${resolutionOutcome === "no" ? "bg-red-600 text-white" : "bg-gray-200"}`}
-                    >NO</button>
-                  </div>
+
+                  {/* binary */}
+                  {market.market_type === "binary" && (
+                    <div className="flex gap-2">
+                      {["yes", "no"].map((opt) => (
+                        <button
+                          key={opt}
+                          onClick={() => setResolutionOutcome(opt)}
+                          className={`rounded px-3 py-1 text-sm ${resolutionOutcome === opt ? "bg-green-600 text-white" : "bg-gray-200"}`}
+                        >
+                          {opt.toUpperCase()}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* multiple choice */}
+                  {market.market_type === "multiple_choice" && market.choices && (
+                    <div className="flex flex-wrap gap-2">
+                      {market.choices.map((opt) => (
+                        <button
+                          key={opt}
+                          onClick={() => setResolutionOutcome(opt)}
+                          className={`rounded px-3 py-1 text-sm ${resolutionOutcome === opt ? "bg-green-600 text-white" : "bg-gray-200"}`}
+                        >
+                          {opt}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* numeric range */}
+                  {market.market_type === "numeric" && (
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="number"
+                        value={resolutionOutcome}
+                        onChange={(e) => setResolutionOutcome(e.target.value)}
+                        min={market.numeric_min ?? undefined}
+                        max={market.numeric_max ?? undefined}
+                        step="any"
+                        placeholder="Enter value"
+                        className="w-36 rounded border border-gray-300 px-3 py-1 text-sm"
+                      />
+                      {(market.numeric_min != null || market.numeric_max != null) && (
+                        <span className="text-xs text-gray-500">
+                          range: {market.numeric_min ?? "−∞"} – {market.numeric_max ?? "+∞"}
+                        </span>
+                      )}
+                    </div>
+                  )}
                   <textarea
                     value={resolutionJustification}
                     onChange={(e) => setResolutionJustification(e.target.value)}
