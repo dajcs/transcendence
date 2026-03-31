@@ -66,6 +66,7 @@ async def list_markets(
     sort_dir: str = "",
     status: str = "all",
     my_bets: bool = False,
+    my_markets: bool = False,
     user_id: uuid.UUID | None = None,
     q: str = "",
     include_desc: bool = False,
@@ -104,6 +105,10 @@ async def list_markets(
                 )
             )
         )
+
+    # My markets filter (markets created by user)
+    if my_markets and user_id:
+        query = query.where(Bet.proposer_id == user_id)
 
     # Search
     if q:

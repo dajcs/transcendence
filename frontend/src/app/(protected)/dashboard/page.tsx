@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 
 import { api } from "@/lib/api";
-import type { BetPositionsListResponse } from "@/lib/types";
+import type { BetPositionsListResponse, MarketListResponse } from "@/lib/types";
 import { useAuthStore } from "@/store/auth";
 
 export default function DashboardPage() {
@@ -13,6 +13,11 @@ export default function DashboardPage() {
   const positionsQuery = useQuery<BetPositionsListResponse>({
     queryKey: ["positions"],
     queryFn: async () => (await api.get("/api/bets/positions")).data,
+  });
+
+  const myMarketsQuery = useQuery<MarketListResponse>({
+    queryKey: ["markets", "mine"],
+    queryFn: async () => (await api.get("/api/markets?my_markets=true&limit=20")).data,
   });
 
   return (
@@ -47,6 +52,34 @@ export default function DashboardPage() {
           </div>
         ) : (
           <p className="text-sm text-gray-500">No active bets.</p>
+        )}
+      </section>
+
+      <section className="space-y-3">
+        <h2 className="text-lg font-semibold">My Markets</h2>
+        {myMarketsQuery.data?.items.length ? (
+          <div className="space-y-2">
+            {myMarketsQuery.data.items.map((market) => (
+              <Link
+                key={market.id}
+                href={`/markets/${market.id}`}
+                className="block rounded border border-gray-200 bg-white p-3 hover:border-gray-300"
+              >
+                <p className="font-medium text-gray-900">{market.title}</p>
+                <p className="mt-1 text-sm text-gray-600">
+                  {market.status.replace(/_/g, " ")} · deadline{" "}
+                  {new Date(market.deadline).toLocaleDateString()}
+                </p>
+              </Link>
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-gray-500">
+            No markets created yet.{" "}
+            <Link href="/markets/new" className="text-blue-600 hover:underline">
+              Create one
+            </Link>
+          </p>
         )}
       </section>
 
