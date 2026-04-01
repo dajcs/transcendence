@@ -87,6 +87,7 @@ export interface DisputeRecord {
   closes_at: string;
   vote_weights: Record<string, number>;
   user_vote: string | null;
+  user_weight: number | null;
 }
 
 export interface ReviewRecord {

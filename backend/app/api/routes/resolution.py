@@ -383,18 +383,19 @@ async def get_resolution(
             .group_by(DisputeVote.vote)
         )).all()
         vote_weights = {r[0]: float(r[1]) for r in rows}
-        user_dispute_vote = (await db.execute(
-            select(DisputeVote.vote).where(
+        user_dv = (await db.execute(
+            select(DisputeVote.vote, DisputeVote.weight).where(
                 DisputeVote.dispute_id == dispute.id,
                 DisputeVote.user_id == current_user.id,
             )
-        )).scalar_one_or_none()
+        )).one_or_none()
         dispute_data = {
             "id": str(dispute.id),
             "status": dispute.status,
             "closes_at": dispute.closes_at.isoformat(),
             "vote_weights": vote_weights,
-            "user_vote": user_dispute_vote,
+            "user_vote": user_dv[0] if user_dv else None,
+            "user_weight": float(user_dv[1]) if user_dv else None,
         }
 
     review_data = None

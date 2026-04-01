@@ -632,17 +632,42 @@ export default function MarketDetailPage() {
                   <p className="text-sm text-violet-800">
                     Window closes: {new Date(resolutionQuery.data.dispute.closes_at).toLocaleString()}
                   </p>
-                  {/* Vote tally — all outcomes in order, 0-weight entries shown */}
-                  {(() => {
+                  {/* Vote tally */}
+                  {market.market_type === "numeric" ? (() => {
+                    const dispute = resolutionQuery.data!.dispute!;
+                    const weights = dispute.vote_weights;
+                    const entries = Object.entries(weights).sort((a, b) => parseFloat(a[0]) - parseFloat(b[0]));
+                    const maxW = entries.length > 0 ? Math.max(...entries.map(([, w]) => w)) : 1;
+                    return (
+                      <div className="space-y-2">
+                        {dispute.user_vote !== null && (
+                          <p className="text-sm text-violet-800">
+                            Your vote: <span className="font-medium">{dispute.user_vote}</span>
+                            {" "}<span className="text-violet-500">({dispute.user_weight?.toFixed(1)})</span>
+                          </p>
+                        )}
+                        {entries.length > 0 && (
+                          <div className="space-y-1">
+                            <p className="text-xs text-violet-600 font-medium">Community</p>
+                            {entries.map(([val, w]) => (
+                              <div key={val} className="flex items-center gap-2 text-xs">
+                                <span className="w-16 text-right text-violet-700 shrink-0">{val}</span>
+                                <div className="flex-1 bg-violet-100 rounded-full h-3 overflow-hidden">
+                                  <div
+                                    className="h-full bg-violet-500 rounded-full"
+                                    style={{ width: `${(w / maxW) * 100}%` }}
+                                  />
+                                </div>
+                                <span className="w-10 text-violet-600 shrink-0">({w.toFixed(1)})</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })() : (() => {
                     const weights = resolutionQuery.data!.dispute!.vote_weights;
-                    let outcomes: string[];
-                    if (market.market_type === "binary") {
-                      outcomes = ["yes", "no"];
-                    } else if (market.market_type === "multiple_choice") {
-                      outcomes = market.choices ?? [];
-                    } else {
-                      outcomes = Object.keys(weights);
-                    }
+                    const outcomes = market.market_type === "binary" ? ["yes", "no"] : (market.choices ?? []);
                     if (outcomes.length === 0) return null;
                     return (
                       <div className="flex gap-4 text-sm flex-wrap">
@@ -666,14 +691,20 @@ export default function MarketDetailPage() {
                       </p>
                       {market.market_type === "binary" && (() => {
                         const uv = resolutionQuery.data!.dispute!.user_vote;
+                        const yesActive = uv === "yes";
+                        const noActive = uv === "no";
                         return (
                           <div className="flex gap-2">
                             <button onClick={() => castVote.mutate("yes")} disabled={castVote.isPending}
-                              className={`rounded px-3 py-1 text-sm text-white disabled:opacity-50 ${uv === "yes" ? "bg-green-700 border-2 border-green-300 font-bold" : "bg-green-600 hover:bg-green-700"}`}>
+                              className={`rounded px-3 py-1 text-sm text-white disabled:opacity-50 ${
+                                yesActive ? "bg-green-700 border-2 border-green-300 font-bold"
+                                : noActive  ? "bg-red-600 hover:bg-red-700"
+                                :             "bg-green-600 hover:bg-green-700"
+                              }`}>
                               YES
                             </button>
                             <button onClick={() => castVote.mutate("no")} disabled={castVote.isPending}
-                              className={`rounded px-3 py-1 text-sm text-white disabled:opacity-50 ${uv === "no" ? "bg-green-700 border-2 border-green-300 font-bold" : "bg-red-600 hover:bg-red-700"}`}>
+                              className={`rounded px-3 py-1 text-sm text-white disabled:opacity-50 ${noActive ? "bg-green-700 border-2 border-green-300 font-bold" : "bg-red-600 hover:bg-red-700"}`}>
                               NO
                             </button>
                           </div>
