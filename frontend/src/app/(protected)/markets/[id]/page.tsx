@@ -545,11 +545,32 @@ export default function MarketDetailPage() {
 
           {/* DisputeSection: visible when proposer_resolved or disputed */}
           {(market.status === "proposer_resolved" || market.status === "disputed") && (
-            <section className="rounded border border-red-200 bg-red-50 p-4 space-y-3">
-              <h2 className="text-lg font-semibold text-red-900">Community Dispute</h2>
-              {resolutionQuery.data?.dispute ? (
+            <section className="rounded border border-violet-200 bg-violet-50 p-4 space-y-3">
+              <h2 className="text-lg font-semibold text-violet-900">Dispute</h2>
+
+              {/* Open dispute button — shown to participants when no dispute yet */}
+              {!resolutionQuery.data?.dispute && myPosition && market.status === "proposer_resolved" && (
+                <div className="space-y-1">
+                  <button
+                    onClick={() => openDispute.mutate()}
+                    disabled={openDispute.isPending}
+                    className="rounded bg-violet-700 px-4 py-2 text-sm text-white hover:bg-violet-800 disabled:opacity-50"
+                  >
+                    {openDispute.isPending ? "Opening..." : "Dispute Resolution"}
+                  </button>
+                  <p className="text-xs text-violet-600">Costs 1 BP · Opens 48h community vote</p>
+                  {openDispute.isError && (
+                    <p className="text-sm text-red-600">
+                      {(openDispute.error as { response?: { data?: { detail?: string } } })?.response?.data?.detail ?? "Failed to open dispute"}
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {/* Active dispute info */}
+              {resolutionQuery.data?.dispute && (
                 <>
-                  <p className="text-sm text-red-800">
+                  <p className="text-sm text-violet-800">
                     Window closes: {new Date(resolutionQuery.data.dispute.closes_at).toLocaleString()}
                   </p>
                   <div className="flex gap-4 text-sm">
@@ -572,24 +593,6 @@ export default function MarketDetailPage() {
                   )}
                   {castVote.isError && <p className="text-sm text-red-600">Vote failed — you may have already voted.</p>}
                 </>
-              ) : (
-                /* No active dispute — show Open Dispute button to participants */
-                myPosition && market.status === "proposer_resolved" && (
-                  <div>
-                    <button
-                      onClick={() => openDispute.mutate()}
-                      disabled={openDispute.isPending}
-                      className="rounded border border-red-400 px-3 py-2 text-sm text-red-700 hover:bg-red-100 disabled:opacity-50"
-                    >
-                      {openDispute.isPending ? "Opening..." : "Open Dispute — costs 1 BP"}
-                    </button>
-                    {openDispute.isError && (
-                      <p className="mt-1 text-sm text-red-600">
-                        {(openDispute.error as { response?: { data?: { detail?: string } } })?.response?.data?.detail ?? "Failed to open dispute"}
-                      </p>
-                    )}
-                  </div>
-                )
               )}
             </section>
           )}

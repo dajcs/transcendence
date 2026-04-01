@@ -12,6 +12,26 @@ function formatDeadline(deadline: string): string {
   return new Date(deadline).toLocaleString();
 }
 
+function marketCardBg(status: string, isOwnMarket = false): string {
+  if (status === "pending_resolution")
+    return isOwnMarket ? "border-red-300 bg-red-50" : "border-yellow-300 bg-yellow-50";
+  if (status === "proposer_resolved") return "border-blue-300 bg-blue-50";
+  if (status === "disputed") return "border-violet-300 bg-violet-50";
+  if (status === "closed") return "border-green-300 bg-green-50";
+  return "border-gray-200 bg-white";
+}
+
+function marketStatusBadge(status: string, isOwnMarket = false): { text: string; cls: string } | null {
+  if (status === "pending_resolution")
+    return isOwnMarket
+      ? { text: "Make Resolution", cls: "bg-red-200 text-red-800" }
+      : { text: "Pending Resolution", cls: "bg-yellow-200 text-yellow-800" };
+  if (status === "proposer_resolved") return { text: "Resolution Proposed", cls: "bg-blue-200 text-blue-800" };
+  if (status === "disputed") return { text: "Dispute Ongoing", cls: "bg-violet-200 text-violet-800" };
+  if (status === "closed") return { text: "Resolved", cls: "bg-green-200 text-green-800" };
+  return null;
+}
+
 function MarketCard({ market }: { market: Market }) {
   const queryClient = useQueryClient();
   const bootstrap = useAuthStore((s) => s.bootstrap);
@@ -24,30 +44,22 @@ function MarketCard({ market }: { market: Market }) {
     },
   });
 
-  const isPendingResolution = market.status === "pending_resolution";
   const isOwnMarket = currentUser?.id === market.proposer_id;
+  const badge = marketStatusBadge(market.status, isOwnMarket);
 
   return (
     <Link
       href={`/markets/${market.id}`}
-      className={`block rounded border p-4 hover:border-gray-300 ${
-        isPendingResolution && isOwnMarket
-          ? "border-red-300 bg-red-50"
-          : isPendingResolution
-          ? "border-yellow-300 bg-yellow-50"
-          : "border-gray-200 bg-white"
-      }`}
+      className={`block rounded border p-4 hover:border-gray-300 ${marketCardBg(market.status, isOwnMarket)}`}
     >
       <div className="flex items-start justify-between gap-4">
         <div>
           <h2 className="text-lg font-semibold text-gray-900">{market.title}</h2>
           <p className="mt-1 text-sm text-gray-600">{market.description}</p>
           <p className="mt-2 text-xs text-gray-500">Deadline: {formatDeadline(market.deadline)}</p>
-          {isPendingResolution && (
-            <span className={`mt-2 inline-block rounded px-2 py-0.5 text-xs font-semibold ${
-              isOwnMarket ? "bg-red-200 text-red-800" : "bg-yellow-200 text-yellow-800"
-            }`}>
-              {isOwnMarket ? "Make Resolution" : "Pending Resolution"}
+          {badge && (
+            <span className={`mt-2 inline-block rounded px-2 py-0.5 text-xs font-semibold ${badge.cls}`}>
+              {badge.text}
             </span>
           )}
         </div>
