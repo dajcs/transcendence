@@ -28,19 +28,29 @@ OAuth, i18n, dark mode, and GDPR are Phase 6.
 ### Tier 3 Community Dispute
 - **D-07:** Dispute section appears inline below the resolution section, visible to all bet participants when `bet.status = 'proposer_resolved'` and dispute window is open. Shows: current resolution outcome, window closes at (datetime), weighted vote tally (YES Xw / NO Yw).
 - **D-08:** "Open Dispute — costs 1 bp" button for eligible participants. Requires: user has active position, hasn't disputed this bet, hasn't opened a dispute in last 24h globally.
-- **D-09:** Voting: [Vote YES] [Vote NO] buttons visible to all users once a dispute is open. Weight calculation per RESOLUTION.md rules (0.5x own winning side, 1x neutral, 2x own losing side).
+- **D-09:** Voting: opinion buttons visible to all users once a dispute is open. Binary markets show [YES] [NO]; multichoice shows each option; numeric shows a value input + bar chart. Button style: active vote = green + bold + border-2; inactive options = violet (same style as multichoice display). Weight calculation per RESOLUTION.md rules (0.5x own winning side, 1x neutral, 2x own losing side). For binary: voted-NO turns YES button red (rejected). Votes are upsert — user can change by clicking another option.
 - **D-10:** Dispute resolution Celery task (`check_dispute_deadlines`): runs every 15 minutes. Finds disputes where `closes_at < now AND status = 'open'`. Checks participation minimum (1% of bet participants, min 1). If valid: apply weighted majority outcome. If invalid: restore original resolution. Trigger payout in both cases.
 
 ### Payout
-- **D-11:** Payout (bp + tp) is triggered atomically after a bet reaches final CLOSED status (after dispute window or dispute resolution). Formula per ECONOMY.md: +1 bp per winner + `floor(t_win / t_bet * 100) / 100 tp`. All in one DB transaction. Emit `bet:resolved` socket event on close.
+- **D-11:** Payout (bp + tp) — redesigned (UAT 2026-04-01):
+  - **BP payout:** The total staked BP pool (sum of all bets on the market) is divided proportionally among winners based on each winner's stake relative to total winning stake. `winner_bp = floor(user_winning_stake / total_winning_stake * total_bp_pool)`. All in one DB transaction. Emit `bet:resolved` socket event on close.
+  - **TP payout (multi-position aware):** When a user has multiple positions on the same market, tp is calculated per position individually. Losing positions earn 0 tp. Final tp for the user = average of all positions' tp values (including 0s). Formula per position: `tp_i = floor(position_stake / total_winning_stake * 100) / 100` (0 for losing). Final: `user_tp = sum(tp_i for all positions) / count(all positions)`.
 - **D-12:** Proposer penalty if overturned: -50% of staked bp (floor, can't go below 0). Applied in same payout transaction.
 
 ### LLM Features
 - **D-13:** Thread Summarizer: "Summarize discussion" button below the comments section on bet detail page. Available to any authenticated user. Calls `POST /api/bets/{id}/summary`. Result shown inline below the button (replaces button with summary card + refresh link). Per-user limit: 5/day tracked in Redis (`llm_usage:summary:{user_id}:{date}` with EOD TTL).
 - **D-14:** Resolution Assistant: "Get AI suggestion" button inside the proposer resolution form. Calls `POST /api/bets/{id}/resolution-hint`. Proposer provides evidence text (max 500 chars) in a textarea; LLM returns YES/NO + 1-2 sentence reasoning shown inline. Per-user limit: 3/day.
-- **D-15:** LLM opt-out: toggle in user settings page (`/settings`). If opted out, buttons are hidden. Stored as `user.llm_opt_out` boolean in the users table (add column via migration).
-- **D-16:** OpenRouter provider: `openai/gpt-4o-mini` as default (cost-effective, available). Fallback: `openai/gpt-3.5-turbo`. Monthly budget cap via `LLM_MONTHLY_BUDGET_USD` env var; tracked in Redis `llm_spend:{YYYY-MM}`. Graceful degradation when budget exceeded.
-- **D-17:** Prompt injection prevention per LLM_INTEGRATION.md spec: user content in User: turn only, strip control chars, prepend override warning in System: turn, validate response (no code blocks, <500 chars).
+- **D-15:** LLM settings page (`/settings`) — redesigned (UAT 2026-04-01):
+  - Profile page has a Settings button (cogwheel icon) that navigates to `/settings`
+  - LLM mode has 3 options stored as `user.llm_mode` (string): `"default"`, `"disabled"`, `"custom"`
+  - `"Platform default"` option is only shown when `OPENROUTER_API_KEY` is set in `.env`; if not set, the UI defaults to `"Disabled — hide AI features"` and that option is not selectable
+  - `"My own API key"` option requires 3 fields: Provider (dropdown: openai, anthropic, grok, gemini), API key (password input), Model (text input)
+  - Own API key stored in DB (`user.llm_provider`, `user.llm_api_key`, `user.llm_model`) with row-level auth — backend enforces that only the authenticated user can read/write their own key; never exposed in list endpoints
+  - If `llm_mode == "disabled"`: LLM buttons are hidden throughout the app
+  - If `llm_mode == "custom"`: use user's own provider/key/model instead of OpenRouter
+  - If `llm_mode == "default"`: use platform OpenRouter key (only available when key is configured)
+- **D-16:** OpenRouter provider: `openai/gpt-4o-mini` as default. Fallback: `openai/gpt-3.5-turbo`. Monthly budget cap via `LLM_MONTHLY_BUDGET_USD` env var; tracked in Redis `llm_spend:{YYYY-MM}`. Graceful degradation when budget exceeded. Max response length: 2200 chars (for both summary and hint).
+- **D-17:** Prompt injection prevention: user content in User: turn only, strip control chars, prepend override warning in System: turn, validate response (no code blocks, no HTML tags, ≤2200 chars).
 
 ### Socket Events (Phase 4 Deferred)
 - **D-18:** Wire `bet:resolved` emit in payout service when bet closes. Payload: `{bet_id, outcome, payout_summary}`. Emits to `bet:{id}` room.

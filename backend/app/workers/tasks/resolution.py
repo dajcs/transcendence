@@ -255,15 +255,12 @@ async def _process_dispute_deadlines(db: AsyncSession) -> None:
             await trigger_payout(payout_db, dispute.bet_id, final_outcome, overturned=overturned)
 
         # Emit dispute:closed
-        try:
-            from app.socket.server import sio
-            await sio.emit(
-                "dispute:closed",
-                {"bet_id": str(dispute.bet_id), "outcome": final_outcome, "overturned": overturned},
-                room=f"bet:{dispute.bet_id}",
-            )
-        except Exception:
-            pass
+        from app.socket.server import celery_emit
+        await celery_emit(
+            "dispute:closed",
+            {"bet_id": str(dispute.bet_id), "outcome": final_outcome, "overturned": overturned},
+            room=f"bet:{dispute.bet_id}",
+        )
 
 
 @celery_app.task(name="app.workers.tasks.resolution.close_dispute_at_deadline", max_retries=1)
@@ -336,15 +333,12 @@ async def _close_single_dispute(dispute_id_str: str) -> None:
             from app.services.resolution_service import trigger_payout
             await trigger_payout(payout_db, dispute.bet_id, final_outcome, overturned=overturned)
 
-        try:
-            from app.socket.server import sio
-            await sio.emit(
-                "dispute:closed",
-                {"bet_id": str(dispute.bet_id), "outcome": final_outcome, "overturned": overturned},
-                room=f"bet:{dispute.bet_id}",
-            )
-        except Exception:
-            pass
+        from app.socket.server import celery_emit
+        await celery_emit(
+            "dispute:closed",
+            {"bet_id": str(dispute.bet_id), "outcome": final_outcome, "overturned": overturned},
+            room=f"bet:{dispute.bet_id}",
+        )
 
         logger.info("Dispute %s closed — outcome: %s (overturned: %s)", dispute_id, final_outcome, overturned)
 

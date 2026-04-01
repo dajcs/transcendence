@@ -43,9 +43,9 @@ def _sanitize(text: str, max_len: int) -> str:
     return cleaned[:max_len]
 
 
-def validate_response(text: str) -> bool:
-    """LLM_INTEGRATION.md: reject code blocks, HTML, > 500 chars."""
-    if len(text) > 500:
+def validate_response(text: str, max_len: int = 500) -> bool:
+    """Reject code blocks, HTML, or responses exceeding max_len chars."""
+    if len(text) > max_len:
         return False
     if "```" in text or "<" in text:
         return False
@@ -161,6 +161,7 @@ async def call_openrouter(
     messages: list[dict[str, Any]],
     redis: aioredis.Redis | None = None,
     model: str = _DEFAULT_MODEL,
+    max_response_len: int = 500,
 ) -> str | None:
     """Call OpenRouter API. Returns text or None on any failure.
     Checks budget before calling. Tracks spend after success.
@@ -188,11 +189,11 @@ async def call_openrouter(
         if resp.status_code != 200:
             # Retry with fallback model once
             if model != _FALLBACK_MODEL:
-                return await call_openrouter(messages, r, model=_FALLBACK_MODEL)
+                return await call_openrouter(messages, r, model=_FALLBACK_MODEL, max_response_len=max_response_len)
             return None
         data = resp.json()
         text = data["choices"][0]["message"]["content"].strip()
-        if not validate_response(text):
+        if not validate_response(text, max_len=max_response_len):
             return None
         await _track_spend(r, data.get("usage", {}))
         return text
@@ -250,7 +251,7 @@ async def summarize_thread(
             ),
         },
     ]
-    return await call_openrouter(messages, r)
+    return await call_openrouter(messages, r, max_response_len=2200)
 
 
 def _build_summarize_messages(
@@ -322,4 +323,4 @@ async def get_resolution_hint(
             ),
         },
     ]
-    return await call_openrouter(messages, r)
+    return await call_openrouter(messages, r, max_response_len=2200)

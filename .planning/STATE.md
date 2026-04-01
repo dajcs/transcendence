@@ -57,6 +57,7 @@ See: `.planning/PROJECT.md` (updated 2026-03-24)
 - [Phase 04]: Socket connects with withCredentials: true, no auth token field — D-04 httpOnly cookie constraint
 - [Phase 04-01]: importlib.import_module used in main.py to register socket events without shadowing FastAPI app variable
 - [Phase 04-01]: cors_allowed_origins=[] on AsyncServer singleton — Nginx handles CORS, wildcard conflicts with withCredentials cookie auth
+- [Phase 05]: Community vote button style: active = green+bold+border-2; inactive options = violet (matches multichoice display); binary voted-NO turns YES red (rejected)
 - [Phase 05]: Replaced collection-breaking test_llm.py with xfail stubs where service imports are inside test bodies — Wave 0 Nyquist compliance
 - [Phase 05-02]: TpTransaction has no reason field — omitted from constructor call (plan's sample code was incorrect)
 - [Phase 05-02]: Proposer penalty clamped to current balance to avoid 402 mid-payout transaction

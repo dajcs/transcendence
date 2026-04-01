@@ -174,14 +174,11 @@ async def trigger_payout(
         "overturned": overturned,
         "penalty_applied": penalty_applied,
     }
-    try:
-        from app.socket.server import sio
-        await sio.emit(
-            "bet:resolved",
-            {"bet_id": str(bet_id), "outcome": outcome, "payout_summary": payout_summary},
-            room=f"bet:{bet_id}",
-        )
-    except Exception:
-        pass
+    from app.socket.server import celery_emit
+    await celery_emit(
+        "bet:resolved",
+        {"bet_id": str(bet_id), "outcome": outcome, "payout_summary": payout_summary},
+        room=f"bet:{bet_id}",
+    )
 
     return payout_summary
