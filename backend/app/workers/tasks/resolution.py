@@ -154,16 +154,26 @@ async def _escalate_overdue_proposer(db: AsyncSession) -> None:
             continue
 
         # Open a system dispute (proposer is opener for accounting purposes)
+        closes_at = now + timedelta(days=3)
         dispute = Dispute(
             bet_id=bet.id,
             opened_by=bet.proposer_id,
-            closes_at=now + timedelta(days=3),
+            closes_at=closes_at,
             status="open",
         )
         db.add(dispute)
         bet.status = "disputed"
         await db.flush()
         logger.info("Bet %s auto-escalated to Tier 3 (proposer timeout)", bet.id)
+
+        try:
+            celery_app.send_task(
+                "app.workers.tasks.resolution.close_dispute_at_deadline",
+                args=[str(dispute.id)],
+                eta=closes_at,
+            )
+        except Exception:
+            pass
 
     await db.commit()
 
@@ -254,6 +264,89 @@ async def _process_dispute_deadlines(db: AsyncSession) -> None:
             )
         except Exception:
             pass
+
+
+@celery_app.task(name="app.workers.tasks.resolution.close_dispute_at_deadline", max_retries=1)
+def close_dispute_at_deadline(dispute_id: str) -> str:
+    """Scheduled when a dispute opens, fires at closes_at to aggregate votes and resolve."""
+    import asyncio
+    asyncio.run(_close_single_dispute(dispute_id))
+    return "ok"
+
+
+async def _close_single_dispute(dispute_id_str: str) -> None:
+    import uuid as _uuid
+    from sqlalchemy import func
+
+    from app.db.models.bet import BetPosition, DisputeVote
+
+    dispute_id = _uuid.UUID(dispute_id_str)
+    TaskSession = make_task_session()
+    async with TaskSession() as db:
+        dispute = (await db.execute(
+            select(Dispute).where(Dispute.id == dispute_id, Dispute.status == "open")
+        )).scalar_one_or_none()
+        if dispute is None:
+            return  # already closed or not found
+
+        participant_count = (await db.execute(
+            select(func.count(BetPosition.id)).where(
+                BetPosition.bet_id == dispute.bet_id,
+                BetPosition.withdrawn_at.is_(None),
+            )
+        )).scalar_one()
+
+        votes = (await db.execute(
+            select(DisputeVote).where(DisputeVote.dispute_id == dispute.id)
+        )).scalars().all()
+
+        resolution = (await db.execute(
+            select(Resolution).where(Resolution.bet_id == dispute.bet_id)
+        )).scalar_one_or_none()
+        original_outcome = resolution.outcome if resolution else "no"
+
+        min_voters = max(1, int(participant_count * 0.01))
+        if len(votes) < min_voters:
+            dispute.status = "closed"
+            dispute.final_outcome = original_outcome
+            await db.commit()
+            async with TaskSession() as payout_db:
+                from app.services.resolution_service import trigger_payout
+                await trigger_payout(payout_db, dispute.bet_id, original_outcome, overturned=False)
+            return
+
+        weight_by_outcome: dict[str, float] = {}
+        for v in votes:
+            weight_by_outcome[v.vote] = weight_by_outcome.get(v.vote, 0.0) + float(v.weight)
+
+        best_outcome = max(weight_by_outcome, key=lambda k: weight_by_outcome[k])
+        best_weight = weight_by_outcome[best_outcome]
+        tied = sum(1 for w in weight_by_outcome.values() if w == best_weight) > 1
+        final_outcome = original_outcome if tied else best_outcome
+
+        overturned = (final_outcome != original_outcome)
+        if overturned and resolution:
+            resolution.overturned = True
+
+        dispute.status = "closed"
+        dispute.final_outcome = final_outcome
+        await db.commit()
+
+        async with TaskSession() as payout_db:
+            from app.services.resolution_service import trigger_payout
+            await trigger_payout(payout_db, dispute.bet_id, final_outcome, overturned=overturned)
+
+        try:
+            from app.socket.server import sio
+            await sio.emit(
+                "dispute:closed",
+                {"bet_id": str(dispute.bet_id), "outcome": final_outcome, "overturned": overturned},
+                room=f"bet:{dispute.bet_id}",
+            )
+        except Exception:
+            pass
+
+        logger.info("Dispute %s closed — outcome: %s (overturned: %s)", dispute_id, final_outcome, overturned)
 
 
 @celery_app.task(name="app.workers.tasks.resolution.resolve_market_at_deadline", max_retries=1)

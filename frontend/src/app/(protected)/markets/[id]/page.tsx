@@ -632,15 +632,28 @@ export default function MarketDetailPage() {
                   <p className="text-sm text-violet-800">
                     Window closes: {new Date(resolutionQuery.data.dispute.closes_at).toLocaleString()}
                   </p>
-                  {Object.keys(resolutionQuery.data.dispute.vote_weights).length > 0 && (
-                    <div className="flex gap-4 text-sm flex-wrap">
-                      {Object.entries(resolutionQuery.data.dispute.vote_weights).map(([outcome, w]) => (
-                        <span key={outcome} className="font-medium text-violet-700">
-                          {outcome.toUpperCase()} {w.toFixed(1)}w
-                        </span>
-                      ))}
-                    </div>
-                  )}
+                  {/* Vote tally — all outcomes in order, 0-weight entries shown */}
+                  {(() => {
+                    const weights = resolutionQuery.data!.dispute!.vote_weights;
+                    let outcomes: string[];
+                    if (market.market_type === "binary") {
+                      outcomes = ["yes", "no"];
+                    } else if (market.market_type === "multiple_choice") {
+                      outcomes = market.choices ?? [];
+                    } else {
+                      outcomes = Object.keys(weights);
+                    }
+                    if (outcomes.length === 0) return null;
+                    return (
+                      <div className="flex gap-4 text-sm flex-wrap">
+                        {outcomes.map((o) => (
+                          <span key={o} className="text-violet-700">
+                            {o.toUpperCase()} <span className="font-medium">({(weights[o] ?? 0).toFixed(1)})</span>
+                          </span>
+                        ))}
+                      </div>
+                    );
+                  })()}
                   {resolutionQuery.data.dispute.status === "open" && (
                     <div className="space-y-2">
                       <p className="text-sm font-medium text-violet-800">
@@ -656,11 +669,11 @@ export default function MarketDetailPage() {
                         return (
                           <div className="flex gap-2">
                             <button onClick={() => castVote.mutate("yes")} disabled={castVote.isPending}
-                              className={`rounded px-3 py-1 text-sm text-white hover:bg-green-700 disabled:opacity-50 ${uv === "yes" ? "bg-green-700 ring-2 ring-green-400" : "bg-green-600"}`}>
+                              className={`rounded px-3 py-1 text-sm text-white hover:bg-green-700 disabled:opacity-50 ${uv === "yes" ? "bg-green-800 border-2 border-green-300 font-bold" : "bg-green-600"}`}>
                               YES
                             </button>
                             <button onClick={() => castVote.mutate("no")} disabled={castVote.isPending}
-                              className={`rounded px-3 py-1 text-sm text-white hover:bg-red-700 disabled:opacity-50 ${uv === "no" ? "bg-red-700 ring-2 ring-red-400" : "bg-red-600"}`}>
+                              className={`rounded px-3 py-1 text-sm text-white hover:bg-red-700 disabled:opacity-50 ${uv === "no" ? "bg-red-800 border-2 border-red-300 font-bold" : "bg-red-600"}`}>
                               NO
                             </button>
                           </div>
@@ -672,7 +685,7 @@ export default function MarketDetailPage() {
                           <div className="flex gap-2 flex-wrap">
                             {(market.choices ?? []).map((choice) => (
                               <button key={choice} onClick={() => castVote.mutate(choice)} disabled={castVote.isPending}
-                                className={`rounded px-3 py-1 text-sm text-white hover:bg-violet-700 disabled:opacity-50 ${uv === choice ? "bg-violet-700 ring-2 ring-violet-400" : "bg-violet-600"}`}>
+                                className={`rounded px-3 py-1 text-sm text-white hover:bg-violet-700 disabled:opacity-50 ${uv === choice ? "bg-violet-800 border-2 border-violet-300 font-bold" : "bg-violet-600"}`}>
                                 {choice}
                               </button>
                             ))}

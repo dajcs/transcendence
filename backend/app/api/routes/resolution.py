@@ -242,17 +242,31 @@ async def vote_dispute(
     counts = await _get_review_counts(db, bet_id)
 
     # Check threshold — if reached, escalate to Tier 3
+    dispute = None
     if counts["dispute_count"] >= counts["threshold"]:
+        closes_at = datetime.now(timezone.utc) + timedelta(hours=48)
         dispute = Dispute(
             bet_id=bet_id,
             opened_by=current_user.id,
-            closes_at=datetime.now(timezone.utc) + timedelta(hours=48),
+            closes_at=closes_at,
             status="open",
         )
         db.add(dispute)
         bet.status = "disputed"
+        await db.flush()  # populate dispute.id before scheduling
 
     await db.commit()
+
+    if dispute is not None:
+        try:
+            from app.workers.celery_app import celery_app as _celery
+            _celery.send_task(
+                "app.workers.tasks.resolution.close_dispute_at_deadline",
+                args=[str(dispute.id)],
+                eta=closes_at,
+            )
+        except Exception:
+            pass
 
     try:
         from app.socket.server import sio
