@@ -281,3 +281,41 @@ async def _run_dispute_deadlines() -> None:
     TaskSession = make_task_session()
     async with TaskSession() as db:
         await _process_dispute_deadlines(db)
+    async with TaskSession() as db:
+        await _finalize_uncontested_resolutions(db)
+
+
+async def _finalize_uncontested_resolutions(db: AsyncSession) -> None:
+    """Auto-finalize proposer_resolved bets whose 48h review window expired without hitting
+    the dispute threshold (i.e., no Dispute record was created)."""
+    from app.services.resolution_service import trigger_payout
+
+    now = datetime.now(timezone.utc)
+    window = timedelta(hours=48)
+
+    overdue = (await db.execute(
+        select(Bet, Resolution)
+        .join(Resolution, Resolution.bet_id == Bet.id)
+        .where(Bet.status == "proposer_resolved")
+    )).all()
+
+    for bet, resolution in overdue:
+        resolved_at = resolution.resolved_at
+        if resolved_at.tzinfo is None:
+            resolved_at = resolved_at.replace(tzinfo=timezone.utc)
+        if now < resolved_at + window:
+            continue  # window not yet expired
+
+        # Check no Dispute record — threshold was never reached
+        existing_dispute = (await db.execute(
+            select(Dispute).where(Dispute.bet_id == bet.id)
+        )).scalar_one_or_none()
+        if existing_dispute:
+            continue  # already escalated
+
+        bet.status = "closed"
+        await db.commit()
+        TaskSession = make_task_session()
+        async with TaskSession() as payout_db:
+            await trigger_payout(payout_db, bet.id, resolution.outcome, overturned=False)
+        logger.info("Bet %s finalized uncontested (outcome: %s)", bet.id, resolution.outcome)

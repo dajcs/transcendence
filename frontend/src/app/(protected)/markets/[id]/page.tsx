@@ -164,6 +164,13 @@ export default function MarketDetailPage() {
     },
   });
 
+  const acceptResolution = useMutation({
+    mutationFn: async () => (await api.post(`/api/bets/${marketId}/accept-resolution`)).data,
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["resolution", marketId] });
+    },
+  });
+
   const openDispute = useMutation({
     mutationFn: async () => (await api.post(`/api/bets/${marketId}/dispute`)).data,
     onSuccess: async () => {
@@ -549,32 +556,74 @@ export default function MarketDetailPage() {
             </section>
           )}
 
-          {/* DisputeSection: visible when proposer_resolved or disputed */}
-          {(market.status === "proposer_resolved" || market.status === "disputed") && (
-            <section className="rounded border border-violet-200 bg-violet-50 p-4 space-y-3">
-              <h2 className="text-lg font-semibold text-violet-900">Dispute</h2>
+          {/* Review window: proposer_resolved — accept/dispute voting */}
+          {market.status === "proposer_resolved" && (
+            <section className="rounded border border-blue-200 bg-blue-50 p-4 space-y-3">
+              <h2 className="text-lg font-semibold text-blue-900">Resolution Proposed</h2>
 
-              {/* Open dispute button — shown when no dispute yet; backend enforces position requirement */}
-              {!resolutionQuery.data?.dispute && market.status === "proposer_resolved" && (
-                <div className="space-y-1">
-                  <button
-                    onClick={() => openDispute.mutate()}
-                    disabled={openDispute.isPending}
-                    className="rounded bg-violet-700 px-4 py-2 text-sm text-white hover:bg-violet-800 disabled:opacity-50"
-                  >
-                    {openDispute.isPending ? "Opening..." : "Dispute Resolution"}
-                  </button>
-                  <p className="text-xs text-violet-600">Costs 1 BP · Opens 48h community vote</p>
-                  {openDispute.isError && (
+              {resolutionQuery.data?.review && (
+                <>
+                  <p className="text-sm text-blue-800">
+                    Time to finalize:{" "}
+                    <span className="font-medium">
+                      {(() => {
+                        const ms = new Date(resolutionQuery.data!.review!.closes_at).getTime() - Date.now();
+                        if (ms <= 0) return "window closed";
+                        const h = Math.floor(ms / 3600000);
+                        const m = Math.floor((ms % 3600000) / 60000);
+                        return h > 0 ? `${h}h ${m}m` : `${m}m`;
+                      })()}
+                    </span>
+                  </p>
+                  <p className="text-xs text-blue-600">
+                    {resolutionQuery.data.review.accept_count} accepted ·{" "}
+                    {resolutionQuery.data.review.dispute_count} disputed ·{" "}
+                    threshold {resolutionQuery.data.review.threshold} of {resolutionQuery.data.review.total_participants}
+                  </p>
+                </>
+              )}
+
+              {/* Proposer: no voting buttons */}
+              {currentUser?.id === market.proposer_id ? (
+                <p className="text-sm text-blue-700 italic">Awaiting participant review…</p>
+              ) : resolutionQuery.data?.review?.user_vote ? (
+                <p className="text-sm text-blue-700">
+                  You voted: <span className="font-semibold capitalize">{resolutionQuery.data.review.user_vote}</span>
+                </p>
+              ) : (
+                <div className="space-y-2">
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => acceptResolution.mutate()}
+                      disabled={acceptResolution.isPending || openDispute.isPending}
+                      className="rounded bg-green-600 px-4 py-2 text-sm text-white hover:bg-green-700 disabled:opacity-50"
+                    >
+                      {acceptResolution.isPending ? "Accepting…" : "Accept Resolution"}
+                    </button>
+                    <button
+                      onClick={() => openDispute.mutate()}
+                      disabled={openDispute.isPending || acceptResolution.isPending}
+                      className="rounded bg-violet-700 px-4 py-2 text-sm text-white hover:bg-violet-800 disabled:opacity-50"
+                    >
+                      {openDispute.isPending ? "Disputing…" : "Dispute Resolution"}
+                    </button>
+                  </div>
+                  <p className="text-xs text-blue-600">Dispute costs 1 BP · if &gt;{Math.round(10)}% dispute → community vote</p>
+                  {(acceptResolution.isError || openDispute.isError) && (
                     <p className="text-sm text-red-600">
-                      {(openDispute.error as { response?: { data?: { detail?: string } } })?.response?.data?.detail ?? "Failed to open dispute"}
+                      {(((acceptResolution.error ?? openDispute.error) as { response?: { data?: { detail?: unknown } } })?.response?.data?.detail as string) ?? "Action failed"}
                     </p>
                   )}
                 </div>
               )}
+            </section>
+          )}
 
-              {/* Active dispute info */}
-              {resolutionQuery.data?.dispute && (
+          {/* Tier 3 community dispute vote */}
+          {market.status === "disputed" && (
+            <section className="rounded border border-violet-200 bg-violet-50 p-4 space-y-3">
+              <h2 className="text-lg font-semibold text-violet-900">Community Vote</h2>
+              {resolutionQuery.data?.dispute ? (
                 <>
                   <p className="text-sm text-violet-800">
                     Window closes: {new Date(resolutionQuery.data.dispute.closes_at).toLocaleString()}
@@ -585,20 +634,20 @@ export default function MarketDetailPage() {
                   </div>
                   {resolutionQuery.data.dispute.status === "open" && (
                     <div className="flex gap-2">
-                      <button
-                        onClick={() => castVote.mutate("yes")}
-                        disabled={castVote.isPending}
-                        className="rounded bg-green-600 px-3 py-1 text-sm text-white hover:bg-green-700 disabled:opacity-50"
-                      >Vote YES</button>
-                      <button
-                        onClick={() => castVote.mutate("no")}
-                        disabled={castVote.isPending}
-                        className="rounded bg-red-600 px-3 py-1 text-sm text-white hover:bg-red-700 disabled:opacity-50"
-                      >Vote NO</button>
+                      <button onClick={() => castVote.mutate("yes")} disabled={castVote.isPending}
+                        className="rounded bg-green-600 px-3 py-1 text-sm text-white hover:bg-green-700 disabled:opacity-50">
+                        Vote YES
+                      </button>
+                      <button onClick={() => castVote.mutate("no")} disabled={castVote.isPending}
+                        className="rounded bg-red-600 px-3 py-1 text-sm text-white hover:bg-red-700 disabled:opacity-50">
+                        Vote NO
+                      </button>
                     </div>
                   )}
                   {castVote.isError && <p className="text-sm text-red-600">Vote failed — you may have already voted.</p>}
                 </>
+              ) : (
+                <p className="text-sm text-violet-700">Loading dispute info…</p>
               )}
             </section>
           )}

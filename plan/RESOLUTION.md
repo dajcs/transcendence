@@ -52,21 +52,42 @@ If proposer resolution is successfully overturned via community vote:
 
 ---
 
+## Tier 2.5: Review Window (proposer_resolved → disputed or closed)
+
+After a proposer submits resolution, a **48-hour review window** opens where participants vote accept or dispute.
+
+### Participants
+- **Proposer**: cannot vote — sees "Resolution Proposed" + time remaining (light blue section)
+- **Other participants**: see Accept Resolution (green) + Dispute Resolution (violet) buttons
+
+### Costs
+- Accept: free
+- Dispute: **1 BP** (upfront, requires active position)
+
+### Threshold
+- If **dispute votes ≥ max(1, 10% of active participants)** → escalates to Tier 3 community vote (`disputed`)
+- If window expires without reaching threshold → resolution is auto-finalized (`closed`) by Celery
+
+### API
+- `POST /api/bets/{id}/accept-resolution` — record accept vote
+- `POST /api/bets/{id}/dispute` — record dispute vote; triggers escalation if threshold met
+- `GET /api/bets/{id}/resolution` → includes `review: { accept_count, dispute_count, total_participants, threshold, user_vote, closes_at }`
+
+---
+
 ## Tier 3: Community Vote (Dispute)
 
 ### Trigger Conditions
-- Any participant disputes the Tier 2 resolution within the 48-hour window
-- Tier 2 window expires without resolution
+- Dispute vote threshold (>10% of participants) reached during Tier 2.5 review window
+- Proposer resolution window expires (7 days) without resolution → system auto-escalates
 
-### Dispute Cost
-- Opening a dispute: **1 bp** (upfront, non-refundable if dispute is invalid — see validity below)
-- Losing a dispute: **+1 bp penalty** (net: -2 bp for a losing dispute)
+### Dispute Cost (Tier 3)
+- Losing a dispute: **+1 bp penalty** (net: -2 bp total including review vote)
 - Winning a dispute: **+2 bp** shared among all voters in the winning coalition
 
 ### Dispute UI (market detail page)
-- When market is `proposer_resolved` and no dispute exists: show **"Dispute Resolution"** button with note "Costs 1 BP · Opens 48h community vote". Backend enforces active-position requirement (403 if no position). Button is visible to all logged-in users; error shown inline on rejection.
-- When dispute is active: show closing timestamp, YES/NO vote weights, Vote YES / Vote NO buttons.
-- Section background: light violet.
+- Section titled "Community Vote", light violet background
+- Shows closing timestamp, YES/NO weighted vote counts, Vote YES / Vote NO buttons
 
 ### Vote Weights
 | Voter type | Weight |

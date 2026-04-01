@@ -89,7 +89,17 @@ export interface DisputeRecord {
   no_weight: number;
 }
 
+export interface ReviewRecord {
+  accept_count: number;
+  dispute_count: number;
+  total_participants: number;
+  threshold: number;
+  user_vote: "accept" | "dispute" | null;
+  closes_at: string;
+}
+
 export interface ResolutionState {
   resolution: ResolutionRecord | null;
   dispute: DisputeRecord | null;
+  review: ReviewRecord | null;
 }

@@ -1,9 +1,10 @@
 """Resolution routes.
 
-POST /api/bets/{bet_id}/resolve        — Tier 2 proposer resolution (D-04, D-05)
-POST /api/bets/{bet_id}/dispute        — Open a community dispute (D-08)
-POST /api/bets/{bet_id}/vote           — Cast dispute vote (D-09)
-GET  /api/bets/{bet_id}/resolution     — Fetch current resolution + dispute state
+POST /api/bets/{bet_id}/resolve           — Tier 2 proposer resolution
+POST /api/bets/{bet_id}/accept-resolution — Vote to accept proposed resolution (free)
+POST /api/bets/{bet_id}/dispute           — Vote to dispute proposed resolution (costs 1 BP)
+POST /api/bets/{bet_id}/vote              — Cast vote in active Tier 3 community dispute
+GET  /api/bets/{bet_id}/resolution        — Fetch resolution + review + dispute state
 """
 import uuid
 from datetime import datetime, timedelta, timezone
@@ -11,16 +12,20 @@ from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field
 from sqlalchemy import func, select
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_db
-from app.db.models.bet import Bet, BetPosition, Dispute, DisputeVote, Resolution
+from app.db.models.bet import Bet, BetPosition, Dispute, DisputeVote, Resolution, ResolutionReview
 from app.db.models.user import User
 from app.services import auth_service
 from app.services.economy_service import deduct_bp
-from app.services.resolution_service import compute_vote_weight, trigger_payout
+from app.services.resolution_service import compute_vote_weight
 
 router = APIRouter()
+
+_REVIEW_WINDOW_HOURS = 48
+_DISPUTE_THRESHOLD = 0.10  # >10% of participants → Tier 3
 
 
 async def _get_current_user(request: Request, db: AsyncSession) -> User:
@@ -28,6 +33,39 @@ async def _get_current_user(request: Request, db: AsyncSession) -> User:
     if not access_token:
         raise HTTPException(status_code=401, detail="Not authenticated")
     return await auth_service.get_current_user(db, access_token)
+
+
+async def _get_review_counts(db: AsyncSession, bet_id: uuid.UUID) -> dict:
+    """Return accept/dispute vote counts, total participants, and threshold for a bet."""
+    accept_count = (await db.execute(
+        select(func.count(ResolutionReview.id)).where(
+            ResolutionReview.bet_id == bet_id,
+            ResolutionReview.vote == "accept",
+        )
+    )).scalar_one()
+
+    dispute_count = (await db.execute(
+        select(func.count(ResolutionReview.id)).where(
+            ResolutionReview.bet_id == bet_id,
+            ResolutionReview.vote == "dispute",
+        )
+    )).scalar_one()
+
+    total_participants = (await db.execute(
+        select(func.count(BetPosition.id)).where(
+            BetPosition.bet_id == bet_id,
+            BetPosition.withdrawn_at.is_(None),
+        )
+    )).scalar_one()
+
+    threshold = max(1, int(total_participants * _DISPUTE_THRESHOLD))
+
+    return {
+        "accept_count": accept_count,
+        "dispute_count": dispute_count,
+        "total_participants": total_participants,
+        "threshold": threshold,
+    }
 
 
 class ProposerResolveRequest(BaseModel):
@@ -47,7 +85,8 @@ async def proposer_resolve(
     db: AsyncSession = Depends(get_db),
 ):
     """D-05: Proposer submits resolution. Sets status=proposer_resolved, creates Resolution record.
-    48h dispute window begins. Payout NOT triggered here — triggered by check_dispute_deadlines.
+    48h review window begins — participants vote accept/dispute. Payout triggered by Celery if
+    no dispute threshold is reached.
     """
     current_user = await _get_current_user(request, db)
 
@@ -62,7 +101,6 @@ async def proposer_resolve(
             detail=f"Bet is not pending resolution (current status: {bet.status})"
         )
 
-    # Check 7-day proposer window (D-06)
     seven_days = bet.deadline + timedelta(days=7)
     if datetime.now(timezone.utc) > seven_days:
         raise HTTPException(status_code=400, detail="Proposer resolution window has expired (7 days)")
@@ -81,50 +119,101 @@ async def proposer_resolve(
     db.add(resolution)
     await db.commit()
 
-    # Fire-and-forget notification
     try:
         from app.socket.server import sio
         await sio.emit(
-            "dispute:opened",
-            {"bet_id": str(bet_id), "message": "Proposer resolved — 48h dispute window open"},
+            "resolution:proposed",
+            {"bet_id": str(bet_id), "outcome": body.outcome},
             room=f"bet:{bet_id}",
         )
     except Exception:
         pass
 
-    return {"status": "proposer_resolved", "outcome": body.outcome, "dispute_window_hours": 48}
+    return {"status": "proposer_resolved", "outcome": body.outcome, "review_window_hours": 48}
 
 
-@router.post("/bets/{bet_id}/dispute")
-async def open_dispute(
+@router.post("/bets/{bet_id}/accept-resolution")
+async def accept_resolution(
     bet_id: uuid.UUID,
     request: Request,
     db: AsyncSession = Depends(get_db),
 ):
-    """D-08: Open a community dispute. Costs 1bp. Eligibility: active position, no prior dispute,
-    no dispute opened by this user in last 24h globally.
+    """Record an accept vote during the 48h review window. Free. One vote per user per bet."""
+    current_user = await _get_current_user(request, db)
+
+    bet = (await db.execute(select(Bet).where(Bet.id == bet_id))).scalar_one_or_none()
+    if bet is None:
+        raise HTTPException(status_code=404, detail="Bet not found")
+    if bet.proposer_id == current_user.id:
+        raise HTTPException(status_code=403, detail="Proposer cannot vote on their own resolution")
+    if bet.status != "proposer_resolved":
+        raise HTTPException(status_code=400, detail="Bet is not in proposer_resolved status")
+
+    resolution = (await db.execute(
+        select(Resolution).where(Resolution.bet_id == bet_id)
+    )).scalar_one_or_none()
+    if resolution is None:
+        raise HTTPException(status_code=400, detail="No resolution found")
+
+    resolved_at = resolution.resolved_at
+    if resolved_at.tzinfo is None:
+        resolved_at = resolved_at.replace(tzinfo=timezone.utc)
+    if datetime.now(timezone.utc) > resolved_at + timedelta(hours=_REVIEW_WINDOW_HOURS):
+        raise HTTPException(status_code=400, detail="Review window has expired (48h)")
+
+    existing = (await db.execute(
+        select(ResolutionReview).where(
+            ResolutionReview.bet_id == bet_id,
+            ResolutionReview.user_id == current_user.id,
+        )
+    )).scalar_one_or_none()
+    if existing is not None:
+        raise HTTPException(status_code=400, detail="You have already voted on this resolution")
+
+    db.add(ResolutionReview(bet_id=bet_id, user_id=current_user.id, vote="accept"))
+    await db.commit()
+
+    counts = await _get_review_counts(db, bet_id)
+
+    try:
+        from app.socket.server import sio
+        await sio.emit("resolution:review_updated", {"bet_id": str(bet_id), **counts}, room=f"bet:{bet_id}")
+    except Exception:
+        pass
+
+    return {"vote": "accept", **counts}
+
+
+@router.post("/bets/{bet_id}/dispute")
+async def vote_dispute(
+    bet_id: uuid.UUID,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+):
+    """Record a dispute vote during the 48h review window. Costs 1 BP.
+    If dispute votes exceed 10% of participants, market escalates to Tier 3 community vote.
     """
     current_user = await _get_current_user(request, db)
 
     bet = (await db.execute(select(Bet).where(Bet.id == bet_id))).scalar_one_or_none()
     if bet is None:
         raise HTTPException(status_code=404, detail="Bet not found")
+    if bet.proposer_id == current_user.id:
+        raise HTTPException(status_code=403, detail="Proposer cannot dispute their own resolution")
     if bet.status != "proposer_resolved":
         raise HTTPException(status_code=400, detail="Bet is not in proposer_resolved status")
 
-    # Check 48h window still open
     resolution = (await db.execute(
         select(Resolution).where(Resolution.bet_id == bet_id)
     )).scalar_one_or_none()
     if resolution is None:
-        raise HTTPException(status_code=400, detail="No resolution found for this bet")
+        raise HTTPException(status_code=400, detail="No resolution found")
 
     resolved_at = resolution.resolved_at
     if resolved_at.tzinfo is None:
         resolved_at = resolved_at.replace(tzinfo=timezone.utc)
-    dispute_window_end = resolved_at + timedelta(hours=48)
-    if datetime.now(timezone.utc) > dispute_window_end:
-        raise HTTPException(status_code=400, detail="Dispute window has expired (48h)")
+    if datetime.now(timezone.utc) > resolved_at + timedelta(hours=_REVIEW_WINDOW_HOURS):
+        raise HTTPException(status_code=400, detail="Review window has expired (48h)")
 
     # Check user has active position
     position = (await db.execute(
@@ -135,49 +224,45 @@ async def open_dispute(
         )
     )).scalar_one_or_none()
     if position is None:
-        raise HTTPException(status_code=403, detail="You must have an active position to open a dispute")
+        raise HTTPException(status_code=403, detail="You must have an active position to dispute")
 
-    # Check no existing dispute for this bet (one dispute round per bet)
-    existing_dispute = (await db.execute(
-        select(Dispute).where(Dispute.bet_id == bet_id)
-    )).scalar_one_or_none()
-    if existing_dispute is not None:
-        raise HTTPException(status_code=400, detail="A dispute is already open for this bet")
-
-    # Check 24h global dispute cooldown (D-08)
-    recent_dispute = (await db.execute(
-        select(Dispute).where(
-            Dispute.opened_by == current_user.id,
-            Dispute.opened_at >= datetime.now(timezone.utc) - timedelta(hours=24),
+    existing = (await db.execute(
+        select(ResolutionReview).where(
+            ResolutionReview.bet_id == bet_id,
+            ResolutionReview.user_id == current_user.id,
         )
     )).scalar_one_or_none()
-    if recent_dispute is not None:
-        raise HTTPException(status_code=429, detail="You can only open one dispute per 24 hours")
+    if existing is not None:
+        raise HTTPException(status_code=400, detail="You have already voted on this resolution")
 
-    await deduct_bp(db, current_user.id, 1.0, "dispute_open", bet_id=bet_id)
+    await deduct_bp(db, current_user.id, 1.0, "dispute_vote", bet_id=bet_id)
+    db.add(ResolutionReview(bet_id=bet_id, user_id=current_user.id, vote="dispute"))
+    await db.flush()
 
-    dispute = Dispute(
-        bet_id=bet_id,
-        opened_by=current_user.id,
-        closes_at=datetime.now(timezone.utc) + timedelta(hours=48),
-        status="open",
-    )
-    db.add(dispute)
-    bet.status = "disputed"
+    counts = await _get_review_counts(db, bet_id)
+
+    # Check threshold — if reached, escalate to Tier 3
+    if counts["dispute_count"] >= counts["threshold"]:
+        dispute = Dispute(
+            bet_id=bet_id,
+            opened_by=current_user.id,
+            closes_at=datetime.now(timezone.utc) + timedelta(hours=48),
+            status="open",
+        )
+        db.add(dispute)
+        bet.status = "disputed"
+
     await db.commit()
 
-    # Socket emit: dispute:opened
     try:
         from app.socket.server import sio
-        await sio.emit(
-            "dispute:opened",
-            {"bet_id": str(bet_id)},
-            room=f"bet:{bet_id}",
-        )
+        await sio.emit("resolution:review_updated", {"bet_id": str(bet_id), **counts}, room=f"bet:{bet_id}")
+        if bet.status == "disputed":
+            await sio.emit("dispute:opened", {"bet_id": str(bet_id)}, room=f"bet:{bet_id}")
     except Exception:
         pass
 
-    return {"status": "dispute_opened"}
+    return {"vote": "dispute", **counts, "escalated": bet.status == "disputed"}
 
 
 @router.post("/bets/{bet_id}/vote")
@@ -187,7 +272,7 @@ async def cast_vote(
     request: Request,
     db: AsyncSession = Depends(get_db),
 ):
-    """D-09: Cast a vote in an open dispute. Weight computed per RES-04."""
+    """D-09: Cast a vote in an open Tier 3 community dispute. Weight computed per RES-04."""
     current_user = await _get_current_user(request, db)
 
     dispute = (await db.execute(
@@ -202,15 +287,12 @@ async def cast_vote(
     if datetime.now(timezone.utc) > dispute.closes_at:
         raise HTTPException(status_code=400, detail="Dispute voting window has closed")
 
-    # Fetch original resolution outcome (to compute vote weight)
     resolution = (await db.execute(
         select(Resolution).where(Resolution.bet_id == bet_id)
     )).scalar_one_or_none()
     if resolution is None:
         raise HTTPException(status_code=400, detail="No resolution found")
-    winning_side = resolution.outcome
 
-    # Get user's position on this bet (may be None — neutral voters allowed)
     position = (await db.execute(
         select(BetPosition.side).where(
             BetPosition.bet_id == bet_id,
@@ -219,9 +301,8 @@ async def cast_vote(
         )
     )).scalar_one_or_none()
 
-    weight = compute_vote_weight(position, winning_side)
+    weight = compute_vote_weight(position, resolution.outcome)
 
-    # UniqueConstraint(dispute_id, user_id) will raise IntegrityError on duplicate
     vote = DisputeVote(
         dispute_id=dispute.id,
         user_id=current_user.id,
@@ -231,21 +312,18 @@ async def cast_vote(
     db.add(vote)
     await db.commit()
 
-    # Emit dispute:voted (anonymized: counts only)
     try:
         from app.socket.server import sio
         from sqlalchemy import func as sqlfunc
 
         yes_w = (await db.execute(
             select(sqlfunc.sum(DisputeVote.weight)).where(
-                DisputeVote.dispute_id == dispute.id,
-                DisputeVote.vote == "yes",
+                DisputeVote.dispute_id == dispute.id, DisputeVote.vote == "yes",
             )
         )).scalar_one() or 0
         no_w = (await db.execute(
             select(sqlfunc.sum(DisputeVote.weight)).where(
-                DisputeVote.dispute_id == dispute.id,
-                DisputeVote.vote == "no",
+                DisputeVote.dispute_id == dispute.id, DisputeVote.vote == "no",
             )
         )).scalar_one() or 0
 
@@ -266,7 +344,7 @@ async def get_resolution(
     request: Request,
     db: AsyncSession = Depends(get_db),
 ):
-    """Fetch current resolution + dispute state for the bet detail page."""
+    """Fetch resolution + review vote summary + dispute state."""
     current_user = await _get_current_user(request, db)
 
     resolution = (await db.execute(
@@ -281,14 +359,12 @@ async def get_resolution(
     if dispute:
         yes_w = (await db.execute(
             select(func.sum(DisputeVote.weight)).where(
-                DisputeVote.dispute_id == dispute.id,
-                DisputeVote.vote == "yes",
+                DisputeVote.dispute_id == dispute.id, DisputeVote.vote == "yes",
             )
         )).scalar_one() or 0
         no_w = (await db.execute(
             select(func.sum(DisputeVote.weight)).where(
-                DisputeVote.dispute_id == dispute.id,
-                DisputeVote.vote == "no",
+                DisputeVote.dispute_id == dispute.id, DisputeVote.vote == "no",
             )
         )).scalar_one() or 0
         dispute_data = {
@@ -297,6 +373,26 @@ async def get_resolution(
             "closes_at": dispute.closes_at.isoformat(),
             "yes_weight": float(yes_w),
             "no_weight": float(no_w),
+        }
+
+    review_data = None
+    if resolution:
+        counts = await _get_review_counts(db, bet_id)
+        user_review = (await db.execute(
+            select(ResolutionReview.vote).where(
+                ResolutionReview.bet_id == bet_id,
+                ResolutionReview.user_id == current_user.id,
+            )
+        )).scalar_one_or_none()
+
+        resolved_at = resolution.resolved_at
+        if resolved_at.tzinfo is None:
+            resolved_at = resolved_at.replace(tzinfo=timezone.utc)
+
+        review_data = {
+            **counts,
+            "user_vote": user_review,
+            "closes_at": (resolved_at + timedelta(hours=_REVIEW_WINDOW_HOURS)).isoformat(),
         }
 
     return {
@@ -308,4 +404,5 @@ async def get_resolution(
             "overturned": resolution.overturned,
         } if resolution else None,
         "dispute": dispute_data,
+        "review": review_data,
     }
