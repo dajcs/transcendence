@@ -548,8 +548,8 @@ export default function MarketDetailPage() {
             <section className="rounded border border-violet-200 bg-violet-50 p-4 space-y-3">
               <h2 className="text-lg font-semibold text-violet-900">Dispute</h2>
 
-              {/* Open dispute button — shown to participants when no dispute yet */}
-              {!resolutionQuery.data?.dispute && myPosition && market.status === "proposer_resolved" && (
+              {/* Open dispute button — shown when no dispute yet; backend enforces position requirement */}
+              {!resolutionQuery.data?.dispute && market.status === "proposer_resolved" && (
                 <div className="space-y-1">
                   <button
                     onClick={() => openDispute.mutate()}

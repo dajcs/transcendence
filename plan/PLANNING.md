@@ -47,7 +47,7 @@ The platform solves real problems with money-driven prediction markets: capital 
 | **Market Detail** | Bet interface + discussion thread + resolution status |
 | **Create Market** | Form to define question, terms, criteria, deadline |
 | **Profile** | User stats (Karma, Truth, Spice), bet history, achievements |
-| **Dashboard** | Personal active bets, notifications, portfolio |
+| **Dashboard** | Personal active bets (all non-closed, non-withdrawn positions), notifications, portfolio |
 | **Friends** | Friend list, online status, activity |
 | **Chat** | Direct messaging between users |
 | **Leaderboard** | Top users by Truth score |
@@ -759,7 +759,16 @@ Using Next.js 15 App Router with React 19. Zustand for client state. Socket.IO f
 - `Footer` — Links to Privacy Policy, Terms of Service, language switcher
 
 **Market Components:**
-- `MarketCard` — Preview card: title, odds bar (YES/NO), deadline countdown, category tag
+- `MarketCard` — Preview card: title, odds bar (YES/NO), deadline, status badge. Background color reflects market status (identical on /markets and /dashboard):
+  | Status | Background | Badge |
+  |---|---|---|
+  | `open` | white | — |
+  | `pending_resolution` (own) | light red | "Make Resolution" |
+  | `pending_resolution` (other) | light yellow | "Pending Resolution" |
+  | `proposer_resolved` | light blue | "Resolution Proposed" |
+  | `disputed` | light violet | "Dispute Ongoing" |
+  | `closed` | light green | "Resolved" |
+  Dashboard "My Bets" cards show side, BP staked, win%; "My Markets" cards show deadline + days remaining.
 - `MarketDetail` — Full market view with bet interface + discussion
 - `BetPanel` — Slider to select amount, YES/NO toggle, projected payout
 - `OddsBar` — Visual bar showing YES% vs NO% of total pool

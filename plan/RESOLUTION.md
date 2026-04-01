@@ -63,6 +63,11 @@ If proposer resolution is successfully overturned via community vote:
 - Losing a dispute: **+1 bp penalty** (net: -2 bp for a losing dispute)
 - Winning a dispute: **+2 bp** shared among all voters in the winning coalition
 
+### Dispute UI (market detail page)
+- When market is `proposer_resolved` and no dispute exists: show **"Dispute Resolution"** button with note "Costs 1 BP · Opens 48h community vote". Backend enforces active-position requirement (403 if no position). Button is visible to all logged-in users; error shown inline on rejection.
+- When dispute is active: show closing timestamp, YES/NO vote weights, Vote YES / Vote NO buttons.
+- Section background: light violet.
+
 ### Vote Weights
 | Voter type | Weight |
 |---|---|

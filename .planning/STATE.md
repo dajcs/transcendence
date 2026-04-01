@@ -67,6 +67,10 @@ See: `.planning/PROJECT.md` (updated 2026-03-24)
 - [Phase 05-04]: Resolution routes use cookie-based auth (_get_current_user from request) — consistent with bets.py, no get_current_user in deps.py
 - [Phase 05-05]: GET /api/users/me added alongside PATCH — settings page needs to read current llm_opt_out value; route ordering before /{username} required for FastAPI priority
 - [Phase 05-05]: resolutionQuery enabled only when market.status !== open to avoid 404 on open markets (no resolution record yet)
+- [Phase 05-hotfix]: resolution.py async with db.begin() replaced with await db.commit() — SQLAlchemy 2.x autobegin on first query makes nested begin() raise InvalidRequestError
+- [Phase 05-hotfix]: list_positions active condition changed from market.status == "open" to market.status != "closed" — positions on pending_resolution/proposer_resolved/disputed markets must show in active list with status colors
+- [Phase 05-hotfix]: MarketCard status colors: open=white, pending_resolution=red(own)/yellow, proposer_resolved=blue, disputed=violet, closed=green — identical on /markets and /dashboard
+- [Phase 05-hotfix]: Dispute button myPosition guard removed — backend enforces 403; frontend shows error inline so button is always visible on proposer_resolved markets
 
 ## Performance Metrics
 
