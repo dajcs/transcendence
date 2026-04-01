@@ -522,7 +522,13 @@ export default function MarketDetailPage() {
                   </button>
                   {submitResolution.isError && (
                     <p className="text-sm text-red-600">
-                      {(submitResolution.error as { response?: { data?: { detail?: string } } })?.response?.data?.detail ?? "Failed to submit"}
+                      {(() => {
+                        const d = (submitResolution.error as { response?: { data?: { detail?: unknown } } })?.response?.data?.detail;
+                        if (!d) return "Failed to submit";
+                        if (typeof d === "string") return d;
+                        if (Array.isArray(d)) return (d as { msg: string }[]).map((e) => e.msg).join("; ");
+                        return "Failed to submit";
+                      })()}
                     </p>
                   )}
                 </div>
@@ -597,7 +603,7 @@ export default function MarketDetailPage() {
             </section>
           )}
 
-          {!myPosition && <section className="rounded border border-gray-200 bg-white p-4">
+          {!myPosition && market.status === "open" && <section className="rounded border border-gray-200 bg-white p-4">
             <h2 className="mb-3 text-lg font-semibold">Place Bet</h2>
             {market.market_type === "binary" && (
               <div className="mb-3 flex gap-2">

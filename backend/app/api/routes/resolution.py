@@ -31,7 +31,7 @@ async def _get_current_user(request: Request, db: AsyncSession) -> User:
 
 
 class ProposerResolveRequest(BaseModel):
-    outcome: str = Field(..., pattern="^(yes|no)$")
+    outcome: str = Field(..., min_length=1, max_length=200)
     justification: str = Field(..., min_length=20, max_length=2000)
 
 
