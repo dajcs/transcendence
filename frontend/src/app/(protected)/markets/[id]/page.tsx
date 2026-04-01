@@ -691,22 +691,14 @@ export default function MarketDetailPage() {
                       </p>
                       {market.market_type === "binary" && (() => {
                         const uv = resolutionQuery.data!.dispute!.user_vote;
-                        const yesActive = uv === "yes";
-                        const noActive = uv === "no";
                         return (
                           <div className="flex gap-2">
-                            <button onClick={() => castVote.mutate("yes")} disabled={castVote.isPending}
-                              className={`rounded px-3 py-1 text-sm text-white disabled:opacity-50 ${
-                                yesActive ? "bg-green-700 border-2 border-green-300 font-bold"
-                                : noActive  ? "bg-red-600 hover:bg-red-700"
-                                :             "bg-green-600 hover:bg-green-700"
-                              }`}>
-                              YES
-                            </button>
-                            <button onClick={() => castVote.mutate("no")} disabled={castVote.isPending}
-                              className={`rounded px-3 py-1 text-sm text-white disabled:opacity-50 ${noActive ? "bg-green-700 border-2 border-green-300 font-bold" : "bg-red-600 hover:bg-red-700"}`}>
-                              NO
-                            </button>
+                            {["yes", "no"].map((choice) => (
+                              <button key={choice} onClick={() => castVote.mutate(choice)} disabled={castVote.isPending}
+                                className={`rounded px-3 py-1 text-sm text-white disabled:opacity-50 ${uv === choice ? "bg-green-700 border-2 border-green-300 font-bold" : "bg-violet-600 hover:bg-violet-700"}`}>
+                                {choice.toUpperCase()}
+                              </button>
+                            ))}
                           </div>
                         );
                       })()}
