@@ -217,16 +217,19 @@ async def _process_dispute_deadlines(db: AsyncSession) -> None:
                 await trigger_payout(payout_db, dispute.bet_id, original_outcome, overturned=False)
             continue
 
-        # Compute weighted totals
-        yes_weight = sum(v.weight for v in votes if v.vote == "yes")
-        no_weight = sum(v.weight for v in votes if v.vote == "no")
+        # Compute weighted totals — plurality voting across any outcome value
+        weight_by_outcome: dict[str, float] = {}
+        for v in votes:
+            weight_by_outcome[v.vote] = weight_by_outcome.get(v.vote, 0.0) + float(v.weight)
 
-        if yes_weight > no_weight:
-            final_outcome = "yes"
-        elif no_weight > yes_weight:
-            final_outcome = "no"
+        if weight_by_outcome:
+            best_outcome = max(weight_by_outcome, key=lambda k: weight_by_outcome[k])
+            best_weight = weight_by_outcome[best_outcome]
+            # Tie (multiple outcomes share the max): original resolution stands
+            tied = sum(1 for w in weight_by_outcome.values() if w == best_weight) > 1
+            final_outcome = original_outcome if tied else best_outcome
         else:
-            final_outcome = original_outcome  # tie -> original stands
+            final_outcome = original_outcome
 
         overturned = (final_outcome != original_outcome)
         if overturned and resolution:

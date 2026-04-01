@@ -74,7 +74,7 @@ class ProposerResolveRequest(BaseModel):
 
 
 class DisputeVoteRequest(BaseModel):
-    vote: str = Field(..., pattern="^(yes|no)$")
+    vote: str = Field(..., min_length=1, max_length=200)
 
 
 @router.post("/bets/{bet_id}/resolve")
@@ -316,20 +316,16 @@ async def cast_vote(
         from app.socket.server import sio
         from sqlalchemy import func as sqlfunc
 
-        yes_w = (await db.execute(
-            select(sqlfunc.sum(DisputeVote.weight)).where(
-                DisputeVote.dispute_id == dispute.id, DisputeVote.vote == "yes",
-            )
-        )).scalar_one() or 0
-        no_w = (await db.execute(
-            select(sqlfunc.sum(DisputeVote.weight)).where(
-                DisputeVote.dispute_id == dispute.id, DisputeVote.vote == "no",
-            )
-        )).scalar_one() or 0
+        rows = (await db.execute(
+            select(DisputeVote.vote, sqlfunc.sum(DisputeVote.weight))
+            .where(DisputeVote.dispute_id == dispute.id)
+            .group_by(DisputeVote.vote)
+        )).all()
+        vote_weights = {r[0]: float(r[1]) for r in rows}
 
         await sio.emit(
             "dispute:voted",
-            {"bet_id": str(bet_id), "yes_weight": float(yes_w), "no_weight": float(no_w)},
+            {"bet_id": str(bet_id), "vote_weights": vote_weights},
             room=f"bet:{bet_id}",
         )
     except Exception:
@@ -357,22 +353,17 @@ async def get_resolution(
 
     dispute_data = None
     if dispute:
-        yes_w = (await db.execute(
-            select(func.sum(DisputeVote.weight)).where(
-                DisputeVote.dispute_id == dispute.id, DisputeVote.vote == "yes",
-            )
-        )).scalar_one() or 0
-        no_w = (await db.execute(
-            select(func.sum(DisputeVote.weight)).where(
-                DisputeVote.dispute_id == dispute.id, DisputeVote.vote == "no",
-            )
-        )).scalar_one() or 0
+        rows = (await db.execute(
+            select(DisputeVote.vote, func.sum(DisputeVote.weight))
+            .where(DisputeVote.dispute_id == dispute.id)
+            .group_by(DisputeVote.vote)
+        )).all()
+        vote_weights = {r[0]: float(r[1]) for r in rows}
         dispute_data = {
             "id": str(dispute.id),
             "status": dispute.status,
             "closes_at": dispute.closes_at.isoformat(),
-            "yes_weight": float(yes_w),
-            "no_weight": float(no_w),
+            "vote_weights": vote_weights,
         }
 
     review_data = None

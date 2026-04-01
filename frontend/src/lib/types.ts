@@ -85,8 +85,7 @@ export interface DisputeRecord {
   id: string;
   status: "open" | "closed";
   closes_at: string;
-  yes_weight: number;
-  no_weight: number;
+  vote_weights: Record<string, number>;
 }
 
 export interface ReviewRecord {

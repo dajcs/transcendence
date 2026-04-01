@@ -52,6 +52,7 @@ export default function MarketDetailPage() {
   const [summary, setSummary] = useState<string | null>(null);
   const [summaryLoading, setSummaryLoading] = useState(false);
   const [payoutBanner, setPayoutBanner] = useState<string | null>(null);
+  const [voteOpinion, setVoteOpinion] = useState<string>("");
   const currentUser = useAuthStore((s) => s.user);
 
   const positionsQuery = useQuery<BetPositionsListResponse>({
@@ -181,7 +182,7 @@ export default function MarketDetailPage() {
   });
 
   const castVote = useMutation({
-    mutationFn: async (vote: "yes" | "no") =>
+    mutationFn: async (vote: string) =>
       (await api.post(`/api/bets/${marketId}/vote`, { vote })).data,
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["resolution", marketId] });
@@ -381,38 +382,41 @@ export default function MarketDetailPage() {
                   <>Side: <span className="font-medium">{myPosition.side.toUpperCase()}</span></>
                 )}
                 {" · "}Staked: <span className="font-medium">{myPosition.bp_staked} BP</span>
-                {" · "}Est. refund: <span className="font-medium">{refundEstimate!.bp} BP</span>
               </p>
-              {!showWithdrawConfirm ? (
-                <button
-                  onClick={() => setShowWithdrawConfirm(true)}
-                  className="mt-3 rounded border border-red-300 px-3 py-1 text-sm text-red-700 hover:bg-red-50"
-                >
-                  Withdraw
-                </button>
-              ) : (
-                <div className="mt-3 flex items-center gap-3 flex-wrap">
-                  <p className="text-sm text-red-700">
-                    Refund {refundEstimate!.bp} BP{" "}
-                    <span className="text-gray-500">({refundEstimate!.reason})</span>
-                  </p>
-                  <button
-                    onClick={() => withdrawBet.mutate(myPosition.id)}
-                    disabled={withdrawBet.isPending}
-                    className="rounded bg-red-600 px-3 py-1 text-sm text-white hover:bg-red-700 disabled:opacity-50"
-                  >
-                    {withdrawBet.isPending ? "Withdrawing..." : "Confirm"}
-                  </button>
-                  <button
-                    onClick={() => setShowWithdrawConfirm(false)}
-                    className="text-sm text-gray-600 hover:underline"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              )}
-              {withdrawBet.isError && (
-                <p className="mt-2 text-sm text-red-600">Withdrawal failed.</p>
+              {market.status === "open" && (
+                <>
+                  {!showWithdrawConfirm ? (
+                    <button
+                      onClick={() => setShowWithdrawConfirm(true)}
+                      className="mt-3 rounded border border-red-300 px-3 py-1 text-sm text-red-700 hover:bg-red-50"
+                    >
+                      Withdraw
+                    </button>
+                  ) : (
+                    <div className="mt-3 flex items-center gap-3 flex-wrap">
+                      <p className="text-sm text-red-700">
+                        Refund {refundEstimate!.bp} BP{" "}
+                        <span className="text-gray-500">({refundEstimate!.reason})</span>
+                      </p>
+                      <button
+                        onClick={() => withdrawBet.mutate(myPosition.id)}
+                        disabled={withdrawBet.isPending}
+                        className="rounded bg-red-600 px-3 py-1 text-sm text-white hover:bg-red-700 disabled:opacity-50"
+                      >
+                        {withdrawBet.isPending ? "Withdrawing..." : "Confirm"}
+                      </button>
+                      <button
+                        onClick={() => setShowWithdrawConfirm(false)}
+                        className="text-sm text-gray-600 hover:underline"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  )}
+                  {withdrawBet.isError && (
+                    <p className="mt-2 text-sm text-red-600">Withdrawal failed.</p>
+                  )}
+                </>
               )}
             </section>
           )}
@@ -628,20 +632,61 @@ export default function MarketDetailPage() {
                   <p className="text-sm text-violet-800">
                     Window closes: {new Date(resolutionQuery.data.dispute.closes_at).toLocaleString()}
                   </p>
-                  <div className="flex gap-4 text-sm">
-                    <span className="text-green-700 font-medium">YES {resolutionQuery.data.dispute.yes_weight.toFixed(1)}w</span>
-                    <span className="text-red-700 font-medium">NO {resolutionQuery.data.dispute.no_weight.toFixed(1)}w</span>
-                  </div>
+                  {Object.keys(resolutionQuery.data.dispute.vote_weights).length > 0 && (
+                    <div className="flex gap-4 text-sm flex-wrap">
+                      {Object.entries(resolutionQuery.data.dispute.vote_weights).map(([outcome, w]) => (
+                        <span key={outcome} className="font-medium text-violet-700">
+                          {outcome.toUpperCase()} {w.toFixed(1)}w
+                        </span>
+                      ))}
+                    </div>
+                  )}
                   {resolutionQuery.data.dispute.status === "open" && (
-                    <div className="flex gap-2">
-                      <button onClick={() => castVote.mutate("yes")} disabled={castVote.isPending}
-                        className="rounded bg-green-600 px-3 py-1 text-sm text-white hover:bg-green-700 disabled:opacity-50">
-                        Vote YES
-                      </button>
-                      <button onClick={() => castVote.mutate("no")} disabled={castVote.isPending}
-                        className="rounded bg-red-600 px-3 py-1 text-sm text-white hover:bg-red-700 disabled:opacity-50">
-                        Vote NO
-                      </button>
+                    <div className="space-y-2">
+                      <p className="text-sm font-medium text-violet-800">My Opinion</p>
+                      {market.market_type === "binary" && (
+                        <div className="flex gap-2">
+                          <button onClick={() => castVote.mutate("yes")} disabled={castVote.isPending}
+                            className="rounded bg-green-600 px-3 py-1 text-sm text-white hover:bg-green-700 disabled:opacity-50">
+                            YES
+                          </button>
+                          <button onClick={() => castVote.mutate("no")} disabled={castVote.isPending}
+                            className="rounded bg-red-600 px-3 py-1 text-sm text-white hover:bg-red-700 disabled:opacity-50">
+                            NO
+                          </button>
+                        </div>
+                      )}
+                      {market.market_type === "multiple_choice" && (
+                        <div className="flex gap-2 flex-wrap">
+                          {(market.choices ?? []).map((choice) => (
+                            <button key={choice} onClick={() => castVote.mutate(choice)} disabled={castVote.isPending}
+                              className="rounded bg-violet-600 px-3 py-1 text-sm text-white hover:bg-violet-700 disabled:opacity-50">
+                              {choice}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                      {market.market_type === "numeric" && (
+                        <div className="flex gap-2 items-center">
+                          <input
+                            type="number"
+                            min={market.numeric_min ?? undefined}
+                            max={market.numeric_max ?? undefined}
+                            step="any"
+                            value={voteOpinion}
+                            onChange={(e) => setVoteOpinion(e.target.value)}
+                            placeholder={`${market.numeric_min ?? ""}–${market.numeric_max ?? ""}`}
+                            className="w-32 rounded border border-violet-300 px-2 py-1 text-sm"
+                          />
+                          <button
+                            onClick={() => { if (voteOpinion) castVote.mutate(voteOpinion); }}
+                            disabled={castVote.isPending || !voteOpinion}
+                            className="rounded bg-violet-600 px-3 py-1 text-sm text-white hover:bg-violet-700 disabled:opacity-50"
+                          >
+                            Submit
+                          </button>
+                        </div>
+                      )}
                     </div>
                   )}
                   {castVote.isError && <p className="text-sm text-red-600">Vote failed — you may have already voted.</p>}
