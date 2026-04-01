@@ -97,15 +97,58 @@ export default function MarketDetailPage() {
       queryClient.invalidateQueries({ queryKey: ["comments", marketId] });
     };
 
+    // RT-03: Bet resolved — show payout banner, refresh state
+    const onBetResolved = (data: { bet_id: string; outcome: string; payout_summary: { winners: number; overturned: boolean } }) => {
+      queryClient.invalidateQueries({ queryKey: ["market", marketId] });
+      queryClient.invalidateQueries({ queryKey: ["resolution", marketId] });
+      queryClient.invalidateQueries({ queryKey: ["positions"] });
+      const msg = data.payout_summary.overturned
+        ? `Resolution overturned! Outcome: ${data.outcome.toUpperCase()}. ${data.payout_summary.winners} winner(s) paid.`
+        : `Bet resolved: ${data.outcome.toUpperCase()}. ${data.payout_summary.winners} winner(s) paid.`;
+      setPayoutBanner(msg);
+      bootstrap();
+    };
+
+    // RT-04: Dispute opened — refresh resolution section
+    const onDisputeOpened = () => {
+      queryClient.invalidateQueries({ queryKey: ["resolution", marketId] });
+      queryClient.invalidateQueries({ queryKey: ["market", marketId] });
+    };
+
+    // RT-05: Dispute vote cast — update tallies in cache directly
+    const onDisputeVoted = (data: { bet_id: string; vote_weights: Record<string, number> }) => {
+      queryClient.setQueryData(
+        ["resolution", marketId],
+        (old: { resolution: unknown; dispute: { vote_weights: Record<string, number> } | null } | undefined) =>
+          old?.dispute
+            ? { ...old, dispute: { ...old.dispute, vote_weights: data.vote_weights } }
+            : old
+      );
+    };
+
+    // RT-06: Dispute closed — refresh resolution and market
+    const onDisputeClosed = () => {
+      queryClient.invalidateQueries({ queryKey: ["resolution", marketId] });
+      queryClient.invalidateQueries({ queryKey: ["market", marketId] });
+    };
+
     socket.on("bet:odds_updated", onOddsUpdated);
     socket.on("bet:comment_added", onCommentAdded);
+    socket.on("bet:resolved", onBetResolved);
+    socket.on("dispute:opened", onDisputeOpened);
+    socket.on("dispute:voted", onDisputeVoted);
+    socket.on("dispute:closed", onDisputeClosed);
 
     return () => {
       socket.emit("leave_bet", { bet_id: marketId });
       socket.off("bet:odds_updated", onOddsUpdated);
       socket.off("bet:comment_added", onCommentAdded);
+      socket.off("bet:resolved", onBetResolved);
+      socket.off("dispute:opened", onDisputeOpened);
+      socket.off("dispute:voted", onDisputeVoted);
+      socket.off("dispute:closed", onDisputeClosed);
     };
-  }, [socket, marketId, queryClient]);
+  }, [socket, marketId, queryClient, bootstrap]);
 
   const placeBet = useMutation({
     mutationFn: async () => (await api.post<BetPosition>("/api/bets", { bet_id: marketId, side })).data,
