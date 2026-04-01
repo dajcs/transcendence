@@ -3,7 +3,7 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useAuthStore } from "@/store/auth";
 import { api } from "@/lib/api";
 
@@ -41,6 +41,8 @@ function normalizeLoginError(err: unknown): string {
 
 export default function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const oauthError = searchParams.get("error");
   const bootstrap = useAuthStore((s) => s.bootstrap);
   const {
     register,
@@ -62,6 +64,11 @@ export default function LoginForm() {
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4 w-full max-w-sm">
+      {oauthError && (
+        <p className="text-red-500 text-sm rounded border border-red-200 bg-red-50 px-3 py-2">
+          {oauthError}
+        </p>
+      )}
       <div>
         <label className="block text-sm font-medium text-gray-700">Email or Username</label>
         <input
