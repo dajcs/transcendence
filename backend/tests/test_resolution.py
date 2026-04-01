@@ -56,11 +56,12 @@ async def test_dispute_flow(client, db):
 @pytest.mark.xfail(reason="resolution_service not yet implemented", strict=False)
 def test_vote_weights():
     from app.services.resolution_service import compute_vote_weight
-    # Voted on own winning side -> 0.5x
+    # Vote matches own bet position (conflict of interest) -> 0.5x
     assert compute_vote_weight("yes", "yes") == 0.5
-    # Neutral voter (no position) -> 1.0x
+    # No position (independent) -> 1.0x
     assert compute_vote_weight(None, "yes") == 1.0
-    # Voted against own position -> 2.0x
+    # Vote contradicts own bet position (courageous) -> 2.0x
+    assert compute_vote_weight("yes", "no") == 2.0
     assert compute_vote_weight("no", "yes") == 2.0
 
 

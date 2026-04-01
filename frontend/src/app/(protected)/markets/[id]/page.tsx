@@ -669,11 +669,11 @@ export default function MarketDetailPage() {
                         return (
                           <div className="flex gap-2">
                             <button onClick={() => castVote.mutate("yes")} disabled={castVote.isPending}
-                              className={`rounded px-3 py-1 text-sm text-white hover:bg-green-700 disabled:opacity-50 ${uv === "yes" ? "bg-green-800 border-2 border-green-300 font-bold" : "bg-green-600"}`}>
+                              className={`rounded px-3 py-1 text-sm text-white disabled:opacity-50 ${uv === "yes" ? "bg-green-700 border-2 border-green-300 font-bold" : "bg-green-600 hover:bg-green-700"}`}>
                               YES
                             </button>
                             <button onClick={() => castVote.mutate("no")} disabled={castVote.isPending}
-                              className={`rounded px-3 py-1 text-sm text-white hover:bg-red-700 disabled:opacity-50 ${uv === "no" ? "bg-red-800 border-2 border-red-300 font-bold" : "bg-red-600"}`}>
+                              className={`rounded px-3 py-1 text-sm text-white disabled:opacity-50 ${uv === "no" ? "bg-green-700 border-2 border-green-300 font-bold" : "bg-red-600 hover:bg-red-700"}`}>
                               NO
                             </button>
                           </div>
@@ -685,7 +685,7 @@ export default function MarketDetailPage() {
                           <div className="flex gap-2 flex-wrap">
                             {(market.choices ?? []).map((choice) => (
                               <button key={choice} onClick={() => castVote.mutate(choice)} disabled={castVote.isPending}
-                                className={`rounded px-3 py-1 text-sm text-white hover:bg-violet-700 disabled:opacity-50 ${uv === choice ? "bg-violet-800 border-2 border-violet-300 font-bold" : "bg-violet-600"}`}>
+                                className={`rounded px-3 py-1 text-sm text-white disabled:opacity-50 ${uv === choice ? "bg-green-700 border-2 border-green-300 font-bold" : "bg-violet-600 hover:bg-violet-700"}`}>
                                 {choice}
                               </button>
                             ))}

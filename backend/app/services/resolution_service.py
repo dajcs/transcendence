@@ -16,14 +16,16 @@ from app.db.models.transaction import BpTransaction, TpTransaction
 from app.services.economy_service import credit_bp
 
 
-def compute_vote_weight(user_position_side: str | None, winning_side: str) -> float:
+def compute_vote_weight(user_position_side: str | None, user_vote: str) -> float:
     """RES-04: Vote weights per RESOLUTION.md.
-    0.5x if voter is on own winning side, 1.0x neutral, 2.0x against own position.
-    winning_side = current proposer resolution outcome (before dispute).
+    Compares what the user BET ON vs what they VOTED FOR:
+    - No position (independent): 1.0x
+    - Vote matches own bet position (conflict of interest): 0.5x
+    - Vote contradicts own bet position (courageous): 2.0x
     """
     if user_position_side is None:
         return 1.0
-    if user_position_side == winning_side:
+    if user_position_side == user_vote:
         return 0.5
     return 2.0
 

@@ -315,7 +315,7 @@ async def cast_vote(
         )
     )).scalar_one_or_none()
 
-    weight = compute_vote_weight(position, resolution.outcome)
+    weight = compute_vote_weight(position, body.vote)
 
     existing_vote = (await db.execute(
         select(DisputeVote).where(
