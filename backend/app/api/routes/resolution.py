@@ -67,24 +67,19 @@ async def proposer_resolve(
     if datetime.now(timezone.utc) > seven_days:
         raise HTTPException(status_code=400, detail="Proposer resolution window has expired (7 days)")
 
-    async with db.begin():
-        # Lock bet row
-        bet = (await db.execute(
-            select(Bet).where(Bet.id == bet_id).with_for_update()
-        )).scalar_one()
+    bet.status = "proposer_resolved"
+    bet.winning_side = body.outcome
 
-        bet.status = "proposer_resolved"
-        bet.winning_side = body.outcome
-
-        resolution = Resolution(
-            bet_id=bet_id,
-            tier=2,
-            resolved_by=current_user.id,
-            outcome=body.outcome,
-            justification=body.justification,
-            overturned=False,
-        )
-        db.add(resolution)
+    resolution = Resolution(
+        bet_id=bet_id,
+        tier=2,
+        resolved_by=current_user.id,
+        outcome=body.outcome,
+        justification=body.justification,
+        overturned=False,
+    )
+    db.add(resolution)
+    await db.commit()
 
     # Fire-and-forget notification
     try:
@@ -159,22 +154,17 @@ async def open_dispute(
     if recent_dispute is not None:
         raise HTTPException(status_code=429, detail="You can only open one dispute per 24 hours")
 
-    async with db.begin():
-        # Deduct 1 bp (cost to open dispute)
-        await deduct_bp(db, current_user.id, 1.0, "dispute_open", bet_id=bet_id)
+    await deduct_bp(db, current_user.id, 1.0, "dispute_open", bet_id=bet_id)
 
-        dispute = Dispute(
-            bet_id=bet_id,
-            opened_by=current_user.id,
-            closes_at=datetime.now(timezone.utc) + timedelta(hours=48),
-            status="open",
-        )
-        db.add(dispute)
-
-        bet_row = (await db.execute(
-            select(Bet).where(Bet.id == bet_id).with_for_update()
-        )).scalar_one()
-        bet_row.status = "disputed"
+    dispute = Dispute(
+        bet_id=bet_id,
+        opened_by=current_user.id,
+        closes_at=datetime.now(timezone.utc) + timedelta(hours=48),
+        status="open",
+    )
+    db.add(dispute)
+    bet.status = "disputed"
+    await db.commit()
 
     # Socket emit: dispute:opened
     try:
@@ -231,15 +221,15 @@ async def cast_vote(
 
     weight = compute_vote_weight(position, winning_side)
 
-    async with db.begin():
-        # UniqueConstraint(dispute_id, user_id) will raise IntegrityError on duplicate
-        vote = DisputeVote(
-            dispute_id=dispute.id,
-            user_id=current_user.id,
-            vote=body.vote,
-            weight=weight,
-        )
-        db.add(vote)
+    # UniqueConstraint(dispute_id, user_id) will raise IntegrityError on duplicate
+    vote = DisputeVote(
+        dispute_id=dispute.id,
+        user_id=current_user.id,
+        vote=body.vote,
+        weight=weight,
+    )
+    db.add(vote)
+    await db.commit()
 
     # Emit dispute:voted (anonymized: counts only)
     try:

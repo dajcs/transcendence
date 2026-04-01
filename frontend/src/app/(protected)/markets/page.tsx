@@ -15,6 +15,7 @@ function formatDeadline(deadline: string): string {
 function MarketCard({ market }: { market: Market }) {
   const queryClient = useQueryClient();
   const bootstrap = useAuthStore((s) => s.bootstrap);
+  const currentUser = useAuthStore((s) => s.user);
   const upvote = useMutation({
     mutationFn: () => api.post(`/api/markets/${market.id}/upvote`),
     onSuccess: async () => {
@@ -23,16 +24,32 @@ function MarketCard({ market }: { market: Market }) {
     },
   });
 
+  const isPendingResolution = market.status === "pending_resolution";
+  const isOwnMarket = currentUser?.id === market.proposer_id;
+
   return (
     <Link
       href={`/markets/${market.id}`}
-      className="block rounded border border-gray-200 bg-white p-4 hover:border-gray-300"
+      className={`block rounded border p-4 hover:border-gray-300 ${
+        isPendingResolution && isOwnMarket
+          ? "border-red-300 bg-red-50"
+          : isPendingResolution
+          ? "border-yellow-300 bg-yellow-50"
+          : "border-gray-200 bg-white"
+      }`}
     >
       <div className="flex items-start justify-between gap-4">
         <div>
           <h2 className="text-lg font-semibold text-gray-900">{market.title}</h2>
           <p className="mt-1 text-sm text-gray-600">{market.description}</p>
           <p className="mt-2 text-xs text-gray-500">Deadline: {formatDeadline(market.deadline)}</p>
+          {isPendingResolution && (
+            <span className={`mt-2 inline-block rounded px-2 py-0.5 text-xs font-semibold ${
+              isOwnMarket ? "bg-red-200 text-red-800" : "bg-yellow-200 text-yellow-800"
+            }`}>
+              {isOwnMarket ? "Make Resolution" : "Pending Resolution"}
+            </span>
+          )}
         </div>
         <div className="shrink-0 flex flex-col items-end gap-1 text-right text-sm">
           {market.market_type === "binary" && (

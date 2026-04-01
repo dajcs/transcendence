@@ -130,13 +130,22 @@ export default function DashboardPage() {
                   <Link
                     key={market.id}
                     href={`/markets/${market.id}`}
-                    className="block rounded border border-gray-200 bg-white p-3 hover:border-gray-300"
+                    className={`block rounded border p-3 hover:border-gray-300 ${
+                      market.status === "pending_resolution"
+                        ? "border-red-300 bg-red-50"
+                        : "border-gray-200 bg-white"
+                    }`}
                   >
                     <p className="font-medium text-gray-900">{market.title}</p>
                     <p className="mt-1 text-sm text-gray-600">
                       {market.status.replace(/_/g, " ")} · deadline{" "}
                       {new Date(market.deadline).toLocaleDateString()}
                     </p>
+                    {market.status === "pending_resolution" && (
+                      <span className="mt-1 inline-block rounded bg-red-200 px-2 py-0.5 text-xs font-semibold text-red-800">
+                        Make Resolution
+                      </span>
+                    )}
                   </Link>
                 ))}
               </div>
