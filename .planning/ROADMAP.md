@@ -145,7 +145,7 @@ Plans:
 
 **42 modules:** LLM interface (2pts)
 
-**Plans:** 8 plans (5 executed, 3 pending)
+**Plans:** 6/8 plans executed
 
 Plans:
 - [x] 05-01-PLAN.md — Wave 0: test scaffolds (test_resolution.py, test_llm.py, fake_redis fixture)
@@ -153,7 +153,7 @@ Plans:
 - [x] 05-03-PLAN.md — LLM service (OpenRouter, rate-limit, budget cap) + LLM API routes
 - [x] 05-04-PLAN.md — Celery resolution tasks (auto-resolution, dispute deadlines) + REST routes
 - [x] 05-05-PLAN.md — Frontend: inline ResolutionSection, DisputeSection, LLM buttons, settings page
-- [ ] 05-06-PLAN.md — Frontend: socket wiring (bet:resolved, dispute:*) + UAT checkpoint
+- [x] 05-06-PLAN.md — Frontend: socket wiring (bet:resolved, dispute:*) + UAT checkpoint
 - [ ] 05-07-PLAN.md — Gap closure: LLM settings redesign (migration 012, config endpoint, conditional platform-default, model field, profile cogwheel)
 - [ ] 05-08-PLAN.md — Gap closure: payout formula fix (proportional BP pool split, per-position averaged TP)
 

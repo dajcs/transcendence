@@ -4,12 +4,12 @@ milestone: v21.0
 milestone_name: milestone
 current_plan: 1
 status: Executing Phase 05
-last_updated: "2026-03-30T22:43:53.301Z"
+last_updated: "2026-04-01T21:32:07.009Z"
 progress:
   total_phases: 5
   completed_phases: 3
-  total_plans: 24
-  completed_plans: 23
+  total_plans: 26
+  completed_plans: 24
 ---
 
 # Project State
@@ -25,7 +25,7 @@ See: `.planning/PROJECT.md` (updated 2026-03-24)
 
 **Phase:** 03 complete → 04 next
 **Current Plan:** 1
-**Last session:** 2026-03-30T22:43:53.240Z
+**Last session:** 2026-04-01T21:32:06.976Z
 **Resume file:** None
 
 ## Decisions
@@ -72,6 +72,8 @@ See: `.planning/PROJECT.md` (updated 2026-03-24)
 - [Phase 05-hotfix]: list_positions active condition changed from market.status == "open" to market.status != "closed" — positions on pending_resolution/proposer_resolved/disputed markets must show in active list with status colors
 - [Phase 05-hotfix]: MarketCard status colors: open=white, pending_resolution=red(own)/yellow, proposer_resolved=blue, disputed=violet, closed=green — identical on /markets and /dashboard
 - [Phase 05-hotfix]: Dispute button myPosition guard removed — backend enforces 403; frontend shows error inline so button is always visible on proposer_resolved markets
+- [Phase 05-06]: TopNav.tsx (not Navbar.tsx) is the actual nav component — plan referenced wrong filename
+- [Phase 05-06]: dispute:voted patches React Query cache directly for immediate tally updates without refetch round-trip
 
 ## Performance Metrics
 
@@ -93,6 +95,7 @@ See: `.planning/PROJECT.md` (updated 2026-03-24)
 | Phase 05 P03 | 12min | 2 tasks | 4 files |
 | Phase 05 P04 | 15min | 2 tasks | 4 files |
 | Phase 05 P05 | 10min | 2 tasks | 4 files |
+| Phase 05 P06 | 8min | 2 tasks | 2 files |
 
 ## Session History
 
