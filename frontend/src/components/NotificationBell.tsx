@@ -21,12 +21,14 @@ const TYPE_LABELS: Record<string, string> = {
   new_message: "New Message",
   bet_resolved: "Bet Resolved",
   bet_disputed: "Bet Disputed",
+  resolution_due: "Resolution Required",
 };
 
 const NOTIFICATION_LINKS: Record<string, string> = {
   friend_request: "/friends?tab=received",
   friend_accepted: "/friends",
   new_message: "/chat",
+  resolution_due: "/dashboard?tab=my_markets",
 };
 
 export default function NotificationBell() {
@@ -65,6 +67,7 @@ export default function NotificationBell() {
     socket.on("notification:new_message", handler);
     socket.on("notification:bet_resolved", handler);
     socket.on("notification:bet_disputed", handler);
+    socket.on("notification:resolution_due", handler);
 
     return () => {
       socket.off("notification:friend_request", handler);
@@ -73,6 +76,7 @@ export default function NotificationBell() {
       socket.off("notification:new_message", handler);
       socket.off("notification:bet_resolved", handler);
       socket.off("notification:bet_disputed", handler);
+      socket.off("notification:resolution_due", handler);
     };
   }, [socket, fetchUnreadCount]);
 

@@ -256,18 +256,62 @@ async def _process_dispute_deadlines(db: AsyncSession) -> None:
             pass
 
 
-@celery_app.task(name="app.workers.tasks.resolution.check_auto_resolution", max_retries=1)
-def check_auto_resolution() -> str:
-    """RES-01 + RES-03 (D-03): Every 5 min — process expired bets."""
+@celery_app.task(name="app.workers.tasks.resolution.resolve_market_at_deadline", max_retries=1)
+def resolve_market_at_deadline(bet_id: str) -> str:
+    """Scheduled at market creation to fire at deadline+5min.
+    Attempts Tier 1 auto-resolution; if unavailable, notifies proposer.
+    """
     import asyncio
-    asyncio.run(_run_auto_resolution())
+    asyncio.run(_resolve_single_market(bet_id))
     return "ok"
 
 
-async def _run_auto_resolution() -> None:
+async def _resolve_single_market(bet_id_str: str) -> None:
+    import uuid as _uuid
+    from app.services.notification_service import notify_resolution_due
+
+    bet_id = _uuid.UUID(bet_id_str)
     TaskSession = make_task_session()
     async with TaskSession() as db:
-        await _process_auto_resolution(db)
+        bet = (await db.execute(select(Bet).where(Bet.id == bet_id))).scalar_one_or_none()
+        if bet is None or bet.status != "open":
+            return  # already handled or deleted
+
+        bet.status = "pending_resolution"
+        await db.flush()
+
+        outcome: str | None = None
+        if bet.resolution_source:
+            try:
+                source = json.loads(bet.resolution_source)
+                if source.get("provider") == "open-meteo":
+                    outcome = await _fetch_open_meteo_outcome(source)
+            except Exception as exc:
+                logger.warning("Tier 1 parse error for bet %s: %s", bet.id, exc)
+
+        if outcome is not None:
+            db.add(Resolution(
+                bet_id=bet.id,
+                tier=1,
+                resolved_by=None,
+                outcome=outcome,
+                justification="Automatic resolution via Open-Meteo",
+                overturned=False,
+            ))
+            bet.status = "proposer_resolved"
+            bet.winning_side = outcome
+            await db.commit()
+            logger.info("Bet %s auto-resolved at deadline: %s", bet.id, outcome)
+        else:
+            # Tier 1 unavailable — notify proposer to resolve manually
+            proposer_id = bet.proposer_id
+            market_title = bet.title
+            market_id = str(bet.id)
+            await db.commit()
+            async with TaskSession() as notif_db:
+                await notify_resolution_due(notif_db, proposer_id, market_title, market_id)
+            logger.info("Bet %s needs manual resolution — proposer notified", bet.id)
+
     async with TaskSession() as db:
         await _escalate_overdue_proposer(db)
 

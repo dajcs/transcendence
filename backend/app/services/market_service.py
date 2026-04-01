@@ -1,5 +1,6 @@
 """Market (Bet) service — create, list, get."""
 import uuid
+from datetime import timedelta
 
 from fastapi import HTTPException
 from sqlalchemy import func, select
@@ -33,6 +34,18 @@ async def create_market(
     db.add(bet)
     await db.commit()
     await db.refresh(bet)
+
+    # Schedule per-market resolution callback at deadline + 5 min grace
+    try:
+        from app.workers.celery_app import celery_app
+        eta = bet.deadline + timedelta(minutes=5)
+        celery_app.send_task(
+            "app.workers.tasks.resolution.resolve_market_at_deadline",
+            args=[str(bet.id)],
+            eta=eta,
+        )
+    except Exception:
+        pass  # celery unavailable in test/dev without worker
 
     return MarketResponse(
         id=bet.id,

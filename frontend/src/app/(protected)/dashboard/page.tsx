@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 
 import { api } from "@/lib/api";
@@ -35,6 +35,11 @@ function marketStatusBadge(status: string, isOwnMarket = false): { text: string;
 export default function DashboardPage() {
   const { user } = useAuthStore();
   const [tab, setTab] = useState<Tab>("my_bets");
+
+  useEffect(() => {
+    const t = new URLSearchParams(window.location.search).get("tab");
+    if (t === "my_markets" || t === "my_bets") setTab(t);
+  }, []);
 
   const positionsQuery = useQuery<BetPositionsListResponse>({
     queryKey: ["positions"],

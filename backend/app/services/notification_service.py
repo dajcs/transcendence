@@ -182,6 +182,16 @@ async def notify_bet_disputed(db: AsyncSession, user_id: uuid.UUID, market_title
     })
 
 
+async def notify_resolution_due(db: AsyncSession, proposer_id: uuid.UUID, market_title: str, market_id: str) -> None:
+    """Notify market proposer that their market needs manual resolution."""
+    await create_notification(db, proposer_id, "resolution_due", {
+        "market_title": market_title,
+        "market_id": market_id,
+        "message": f"'{market_title}' needs your resolution — go to My Markets",
+        "link": "/dashboard?tab=my_markets",
+    })
+
+
 async def notify_friend_removed(db: AsyncSession, user_id: uuid.UUID, by_username: str) -> None:
     """Notify user that someone ended the friendship."""
     await create_notification(db, user_id, "friend_removed", {

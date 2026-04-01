@@ -303,13 +303,23 @@ async def cast_vote(
 
     weight = compute_vote_weight(position, resolution.outcome)
 
-    vote = DisputeVote(
-        dispute_id=dispute.id,
-        user_id=current_user.id,
-        vote=body.vote,
-        weight=weight,
-    )
-    db.add(vote)
+    existing_vote = (await db.execute(
+        select(DisputeVote).where(
+            DisputeVote.dispute_id == dispute.id,
+            DisputeVote.user_id == current_user.id,
+        )
+    )).scalar_one_or_none()
+
+    if existing_vote is not None:
+        existing_vote.vote = body.vote
+        existing_vote.weight = weight
+    else:
+        db.add(DisputeVote(
+            dispute_id=dispute.id,
+            user_id=current_user.id,
+            vote=body.vote,
+            weight=weight,
+        ))
     await db.commit()
 
     try:
@@ -359,11 +369,18 @@ async def get_resolution(
             .group_by(DisputeVote.vote)
         )).all()
         vote_weights = {r[0]: float(r[1]) for r in rows}
+        user_dispute_vote = (await db.execute(
+            select(DisputeVote.vote).where(
+                DisputeVote.dispute_id == dispute.id,
+                DisputeVote.user_id == current_user.id,
+            )
+        )).scalar_one_or_none()
         dispute_data = {
             "id": str(dispute.id),
             "status": dispute.status,
             "closes_at": dispute.closes_at.isoformat(),
             "vote_weights": vote_weights,
+            "user_vote": user_dispute_vote,
         }
 
     review_data = None

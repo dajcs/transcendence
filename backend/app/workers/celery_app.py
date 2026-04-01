@@ -21,10 +21,6 @@ celery_app.conf.update(
             "task": "app.workers.tasks.daily.daily_allocation",
             "schedule": crontab(minute=0, hour=0),
         },
-        "check-auto-resolution-every-5min": {
-            "task": "app.workers.tasks.resolution.check_auto_resolution",
-            "schedule": crontab(minute="*/5"),
-        },
         "check-dispute-deadlines-every-15min": {
             "task": "app.workers.tasks.resolution.check_dispute_deadlines",
             "schedule": crontab(minute="*/15"),

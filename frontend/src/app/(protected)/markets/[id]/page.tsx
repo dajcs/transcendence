@@ -643,29 +643,42 @@ export default function MarketDetailPage() {
                   )}
                   {resolutionQuery.data.dispute.status === "open" && (
                     <div className="space-y-2">
-                      <p className="text-sm font-medium text-violet-800">My Opinion</p>
-                      {market.market_type === "binary" && (
-                        <div className="flex gap-2">
-                          <button onClick={() => castVote.mutate("yes")} disabled={castVote.isPending}
-                            className="rounded bg-green-600 px-3 py-1 text-sm text-white hover:bg-green-700 disabled:opacity-50">
-                            YES
-                          </button>
-                          <button onClick={() => castVote.mutate("no")} disabled={castVote.isPending}
-                            className="rounded bg-red-600 px-3 py-1 text-sm text-white hover:bg-red-700 disabled:opacity-50">
-                            NO
-                          </button>
-                        </div>
-                      )}
-                      {market.market_type === "multiple_choice" && (
-                        <div className="flex gap-2 flex-wrap">
-                          {(market.choices ?? []).map((choice) => (
-                            <button key={choice} onClick={() => castVote.mutate(choice)} disabled={castVote.isPending}
-                              className="rounded bg-violet-600 px-3 py-1 text-sm text-white hover:bg-violet-700 disabled:opacity-50">
-                              {choice}
+                      <p className="text-sm font-medium text-violet-800">
+                        My Opinion
+                        {resolutionQuery.data.dispute.user_vote && (
+                          <span className="ml-2 text-xs text-violet-500 font-normal">
+                            (voted: {resolutionQuery.data.dispute.user_vote.toUpperCase()} — click another to change)
+                          </span>
+                        )}
+                      </p>
+                      {market.market_type === "binary" && (() => {
+                        const uv = resolutionQuery.data!.dispute!.user_vote;
+                        return (
+                          <div className="flex gap-2">
+                            <button onClick={() => castVote.mutate("yes")} disabled={castVote.isPending}
+                              className={`rounded px-3 py-1 text-sm text-white hover:bg-green-700 disabled:opacity-50 ${uv === "yes" ? "bg-green-700 ring-2 ring-green-400" : "bg-green-600"}`}>
+                              YES
                             </button>
-                          ))}
-                        </div>
-                      )}
+                            <button onClick={() => castVote.mutate("no")} disabled={castVote.isPending}
+                              className={`rounded px-3 py-1 text-sm text-white hover:bg-red-700 disabled:opacity-50 ${uv === "no" ? "bg-red-700 ring-2 ring-red-400" : "bg-red-600"}`}>
+                              NO
+                            </button>
+                          </div>
+                        );
+                      })()}
+                      {market.market_type === "multiple_choice" && (() => {
+                        const uv = resolutionQuery.data!.dispute!.user_vote;
+                        return (
+                          <div className="flex gap-2 flex-wrap">
+                            {(market.choices ?? []).map((choice) => (
+                              <button key={choice} onClick={() => castVote.mutate(choice)} disabled={castVote.isPending}
+                                className={`rounded px-3 py-1 text-sm text-white hover:bg-violet-700 disabled:opacity-50 ${uv === choice ? "bg-violet-700 ring-2 ring-violet-400" : "bg-violet-600"}`}>
+                                {choice}
+                              </button>
+                            ))}
+                          </div>
+                        );
+                      })()}
                       {market.market_type === "numeric" && (
                         <div className="flex gap-2 items-center">
                           <input
@@ -675,7 +688,7 @@ export default function MarketDetailPage() {
                             step="any"
                             value={voteOpinion}
                             onChange={(e) => setVoteOpinion(e.target.value)}
-                            placeholder={`${market.numeric_min ?? ""}–${market.numeric_max ?? ""}`}
+                            placeholder={resolutionQuery.data.dispute.user_vote ?? `${market.numeric_min ?? ""}–${market.numeric_max ?? ""}`}
                             className="w-32 rounded border border-violet-300 px-2 py-1 text-sm"
                           />
                           <button
@@ -683,7 +696,7 @@ export default function MarketDetailPage() {
                             disabled={castVote.isPending || !voteOpinion}
                             className="rounded bg-violet-600 px-3 py-1 text-sm text-white hover:bg-violet-700 disabled:opacity-50"
                           >
-                            Submit
+                            {resolutionQuery.data.dispute.user_vote ? "Change" : "Submit"}
                           </button>
                         </div>
                       )}
