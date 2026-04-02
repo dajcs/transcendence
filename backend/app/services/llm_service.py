@@ -254,7 +254,7 @@ async def summarize_thread(
             ),
         },
     ]
-    return await call_openrouter(messages, r, max_response_len=2200)
+    return await call_openrouter(messages, r, model=settings.openrouter_model, max_response_len=2200)
 
 
 def _build_summarize_messages(
@@ -326,4 +326,4 @@ async def get_resolution_hint(
             ),
         },
     ]
-    return await call_openrouter(messages, r, max_response_len=2200)
+    return await call_openrouter(messages, r, model=settings.openrouter_model, max_response_len=2200)
