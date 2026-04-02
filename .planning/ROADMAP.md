@@ -159,7 +159,7 @@ Plans:
 - [x] 05-09-PLAN.md — Gap closure: deadline input UX fix (split datetime-local into date + time inputs)
 - [x] 05-10-PLAN.md — Gap closure: add check_auto_resolution fallback beat task (RES-01 safety net)
 - [x] 05-11-PLAN.md — Gap closure: align RES-04/RES-06 spec text + fix asyncio decorator warnings
-- [ ] 05-12-PLAN.md — Gap closure: wire OPENROUTER_MODEL env var through Settings to call_openrouter
+- [x] 05-12-PLAN.md — Gap closure: wire OPENROUTER_MODEL env var through Settings to call_openrouter
 - [ ] 05-13-PLAN.md — Gap closure: render AI summary and hint as markdown via react-markdown
 
 ---

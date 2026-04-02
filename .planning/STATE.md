@@ -4,12 +4,12 @@ milestone: v21.0
 milestone_name: milestone
 current_plan: 1
 status: Executing Phase 05
-last_updated: "2026-04-02T08:34:05.741Z"
+last_updated: "2026-04-02T21:55:40.281Z"
 progress:
   total_phases: 5
-  completed_phases: 4
-  total_plans: 29
-  completed_plans: 29
+  completed_phases: 3
+  total_plans: 31
+  completed_plans: 30
 ---
 
 # Project State
@@ -25,7 +25,7 @@ See: `.planning/PROJECT.md` (updated 2026-03-24)
 
 **Phase:** 03 complete → 04 next
 **Current Plan:** 1
-**Last session:** 2026-04-02T08:34:05.673Z
+**Last session:** 2026-04-02T21:55:40.200Z
 **Resume file:** None
 
 ## Decisions
@@ -83,6 +83,7 @@ See: `.planning/PROJECT.md` (updated 2026-03-24)
 - [Phase 05-10]: Fallback beat complements per-bet ETA: catches markets whose ETA tasks were lost on worker restart or broker flush
 - [Phase 05-11]: vote-vs-position semantics for RES-04 documented as intentional design evolution from original spec
 - [Phase 05-11]: RES-06 formula now reflects D-11 proportional BP pool split, not the pre-D-11 flat +1bp formula
+- [Phase 05-12]: openrouter_model field added to Settings LLM block; pydantic-settings maps OPENROUTER_MODEL env var; _DEFAULT_MODEL retained as fallback in call_openrouter signature
 
 ## Performance Metrics
 
@@ -110,6 +111,7 @@ See: `.planning/PROJECT.md` (updated 2026-03-24)
 | Phase 05 P09 | 3min | 1 tasks | 1 files |
 | Phase 05 P10 | 5min | 2 tasks | 3 files |
 | Phase 05 P11 | 5min | 2 tasks | 3 files |
+| Phase 05 P12 | 5min | 2 tasks | 2 files |
 
 ## Session History
 
