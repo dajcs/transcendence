@@ -1,9 +1,9 @@
 ---
-status: diagnosed
+status: resolved
 phase: 05-intelligence-resolution
 source: [05-VERIFICATION.md]
 started: 2026-04-02T09:30:00Z
-updated: 2026-04-02T10:00:00Z
+updated: 2026-04-03T00:00:00Z
 ---
 
 ## Current Test
@@ -41,7 +41,7 @@ blocked: 0
 ## Gaps
 
 - truth: "OPENROUTER_MODEL env var should control which model is used for LLM calls"
-  status: failed
+  status: resolved
   reason: "User reported: spec change — when OPENROUTER_MODEL is set in .env that model should be used"
   severity: major
   test: 2
@@ -60,7 +60,7 @@ blocked: 0
     - "Pass model=settings.openrouter_model in call_openrouter calls in summarize_thread and get_resolution_hint"
 
 - truth: "AI response content (summary, hint) should be rendered as markdown in the UI"
-  status: failed
+  status: resolved
   reason: "User reported: spec change — AI response is markdown formatted, the display should render the markdown formatting"
   severity: minor
   test: 2
