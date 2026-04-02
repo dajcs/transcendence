@@ -1,5 +1,5 @@
 ---
-status: complete
+status: diagnosed
 phase: 05-intelligence-resolution
 source: [05-VERIFICATION.md]
 started: 2026-04-02T09:30:00Z
@@ -45,13 +45,31 @@ blocked: 0
   reason: "User reported: spec change — when OPENROUTER_MODEL is set in .env that model should be used"
   severity: major
   test: 2
-  artifacts: []
-  missing: []
+  root_cause: "OPENROUTER_MODEL is in .env/.env.example but Settings class in config.py has no openrouter_model field; call_openrouter always uses _DEFAULT_MODEL constant"
+  artifacts:
+    - path: "backend/app/config.py:37-38"
+      issue: "openrouter_model field missing from Settings"
+    - path: "backend/app/services/llm_service.py:22"
+      issue: "_DEFAULT_MODEL hardcoded, never reads from settings"
+    - path: "backend/app/services/llm_service.py:257"
+      issue: "summarize_thread calls call_openrouter without model arg"
+    - path: "backend/app/services/llm_service.py:329"
+      issue: "get_resolution_hint calls call_openrouter without model arg"
+  missing:
+    - "Add openrouter_model: str = 'openai/gpt-4o-mini' to Settings in config.py"
+    - "Pass model=settings.openrouter_model in call_openrouter calls in summarize_thread and get_resolution_hint"
 
 - truth: "AI response content (summary, hint) should be rendered as markdown in the UI"
   status: failed
   reason: "User reported: spec change — AI response is markdown formatted, the display should render the markdown formatting"
   severity: minor
   test: 2
-  artifacts: []
-  missing: []
+  root_cause: "Summary (line 864) and hint (line 572) rendered as raw text nodes in plain elements; react-markdown not installed"
+  artifacts:
+    - path: "frontend/src/app/(protected)/markets/[id]/page.tsx:864"
+      issue: "summary rendered as <p>{summary}</p>, no markdown parsing"
+    - path: "frontend/src/app/(protected)/markets/[id]/page.tsx:572"
+      issue: "hint rendered as plain {hint} text node"
+  missing:
+    - "npm install react-markdown"
+    - "Wrap summary and hint in <ReactMarkdown className='prose prose-sm max-w-none'>"
