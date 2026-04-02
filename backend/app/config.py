@@ -26,6 +26,15 @@ class Settings(BaseSettings):
             raise ValueError("secret_key must not be empty")
         return v
 
+    # OAuth 2.0
+    google_client_id: str = ""
+    google_client_secret: str = ""
+    github_client_id: str = ""
+    github_client_secret: str = ""
+    ft_client_id: str = ""
+    ft_client_secret: str = ""
+    oauth_redirect_base: str = "https://localhost:8443"
+
     # Email
     smtp_host: str = "localhost"
     smtp_port: int = 1025

@@ -10,7 +10,9 @@ from app.schemas.auth import (
     ResetRequestBody,
     UserResponse,
 )
+from app.config import settings
 from app.services import auth_service
+from app.services import oauth_service
 from app.services.economy_service import get_balance
 
 router = APIRouter()
@@ -121,3 +123,71 @@ async def reset_request(req: ResetRequestBody, db: AsyncSession = Depends(get_db
 async def reset_confirm(req: ResetConfirmBody, db: AsyncSession = Depends(get_db)):
     await auth_service.reset_confirm(db, req)
     return {"ok": True}
+
+
+# ---------------------------------------------------------------------------
+# OAuth 2.0 routes
+# ---------------------------------------------------------------------------
+
+@router.get("/oauth/providers")
+async def oauth_providers():
+    """Return which OAuth providers are configured (have client_id set)."""
+    available = []
+    if settings.google_client_id:
+        available.append("google")
+    if settings.github_client_id:
+        available.append("github")
+    if settings.ft_client_id:
+        available.append("42")
+    return {"providers": available}
+
+
+@router.get("/oauth/{provider}")
+async def oauth_initiate(provider: str):
+    """Redirect user to the OAuth provider's authorization page."""
+    from fastapi.responses import RedirectResponse
+    url = await oauth_service.build_authorize_url(provider)
+    return RedirectResponse(url=url)
+
+
+@router.get("/oauth/{provider}/callback")
+async def oauth_callback(
+    provider: str,
+    code: str = "",
+    state: str = "",
+    error: str = "",
+    db: AsyncSession = Depends(get_db),
+):
+    """Handle the OAuth callback — exchange code, upsert user, set cookies, redirect to dashboard."""
+    from urllib.parse import quote
+    from fastapi.responses import RedirectResponse
+
+    if error or not code or not state:
+        msg = quote(error or "OAuth authentication was cancelled or failed")
+        return RedirectResponse(url=f"/login?error={msg}", status_code=302)
+
+    try:
+        user, access_token, refresh_token = await oauth_service.handle_callback(provider, code, state, db)
+    except HTTPException as exc:
+        msg = quote(exc.detail)
+        return RedirectResponse(url=f"/login?error={msg}", status_code=302)
+
+    redirect = RedirectResponse(url="/dashboard", status_code=302)
+    redirect.set_cookie(
+        key="access_token",
+        value=access_token,
+        httponly=True,
+        secure=True,
+        samesite="lax",
+        max_age=18000,
+    )
+    redirect.set_cookie(
+        key="refresh_token",
+        value=refresh_token,
+        httponly=True,
+        secure=True,
+        samesite="strict",
+        max_age=604800,
+        path="/api/auth/refresh",
+    )
+    return redirect

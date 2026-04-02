@@ -1,7 +1,9 @@
 """Auth integration tests — AUTH-01 through AUTH-04."""
+import uuid
 import pytest
 from httpx import AsyncClient
 from unittest.mock import AsyncMock, patch
+from app.db.models.user import User
 
 
 # ── AUTH-01: Registration ──────────────────────────────────────────────────
@@ -86,6 +88,40 @@ async def test_login_with_username_in_legacy_email_field(client: AsyncClient):
         "email": "frank", "password": "Passw0rd!",
     })
     assert resp.status_code == 200
+
+
+@pytest.mark.asyncio
+async def test_login_oauth_only_account_returns_guidance(client: AsyncClient, db_session):
+    oauth_only_user = User(
+        id=uuid.uuid4(),
+        email="oauth-only@example.com",
+        username="oauth_only",
+        password_hash=None,
+        is_active=True,
+    )
+    db_session.add(oauth_only_user)
+    await db_session.commit()
+
+    resp = await client.post("/api/auth/login", json={
+        "identifier": "oauth-only@example.com",
+        "password": "Passw0rd!",
+    })
+
+    assert resp.status_code == 401
+    assert "OAuth sign-in" in resp.json()["detail"]
+
+
+@pytest.mark.asyncio
+async def test_oauth_providers_endpoint_returns_configured_providers(client: AsyncClient, monkeypatch):
+    from app.config import settings
+
+    monkeypatch.setattr(settings, "google_client_id", "google-id")
+    monkeypatch.setattr(settings, "github_client_id", "github-id")
+    monkeypatch.setattr(settings, "ft_client_id", "ft-id")
+
+    resp = await client.get("/api/auth/oauth/providers")
+    assert resp.status_code == 200
+    assert resp.json() == {"providers": ["google", "github", "42"]}
 
 
 # ── AUTH-03: Password reset no enumeration ────────────────────────────────
