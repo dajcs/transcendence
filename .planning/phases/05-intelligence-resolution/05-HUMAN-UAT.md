@@ -1,40 +1,57 @@
 ---
-status: partial
+status: complete
 phase: 05-intelligence-resolution
 source: [05-VERIFICATION.md]
 started: 2026-04-02T09:30:00Z
-updated: 2026-04-02T09:30:00Z
+updated: 2026-04-02T10:00:00Z
 ---
 
 ## Current Test
 
-[awaiting human testing]
+[testing complete]
 
 ## Tests
 
 ### 1. Per-bet ETA scheduling smoke test
 expected: Create a market with deadline = now+2 min. After deadline+5 min, Celery worker log shows resolve_market_at_deadline running for that bet_id. If no resolution_source, status becomes pending_resolution and a resolution_due notification appears on proposer's bell.
-result: [pending]
+result: pass
 
 ### 2. LLM summarize and hint with real API key
 expected: With OPENROUTER_API_KEY set in .env, clicking "Summarize discussion" on a market with 2+ comments returns plain-text summary (no code fences, under 2200 chars). "Get AI hint" for proposer returns YES/NO reasoning. After 5 summary calls, next call returns error/disabled state.
-result: [pending]
+result: pass
+notes: "Spec changes identified: (1) OPENROUTER_MODEL env var should select model when set; (2) AI response is markdown — UI should render it as markdown not plain text"
 
 ### 3. Budget cap enforcement
 expected: Set LLM_MONTHLY_BUDGET_USD=0.0001. After one LLM call, subsequent calls return 503 (budget exceeded).
-result: [pending]
+result: skipped
 
 ### 4. Socket events reach browser from Celery
 expected: Open market detail page in two browser tabs. Trigger resolution (or wait for Celery auto-resolve). Other tab shows payout banner/status update without refresh — validates Redis pub/sub cross-process delivery.
-result: [pending]
+result: skipped
 
 ## Summary
 
 total: 4
-passed: 0
-issues: 0
-pending: 4
-skipped: 0
+passed: 2
+issues: 2
+pending: 0
+skipped: 2
 blocked: 0
 
 ## Gaps
+
+- truth: "OPENROUTER_MODEL env var should control which model is used for LLM calls"
+  status: failed
+  reason: "User reported: spec change — when OPENROUTER_MODEL is set in .env that model should be used"
+  severity: major
+  test: 2
+  artifacts: []
+  missing: []
+
+- truth: "AI response content (summary, hint) should be rendered as markdown in the UI"
+  status: failed
+  reason: "User reported: spec change — AI response is markdown formatted, the display should render the markdown formatting"
+  severity: minor
+  test: 2
+  artifacts: []
+  missing: []
