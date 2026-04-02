@@ -1,6 +1,10 @@
 """Resolution Celery tasks.
 
-check_auto_resolution: every 5 min — transitions expired open bets, attempts Tier 1 (Open-Meteo)
+Architecture: two-pronged resolution scheduling.
+  Per-bet ETA: when a market is created, market_service.py schedules resolve_market_at_deadline
+    via apply_async(eta=deadline+timedelta(minutes=5)) — fires once per market.
+  Fallback beat: check_auto_resolution runs every 5 min via Celery Beat — catches open bets
+    whose ETA task was lost (worker restart, broker flush, or pre-deploy markets).
 check_dispute_deadlines: every 15 min — closes expired disputes, triggers payout
 
 Pitfall 3 from RESEARCH.md: query condition is deadline+5min <= now, NOT deadline <= now.
@@ -401,6 +405,47 @@ async def _resolve_single_market(bet_id_str: str) -> None:
 
     async with TaskSession() as db:
         await _escalate_overdue_proposer(db)
+
+
+@celery_app.task(name="app.workers.tasks.resolution.check_auto_resolution", max_retries=1)
+def check_auto_resolution() -> str:
+    """Fallback beat poller — RES-01 safety net.
+
+    Runs every 5 min via Celery Beat. Finds open bets past deadline+5min grace and
+    enqueues resolve_market_at_deadline for each. Safe to run alongside the per-bet ETA
+    approach: resolve_market_at_deadline checks bet.status == "open" and exits early if
+    already processing.
+    """
+    import asyncio
+    asyncio.run(_scan_and_enqueue_expired_bets())
+    return "ok"
+
+
+async def _scan_and_enqueue_expired_bets() -> None:
+    """Query open bets past deadline+5min, send resolve_market_at_deadline task for each."""
+    from datetime import timedelta
+
+    TaskSession = make_task_session()
+    async with TaskSession() as db:
+        now = datetime.now(timezone.utc)
+        grace = now - timedelta(minutes=5)
+
+        bets = (await db.execute(
+            select(Bet).where(
+                Bet.status == "open",
+                Bet.deadline <= grace,
+            )
+        )).scalars().all()
+
+        for bet in bets:
+            try:
+                celery_app.send_task(
+                    "app.workers.tasks.resolution.resolve_market_at_deadline",
+                    args=[str(bet.id)],
+                )
+                logger.info("check_auto_resolution: enqueued resolve for stuck bet %s", bet.id)
+            except Exception as exc:
+                logger.warning("check_auto_resolution: failed to enqueue bet %s: %s", bet.id, exc)
 
 
 @celery_app.task(name="app.workers.tasks.resolution.check_dispute_deadlines", max_retries=1)
