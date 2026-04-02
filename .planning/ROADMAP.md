@@ -145,7 +145,7 @@ Plans:
 
 **42 modules:** LLM interface (2pts)
 
-**Plans:** 11/11 plans complete
+**Plans:** 13 plans (11 complete, 2 gap closure pending)
 
 Plans:
 - [x] 05-01-PLAN.md — Wave 0: test scaffolds (test_resolution.py, test_llm.py, fake_redis fixture)
@@ -159,6 +159,8 @@ Plans:
 - [x] 05-09-PLAN.md — Gap closure: deadline input UX fix (split datetime-local into date + time inputs)
 - [x] 05-10-PLAN.md — Gap closure: add check_auto_resolution fallback beat task (RES-01 safety net)
 - [x] 05-11-PLAN.md — Gap closure: align RES-04/RES-06 spec text + fix asyncio decorator warnings
+- [ ] 05-12-PLAN.md — Gap closure: wire OPENROUTER_MODEL env var through Settings to call_openrouter
+- [ ] 05-13-PLAN.md — Gap closure: render AI summary and hint as markdown via react-markdown
 
 ---
 
