@@ -43,9 +43,9 @@
 - [x] **RES-01**: Tier 1 automatic resolution via configured API source at deadline
 - [x] **RES-02**: Tier 2 proposer resolution with justification (within 7 days of deadline)
 - [x] **RES-03**: Tier 3 community vote dispute (48h window, 1% participation minimum)
-- [x] **RES-04**: Dispute vote weights: 0.5x (own winning side), 1x (neutral), 2x (own losing side)
+- [x] **RES-04**: Dispute vote weights: 0.5x (voted same as own bet), 1x (no stake), 2x (voted against own bet)
 - [x] **RES-05**: Proposer penalty: loses 50% staked bp if resolution overturned
-- [x] **RES-06**: Winning bet pays +1 bp + tp (`t_win / t_bet`) to each winner
+- [x] **RES-06**: Winning bet pays proportional BP pool share + TP to each winner (D-11: `floor(user_stake / total_winning_stake * total_bp_pool)`)
 
 ### Social
 
