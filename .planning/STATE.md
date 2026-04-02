@@ -4,12 +4,12 @@ milestone: v21.0
 milestone_name: milestone
 current_plan: 1
 status: Executing Phase 05
-last_updated: "2026-04-02T07:49:54.128Z"
+last_updated: "2026-04-02T07:58:40.319Z"
 progress:
   total_phases: 5
-  completed_phases: 3
+  completed_phases: 4
   total_plans: 26
-  completed_plans: 24
+  completed_plans: 26
 ---
 
 # Project State
@@ -25,7 +25,7 @@ See: `.planning/PROJECT.md` (updated 2026-03-24)
 
 **Phase:** 03 complete → 04 next
 **Current Plan:** 1
-**Last session:** 2026-04-02T07:49:48.192Z
+**Last session:** 2026-04-02T07:58:40.276Z
 **Resume file:** None
 
 ## Decisions
@@ -75,6 +75,9 @@ See: `.planning/PROJECT.md` (updated 2026-03-24)
 - [Phase 05-06]: TopNav.tsx (not Navbar.tsx) is the actual nav component — plan referenced wrong filename
 - [Phase 05-06]: dispute:voted patches React Query cache directly for immediate tally updates without refetch round-trip
 - [Phase 05-06]: UAT issue 1 (date/time picker UX gap) deferred to separate gap closure plan; issues 2+3 addressed by 05-07 LLM settings redesign
+- [Phase 05-08]: D-11 payout: proportional BP pool split replaces flat +1 bp; per-position TP average replaces time-based formula
+- [Phase 05-07]: GET /api/config/llm-available reads OPENROUTER_API_KEY from env; never exposes the value — only bool presence
+- [Phase 05-07]: Settings page defaults to 'disabled' when platform key unavailable to avoid broken default mode
 
 ## Performance Metrics
 
@@ -97,6 +100,8 @@ See: `.planning/PROJECT.md` (updated 2026-03-24)
 | Phase 05 P04 | 15min | 2 tasks | 4 files |
 | Phase 05 P05 | 10min | 2 tasks | 4 files |
 | Phase 05 P06 | 8min | 2 tasks | 2 files |
+| Phase 05 P08 | 6min | 1 tasks | 2 files |
+| Phase 05 P07 | 5min | 2 tasks | 7 files |
 
 ## Session History
 
