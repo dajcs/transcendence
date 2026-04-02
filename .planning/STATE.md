@@ -4,12 +4,12 @@ milestone: v21.0
 milestone_name: milestone
 current_plan: 1
 status: Executing Phase 05
-last_updated: "2026-04-02T08:02:35.861Z"
+last_updated: "2026-04-02T08:33:33.712Z"
 progress:
   total_phases: 5
-  completed_phases: 4
-  total_plans: 27
-  completed_plans: 27
+  completed_phases: 3
+  total_plans: 29
+  completed_plans: 28
 ---
 
 # Project State
@@ -25,7 +25,7 @@ See: `.planning/PROJECT.md` (updated 2026-03-24)
 
 **Phase:** 03 complete → 04 next
 **Current Plan:** 1
-**Last session:** 2026-04-02T08:02:35.840Z
+**Last session:** 2026-04-02T08:33:33.689Z
 **Resume file:** None
 
 ## Decisions
@@ -79,6 +79,8 @@ See: `.planning/PROJECT.md` (updated 2026-03-24)
 - [Phase 05-07]: GET /api/config/llm-available reads OPENROUTER_API_KEY from env; never exposes the value — only bool presence
 - [Phase 05-07]: Settings page defaults to 'disabled' when platform key unavailable to avoid broken default mode
 - [Phase 05-09]: deadlineDate/deadlineTime derived inline via split('T') — no new useState added; IIFE scopes derivations without polluting component scope
+- [Phase 05-10]: check_auto_resolution delegates to resolve_market_at_deadline via send_task — isolates each bet's processing and stays idempotent
+- [Phase 05-10]: Fallback beat complements per-bet ETA: catches markets whose ETA tasks were lost on worker restart or broker flush
 
 ## Performance Metrics
 
@@ -104,6 +106,7 @@ See: `.planning/PROJECT.md` (updated 2026-03-24)
 | Phase 05 P08 | 6min | 1 tasks | 2 files |
 | Phase 05 P07 | 5min | 2 tasks | 7 files |
 | Phase 05 P09 | 3min | 1 tasks | 1 files |
+| Phase 05 P10 | 5min | 2 tasks | 3 files |
 
 ## Session History
 

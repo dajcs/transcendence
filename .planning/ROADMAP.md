@@ -145,7 +145,7 @@ Plans:
 
 **42 modules:** LLM interface (2pts)
 
-**Plans:** 11 plans (8 complete + 2 gap closure pending + 1 in progress)
+**Plans:** 10/11 plans executed
 
 Plans:
 - [x] 05-01-PLAN.md — Wave 0: test scaffolds (test_resolution.py, test_llm.py, fake_redis fixture)
@@ -157,7 +157,7 @@ Plans:
 - [x] 05-07-PLAN.md — Gap closure: LLM settings redesign (migration 012, config endpoint, conditional platform-default, model field, profile cogwheel)
 - [x] 05-08-PLAN.md — Gap closure: payout formula fix (proportional BP pool split, per-position averaged TP)
 - [x] 05-09-PLAN.md — Gap closure: deadline input UX fix (split datetime-local into date + time inputs)
-- [ ] 05-10-PLAN.md — Gap closure: add check_auto_resolution fallback beat task (RES-01 safety net)
+- [x] 05-10-PLAN.md — Gap closure: add check_auto_resolution fallback beat task (RES-01 safety net)
 - [ ] 05-11-PLAN.md — Gap closure: align RES-04/RES-06 spec text + fix asyncio decorator warnings
 
 ---
