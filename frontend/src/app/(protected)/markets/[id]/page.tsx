@@ -9,6 +9,7 @@ import { useAuthStore } from "@/store/auth";
 import { useSocketStore } from "@/store/socket";
 import type { BetPosition, BetPositionsListResponse, Comment, Market, ResolutionState } from "@/lib/types";
 import UserLink from "@/components/UserLink";
+import ReactMarkdown from 'react-markdown';
 
 function estimateRefund(position: { side: string }, market: Market): { bp: number; reason: string } {
   if (market.market_type === "numeric") {
@@ -569,7 +570,7 @@ export default function MarketDetailPage() {
                       </button>
                       {hint && (
                         <div className="rounded bg-blue-50 border border-blue-200 p-2 text-sm text-blue-900">
-                          {hint}
+                          <div className="prose prose-sm max-w-none"><ReactMarkdown>{hint}</ReactMarkdown></div>
                         </div>
                       )}
                     </div>
@@ -861,7 +862,7 @@ export default function MarketDetailPage() {
               {summary ? (
                 <div className="rounded bg-gray-50 border border-gray-200 p-3 text-sm text-gray-800 space-y-1">
                   <p className="text-xs font-medium text-gray-500">AI Summary</p>
-                  <p>{summary}</p>
+                  <div className="prose prose-sm max-w-none"><ReactMarkdown>{summary}</ReactMarkdown></div>
                   <button onClick={() => setSummary(null)} className="text-xs text-blue-600 hover:underline">
                     Refresh
                   </button>
