@@ -53,7 +53,7 @@ completed: 2026-04-01
 - **Duration:** 8 min
 - **Started:** 2026-04-01T21:30:00Z
 - **Completed:** 2026-04-01T21:38:00Z
-- **Tasks:** 2 auto + 1 checkpoint (human-verify pending)
+- **Tasks:** 2 auto + 1 checkpoint (human-verify complete — 3 issues found, tracked)
 - **Files modified:** 2
 
 ## Accomplishments
@@ -97,13 +97,36 @@ completed: 2026-04-01
 ## Issues Encountered
 None beyond the file path deviation above.
 
+## UAT Results (Human Verification — Task 3)
+
+Human verification completed. Three issues found across the full Phase 5 feature set (plans 01–06):
+
+### Issue 1 — Calendar date picker: time entry requires manual typing
+- **Severity:** UX gap
+- **Description:** The market creation date picker allows selecting a date visually but time must be typed manually; no time-picker widget is present.
+- **Resolution:** Deferred to a separate gap closure plan (not covered by 05-07 or 05-08). Needs its own plan before Phase 6.
+- **Affects:** Market creation UX only; no backend impact.
+
+### Issue 2 — Settings page "Disabled" option returns "Failed to save" error
+- **Severity:** Bug (functional)
+- **Description:** Selecting "Disabled" for LLM opt-out in the settings page returns a "Failed to save" error rather than persisting the value.
+- **Resolution:** Addressed by plan **05-07** (LLM settings redesign — migration 012, config endpoint redesign, conditional platform-default logic).
+
+### Issue 3 — LLM "my own API key" missing OpenRouter provider option and model field
+- **Severity:** Feature gap
+- **Description:** The settings page LLM section allows entering an API key but lacks an OpenRouter provider selector and a separate model name field.
+- **Resolution:** Addressed by plan **05-07** (D-15 redesign — provider dropdown + model field added to settings).
+
+**UAT verdict:** Plan 05-06 deliverables (socket wiring, Settings nav) function correctly. Issues 2 and 3 are pre-existing gaps in 05-05 settings implementation, targeted by 05-07. Issue 1 needs a gap closure plan.
+
 ## User Setup Required
 None - no external service configuration required.
 
 ## Next Phase Readiness
-- All Phase 5 Plans 01-06 auto tasks complete
-- Human verification checkpoint (Task 3) is pending — user must run `docker compose up --build` and test full resolution lifecycle
-- After checkpoint approval, plans 05-07 and 05-08 (gap closure) can proceed
+- All Phase 5 Plans 01-06 complete (auto tasks done, checkpoint resolved)
+- Plans 05-07 (LLM settings redesign) and 05-08 (payout formula fix) are the remaining gap closure plans
+- UAT issues 2 and 3 fully addressed by 05-07
+- UAT issue 1 (date/time picker UX) needs a separate gap closure plan before Phase 6
 
 ---
 *Phase: 05-intelligence-resolution*

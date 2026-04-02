@@ -4,7 +4,7 @@ milestone: v21.0
 milestone_name: milestone
 current_plan: 1
 status: Executing Phase 05
-last_updated: "2026-04-01T21:32:07.009Z"
+last_updated: "2026-04-02T07:49:54.128Z"
 progress:
   total_phases: 5
   completed_phases: 3
@@ -25,7 +25,7 @@ See: `.planning/PROJECT.md` (updated 2026-03-24)
 
 **Phase:** 03 complete → 04 next
 **Current Plan:** 1
-**Last session:** 2026-04-01T21:32:06.976Z
+**Last session:** 2026-04-02T07:49:48.192Z
 **Resume file:** None
 
 ## Decisions
@@ -74,6 +74,7 @@ See: `.planning/PROJECT.md` (updated 2026-03-24)
 - [Phase 05-hotfix]: Dispute button myPosition guard removed — backend enforces 403; frontend shows error inline so button is always visible on proposer_resolved markets
 - [Phase 05-06]: TopNav.tsx (not Navbar.tsx) is the actual nav component — plan referenced wrong filename
 - [Phase 05-06]: dispute:voted patches React Query cache directly for immediate tally updates without refetch round-trip
+- [Phase 05-06]: UAT issue 1 (date/time picker UX gap) deferred to separate gap closure plan; issues 2+3 addressed by 05-07 LLM settings redesign
 
 ## Performance Metrics
 
