@@ -49,6 +49,40 @@ def compute_proposer_penalty(staked: float) -> float:
     return max(0.0, math.floor(staked * 0.5))
 
 
+async def _compute_tp_for_user(
+    db: AsyncSession,
+    bet_id: uuid.UUID,
+    user_id: uuid.UUID,
+    winning_side: str,
+    total_winning_stake: float,
+) -> float:
+    """D-11 TP formula: per-position tp, losers earn 0, final = average across all positions.
+
+    For each active position:
+      winning: tp_i = floor(bp_staked / total_winning_stake * 100) / 100
+      losing:  tp_i = 0
+    Returns sum(tp_i) / count(positions). Returns 0.0 if user has no positions.
+    """
+    result = await db.execute(
+        select(BetPosition.side, BetPosition.bp_staked).where(
+            BetPosition.bet_id == bet_id,
+            BetPosition.user_id == user_id,
+            BetPosition.withdrawn_at.is_(None),
+        )
+    )
+    positions = result.all()
+    if not positions:
+        return 0.0
+    tp_values = []
+    for side, bp_staked in positions:
+        if side == winning_side and total_winning_stake > 0:
+            tp_i = math.floor(float(bp_staked) / total_winning_stake * 100) / 100
+        else:
+            tp_i = 0.0
+        tp_values.append(tp_i)
+    return sum(tp_values) / len(tp_values)
+
+
 async def _get_proposer_staked(db: AsyncSession, bet_id: uuid.UUID, proposer_id: uuid.UUID) -> float:
     """Sum of bp staked by proposer on active positions for this bet."""
     result = await db.execute(
@@ -118,32 +152,52 @@ async def trigger_payout(
         bet.closed_at = datetime.now(timezone.utc)
         await db.flush()
 
-        # Find all active winners (not withdrawn)
-        winners_result = await db.execute(
-            select(BetPosition.user_id).where(
+        # D-11 BP payout: compute total pool and winning stake
+        total_pool_result = await db.execute(
+            select(func.sum(BetPosition.bp_staked)).where(
+                BetPosition.bet_id == bet_id,
+                BetPosition.withdrawn_at.is_(None),
+            )
+        )
+        total_bp_pool = float(total_pool_result.scalar_one() or 0)
+
+        winning_stake_result = await db.execute(
+            select(func.sum(BetPosition.bp_staked)).where(
                 BetPosition.bet_id == bet_id,
                 BetPosition.side == outcome,
                 BetPosition.withdrawn_at.is_(None),
             )
         )
-        winner_ids = list(winners_result.scalars().all())
+        total_winning_stake = float(winning_stake_result.scalar_one() or 0)
 
-        t_bet = (bet.deadline - bet.created_at).total_seconds()
+        # Collect distinct winner user IDs with their aggregated winning stake
+        winners_result = await db.execute(
+            select(BetPosition.user_id, func.sum(BetPosition.bp_staked).label("user_stake")).where(
+                BetPosition.bet_id == bet_id,
+                BetPosition.side == outcome,
+                BetPosition.withdrawn_at.is_(None),
+            ).group_by(BetPosition.user_id)
+        )
+        winner_rows = winners_result.all()  # list of (user_id, user_winning_stake)
+
         payout_count = 0
+        for winner_id, user_winning_stake in winner_rows:
+            # BP: proportional share of total pool (D-11)
+            if total_winning_stake > 0:
+                winner_bp = math.floor(float(user_winning_stake) / total_winning_stake * total_bp_pool)
+            else:
+                winner_bp = 0
+            if winner_bp > 0:
+                await credit_bp(db, winner_id, float(winner_bp), "bet_win", bet_id=bet_id)
 
-        for winner_id in winner_ids:
-            # +1 bp per winner (RES-06)
-            await credit_bp(db, winner_id, 1.0, "bet_win", bet_id=bet_id)
-
-            # tp = floor(t_win / t_bet * 100) / 100 (RES-06)
-            t_win = await _compute_t_win(db, bet_id, winner_id, outcome, bet.deadline)
-            tp = compute_tp_earned(t_win, t_bet)
+            # TP: per-position average (D-11)
+            tp = await _compute_tp_for_user(db, bet_id, winner_id, outcome, total_winning_stake)
             if tp > 0:
                 db.add(TpTransaction(user_id=winner_id, amount=tp, bet_id=bet_id))
                 await db.flush()
             payout_count += 1
 
-        # Proposer penalty if overturned (RES-05)
+        # Proposer penalty if overturned (RES-05) — unchanged
         penalty_applied = 0.0
         if overturned:
             staked = await _get_proposer_staked(db, bet_id, bet.proposer_id)
