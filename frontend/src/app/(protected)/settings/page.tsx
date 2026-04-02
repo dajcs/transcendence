@@ -10,12 +10,13 @@ type LlmProvider = "anthropic" | "openai" | "gemini" | "grok";
 interface LlmSettings {
   llm_mode: LlmMode;
   llm_provider: LlmProvider | null;
+  llm_model: string | null;
   llm_api_key_set: boolean;
 }
 
 const PROVIDERS: { id: LlmProvider; label: string }[] = [
-  { id: "anthropic", label: "Anthropic (Claude)" },
   { id: "openai",    label: "OpenAI (GPT)" },
+  { id: "anthropic", label: "Anthropic (Claude)" },
   { id: "gemini",    label: "Google Gemini" },
   { id: "grok",      label: "xAI Grok" },
 ];
@@ -23,22 +24,32 @@ const PROVIDERS: { id: LlmProvider; label: string }[] = [
 export default function SettingsPage() {
   const queryClient = useQueryClient();
 
+  const { data: availData } = useQuery<{ available: boolean }>({
+    queryKey: ["llm-available"],
+    queryFn: async () => (await api.get("/api/config/llm-available")).data,
+  });
+  const llmAvailable = availData?.available ?? false;
+
   const { data, isLoading } = useQuery<LlmSettings>({
     queryKey: ["llm-settings"],
     queryFn: async () => (await api.get("/api/users/me")).data,
   });
 
-  const [mode, setMode] = useState<LlmMode>("default");
+  const [mode, setMode] = useState<LlmMode>("disabled");
   const [provider, setProvider] = useState<LlmProvider>("openai");
   const [apiKey, setApiKey] = useState("");
+  const [model, setModel] = useState("");
   const [keyPlaceholder, setKeyPlaceholder] = useState("Enter API key");
 
   useEffect(() => {
     if (!data) return;
-    setMode(data.llm_mode);
+    // If platform key unavailable and mode was "default", switch to "disabled"
+    const effectiveMode = (!llmAvailable && data.llm_mode === "default") ? "disabled" : data.llm_mode;
+    setMode(effectiveMode);
     setProvider(data.llm_provider ?? "openai");
+    setModel(data.llm_model ?? "");
     setKeyPlaceholder(data.llm_api_key_set ? "API key saved — enter new key to replace" : "Enter API key");
-  }, [data]);
+  }, [data, llmAvailable]);
 
   const save = useMutation({
     mutationFn: async () => {
@@ -46,6 +57,7 @@ export default function SettingsPage() {
       if (mode === "custom") {
         body.llm_provider = provider;
         if (apiKey) body.llm_api_key = apiKey;
+        body.llm_model = model;
       }
       return (await api.patch("/api/users/me", body)).data;
     },
@@ -68,30 +80,52 @@ export default function SettingsPage() {
         </p>
 
         <div className="space-y-2">
-          {(["default", "custom", "disabled"] as LlmMode[]).map((m) => (
-            <label key={m} className="flex items-start gap-3 cursor-pointer">
+          {llmAvailable && (
+            <label className="flex items-start gap-3 cursor-pointer">
               <input
                 type="radio"
                 name="llm_mode"
-                value={m}
-                checked={mode === m}
-                onChange={() => setMode(m)}
+                value="default"
+                checked={mode === "default"}
+                onChange={() => setMode("default")}
                 className="mt-0.5"
               />
               <div>
-                <p className="text-sm font-medium text-gray-800">
-                  {m === "default"  && "Platform default (free, via OpenRouter)"}
-                  {m === "custom"   && "My own API key"}
-                  {m === "disabled" && "Disabled — hide AI features"}
-                </p>
-                <p className="text-xs text-gray-500">
-                  {m === "default"  && "Uses the platform's shared key. Subject to daily limits."}
-                  {m === "custom"   && "Requests go directly to your provider. No daily limits applied."}
-                  {m === "disabled" && "Summarize and AI suggestion buttons will not appear."}
-                </p>
+                <p className="text-sm font-medium text-gray-800">Platform default (free, via OpenRouter)</p>
+                <p className="text-xs text-gray-500">Uses the platform&apos;s shared key. Subject to daily limits.</p>
               </div>
             </label>
-          ))}
+          )}
+
+          <label className="flex items-start gap-3 cursor-pointer">
+            <input
+              type="radio"
+              name="llm_mode"
+              value="disabled"
+              checked={mode === "disabled"}
+              onChange={() => setMode("disabled")}
+              className="mt-0.5"
+            />
+            <div>
+              <p className="text-sm font-medium text-gray-800">Disabled — hide AI features</p>
+              <p className="text-xs text-gray-500">Summarize and AI suggestion buttons will not appear.</p>
+            </div>
+          </label>
+
+          <label className="flex items-start gap-3 cursor-pointer">
+            <input
+              type="radio"
+              name="llm_mode"
+              value="custom"
+              checked={mode === "custom"}
+              onChange={() => setMode("custom")}
+              className="mt-0.5"
+            />
+            <div>
+              <p className="text-sm font-medium text-gray-800">My own API key</p>
+              <p className="text-xs text-gray-500">Requests go directly to your provider. No daily limits applied.</p>
+            </div>
+          </label>
         </div>
 
         {mode === "custom" && (
@@ -120,6 +154,18 @@ export default function SettingsPage() {
               />
               <p className="mt-1 text-xs text-gray-400">Stored on the server. Never shared.</p>
             </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Model</label>
+              <input
+                type="text"
+                value={model}
+                onChange={(e) => setModel(e.target.value)}
+                placeholder="e.g. gpt-4o-mini, claude-3-haiku-20240307"
+                className="w-full rounded border border-gray-300 px-3 py-1.5 text-sm"
+                autoComplete="off"
+              />
+              <p className="mt-1 text-xs text-gray-400">Model name for your provider&apos;s API.</p>
+            </div>
           </div>
         )}
 
@@ -130,7 +176,7 @@ export default function SettingsPage() {
         >
           {save.isPending ? "Saving…" : "Save settings"}
         </button>
-        {save.isError  && <p className="text-sm text-red-600">Failed to save.</p>}
+        {save.isError   && <p className="text-sm text-red-600">Failed to save.</p>}
         {save.isSuccess && <p className="text-sm text-green-600">Settings saved.</p>}
       </section>
     </div>
