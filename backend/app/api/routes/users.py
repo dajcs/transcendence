@@ -37,6 +37,7 @@ class UpdateUserRequest(BaseModel):
     llm_mode: str | None = None
     llm_provider: str | None = None
     llm_api_key: str | None = None  # empty string clears the key
+    llm_model: str | None = None
 
 
 @router.get("/me")
@@ -49,6 +50,7 @@ async def get_my_settings(
     return {
         "llm_mode": user.llm_mode,
         "llm_provider": user.llm_provider,
+        "llm_model": user.llm_model,
         "llm_api_key_set": bool(user.llm_api_key),
     }
 
@@ -71,8 +73,10 @@ async def patch_my_settings(
         user.llm_provider = data.llm_provider
     if data.llm_api_key is not None:
         user.llm_api_key = data.llm_api_key or None  # empty string → NULL
+    if data.llm_model is not None:
+        user.llm_model = data.llm_model or None  # empty string → NULL
     await db.commit()
-    return {"ok": True, "llm_mode": user.llm_mode, "llm_provider": user.llm_provider, "llm_api_key_set": bool(user.llm_api_key)}
+    return {"ok": True, "llm_mode": user.llm_mode, "llm_provider": user.llm_provider, "llm_model": user.llm_model, "llm_api_key_set": bool(user.llm_api_key)}
 
 
 @router.put("/me", response_model=PublicProfileResponse)

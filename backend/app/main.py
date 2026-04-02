@@ -8,6 +8,7 @@ from app.api.routes.auth import router as auth_router
 from app.api.routes.bets import router as bets_router
 from app.api.routes.chat import router as chat_router
 from app.api.routes.comments import router as comments_router
+from app.api.routes.config import router as config_router
 from app.api.routes.friends import router as friends_router
 from app.api.routes.llm import router as llm_router
 from app.api.routes.resolution import router as resolution_router
@@ -39,6 +40,7 @@ app.include_router(markets_router, prefix="/api/markets", tags=["markets"])
 app.include_router(bets_router, prefix="/api/bets", tags=["bets"])
 app.include_router(chat_router, prefix="/api/chat", tags=["chat"])
 app.include_router(comments_router, prefix="/api", tags=["comments"])
+app.include_router(config_router, prefix="/api", tags=["config"])
 app.include_router(friends_router, prefix="/api/friends", tags=["friends"])
 app.include_router(notifications_router, prefix="/api/notifications", tags=["notifications"])
 app.include_router(users_router, prefix="/api/users", tags=["users"])
