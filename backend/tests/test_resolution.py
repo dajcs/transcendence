@@ -7,8 +7,6 @@ from datetime import datetime, timedelta, timezone
 
 import pytest
 
-pytestmark = pytest.mark.asyncio
-
 
 # RES-01: Open-Meteo condition mapping
 @pytest.mark.xfail(reason="resolution_service not yet implemented", strict=False)
@@ -25,6 +23,7 @@ def test_open_meteo_mapping():
 
 
 # RES-02: Proposer resolution endpoint sets status and creates Resolution record
+@pytest.mark.asyncio
 @pytest.mark.xfail(reason="resolution routes not yet implemented", strict=False)
 async def test_proposer_resolve(client, db):
     from app.db.models.bet import Bet, Resolution
@@ -42,6 +41,7 @@ async def test_proposer_resolve(client, db):
 
 
 # RES-03: Dispute flow (open, vote, close)
+@pytest.mark.asyncio
 @pytest.mark.xfail(reason="resolution routes not yet implemented", strict=False)
 async def test_dispute_flow(client, db):
     # Full flow tested in plan 04 integration tests; scaffold verifies route exists
@@ -66,6 +66,7 @@ def test_vote_weights():
 
 
 # RES-05: Proposer penalty in payout when resolution overturned
+@pytest.mark.asyncio
 @pytest.mark.xfail(reason="resolution_service not yet implemented", strict=False)
 async def test_proposer_penalty(db_session):
     from app.services.resolution_service import compute_proposer_penalty
@@ -142,3 +143,12 @@ def test_d11_tp_per_position_formula():
         tp_values_single.append(tp_i)
     user_tp_single = sum(tp_values_single) / len(tp_values_single)
     assert user_tp_single == 0.40
+
+
+def test_beat_schedule_has_check_auto_resolution():
+    """Verify check_auto_resolution is registered in the Celery beat schedule."""
+    from app.workers.celery_app import celery_app
+    schedule = celery_app.conf.beat_schedule
+    assert "check-auto-resolution-every-5min" in schedule
+    entry = schedule["check-auto-resolution-every-5min"]
+    assert entry["task"] == "app.workers.tasks.resolution.check_auto_resolution"
