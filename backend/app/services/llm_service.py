@@ -93,16 +93,18 @@ async def _track_spend(redis: aioredis.Redis, usage: dict) -> None:
 
 
 _PROVIDER_URLS = {
-    "openai": "https://api.openai.com/v1/chat/completions",
-    "grok":   "https://api.x.ai/v1/chat/completions",
-    "gemini": "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent",
-    "anthropic": "https://api.anthropic.com/v1/messages",
+    "openai":     "https://api.openai.com/v1/chat/completions",
+    "openrouter": "https://openrouter.ai/api/v1/chat/completions",
+    "grok":       "https://api.x.ai/v1/chat/completions",
+    "gemini":     "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent",
+    "anthropic":  "https://api.anthropic.com/v1/messages",
 }
 _PROVIDER_MODELS = {
-    "openai": "gpt-4o-mini",
-    "grok":   "grok-2-latest",
-    "gemini": "gemini-1.5-flash",
-    "anthropic": "claude-3-haiku-20240307",
+    "openai":     "gpt-4o-mini",
+    "openrouter": "openai/gpt-4o-mini",
+    "grok":       "grok-2-latest",
+    "gemini":     "gemini-1.5-flash",
+    "anthropic":  "claude-3-haiku-20240307",
 }
 
 
@@ -110,10 +112,11 @@ async def call_custom_provider(
     messages: list[dict[str, Any]],
     provider: str,
     api_key: str,
+    model_override: str | None = None,
 ) -> str | None:
     """Call a user-supplied provider API. Returns text or None on failure."""
     url = _PROVIDER_URLS.get(provider)
-    model = _PROVIDER_MODELS.get(provider)
+    model = model_override or _PROVIDER_MODELS.get(provider)
     if not url or not model:
         return None
     try:

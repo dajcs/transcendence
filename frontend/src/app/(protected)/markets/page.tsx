@@ -54,8 +54,8 @@ function MarketCard({ market }: { market: Market }) {
     >
       <div className="flex items-start justify-between gap-4">
         <div>
-          <p className="text-xs text-gray-500 mb-1">
-            by <span className="font-medium text-gray-700">@{market.proposer_username || "unknown"}</span>
+          <p className="text-xs font-medium text-gray-500 mb-1">
+            @{market.proposer_username || "unknown"}
           </p>
           <h2 className="text-lg font-semibold text-gray-900">{market.title}</h2>
           <p className="mt-1 text-sm text-gray-600">{market.description}</p>

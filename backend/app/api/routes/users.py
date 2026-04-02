@@ -30,7 +30,7 @@ async def _get_optional_user(request: Request, db: AsyncSession):
 
 
 _VALID_MODES = {"default", "disabled", "custom"}
-_VALID_PROVIDERS = {"anthropic", "openai", "gemini", "grok"}
+_VALID_PROVIDERS = {"anthropic", "openai", "gemini", "grok", "openrouter"}
 
 
 class UpdateUserRequest(BaseModel):

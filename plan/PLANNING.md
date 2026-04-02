@@ -289,7 +289,7 @@ OAUTH_42_CLIENT_SECRET=
 # === OpenRouter (LLM) ===
 OPENROUTER_API_KEY=
 OPENROUTER_BASE_URL=https://openrouter.ai/api/v1
-OPENROUTER_MODEL=anthropic/claude-sonnet-4
+OPENROUTER_MODEL=qwen/qwen3.6-plus:free
 
 # === Nginx ===
 DOMAIN=localhost
