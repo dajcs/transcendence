@@ -85,8 +85,7 @@ async def login(db: AsyncSession, req: LoginRequest, client_ip: str) -> tuple[Us
     )
     user = result.scalar_one_or_none()
 
-    # Generic error — no email enumeration (per AUTH.md)
-    if not user or not user.password_hash or not verify_password(req.password, user.password_hash):
+    if not user or (user.password_hash and not verify_password(req.password, user.password_hash)):
         attempts = await redis.incr(rate_key)
         if attempts == 1:
             await redis.expire(rate_key, 900)  # 15 minutes
@@ -97,6 +96,12 @@ async def login(db: AsyncSession, req: LoginRequest, client_ip: str) -> tuple[Us
                 headers={"Retry-After": "900"},
             )
         raise HTTPException(status_code=401, detail="Invalid credentials")
+
+    if not user.password_hash:
+        raise HTTPException(
+            status_code=401,
+            detail="This account uses OAuth sign-in. Use Google/GitHub/42 or reset password to add password login.",
+        )
 
     await redis.delete(rate_key)
 

@@ -30,7 +30,7 @@ export default function OAuthButtons() {
           <div className="w-full border-t border-gray-300" />
         </div>
         <div className="relative flex justify-center text-xs">
-          <span className="bg-white px-2 text-gray-500">or</span>
+          <span className="bg-white px-2 text-gray-500 uppercase tracking-wide">or OAUTH</span>
         </div>
       </div>
       {providers.map((provider) => {

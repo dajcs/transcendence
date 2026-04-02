@@ -1,7 +1,6 @@
 "use client";
 
 import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
@@ -18,23 +17,60 @@ const schema = z.object({
 
 type FormData = z.infer<typeof schema>;
 
+function normalizeRegisterError(err: unknown): string {
+  const detail = (err as { response?: { data?: { detail?: unknown } } })?.response?.data?.detail;
+
+  if (typeof detail === "string") {
+    return detail;
+  }
+
+  if (Array.isArray(detail)) {
+    const first = detail[0] as { msg?: unknown } | undefined;
+    if (first && typeof first.msg === "string") {
+      return first.msg;
+    }
+    return "Registration failed";
+  }
+
+  if (detail && typeof detail === "object") {
+    const maybeMsg = (detail as { msg?: unknown }).msg;
+    if (typeof maybeMsg === "string") {
+      return maybeMsg;
+    }
+  }
+
+  return "Registration failed";
+}
+
 export default function RegisterForm() {
   const router = useRouter();
   const {
     register,
     handleSubmit,
+    clearErrors,
     setError,
     formState: { errors, isSubmitting },
-  } = useForm<FormData>({ resolver: zodResolver(schema) });
+  } = useForm<FormData>();
 
   const onSubmit = async (data: FormData) => {
+    clearErrors();
+
+    const validation = schema.safeParse(data);
+    if (!validation.success) {
+      for (const issue of validation.error.issues) {
+        const field = issue.path[0];
+        if (field === "email" || field === "username" || field === "password") {
+          setError(field, { message: issue.message });
+        }
+      }
+      return;
+    }
+
     try {
       await api.post("/api/auth/register", data);
       router.push("/login?registered=1");
     } catch (err: unknown) {
-      const msg =
-        (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ??
-        "Registration failed";
+      const msg = normalizeRegisterError(err);
       setError("root", { message: msg });
     }
   };
