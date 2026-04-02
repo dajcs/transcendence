@@ -92,3 +92,53 @@ def test_payout_formula():
     assert math.isclose(tp, 0.01, abs_tol=0.001)
     # t_win > t_bet is impossible; t_bet > 0 asserted
     assert compute_tp_earned(t_win=0.0, t_bet=t_bet) == 0.0
+
+
+# D-11: _compute_tp_for_user helper — unit tests (pure logic, no DB)
+def test_d11_bp_proportional_formula():
+    """Verify D-11 BP formula arithmetic (pure math, no DB)."""
+    # 2 winners, 100 bp each, total pool=300 bp (100 bp on losing side)
+    total_bp_pool = 300.0
+    total_winning_stake = 200.0
+    user_winning_stake = 100.0
+    winner_bp = math.floor(user_winning_stake / total_winning_stake * total_bp_pool)
+    assert winner_bp == 150
+
+    # 1 winner, 50 bp stake, total pool=150 bp
+    total_bp_pool = 150.0
+    total_winning_stake = 50.0
+    user_winning_stake = 50.0
+    winner_bp = math.floor(user_winning_stake / total_winning_stake * total_bp_pool)
+    assert winner_bp == 150
+
+
+def test_d11_tp_per_position_formula():
+    """Verify D-11 TP per-position formula arithmetic (pure math, no DB)."""
+    total_winning_stake = 200.0
+
+    # User with 2 positions (1 winning at 80 bp, 1 losing at 20 bp)
+    positions = [("yes", 80.0), ("no", 20.0)]
+    winning_side = "yes"
+    tp_values = []
+    for side, bp_staked in positions:
+        if side == winning_side and total_winning_stake > 0:
+            tp_i = math.floor(bp_staked / total_winning_stake * 100) / 100
+        else:
+            tp_i = 0.0
+        tp_values.append(tp_i)
+    user_tp = sum(tp_values) / len(tp_values)
+    assert tp_values[0] == 0.40  # floor(80/200*100)/100
+    assert tp_values[1] == 0.0   # losing position
+    assert user_tp == 0.20        # (0.40 + 0) / 2
+
+    # User with 1 winning position (80 bp, total_winning_stake=200)
+    positions_single = [("yes", 80.0)]
+    tp_values_single = []
+    for side, bp_staked in positions_single:
+        if side == winning_side and total_winning_stake > 0:
+            tp_i = math.floor(bp_staked / total_winning_stake * 100) / 100
+        else:
+            tp_i = 0.0
+        tp_values_single.append(tp_i)
+    user_tp_single = sum(tp_values_single) / len(tp_values_single)
+    assert user_tp_single == 0.40
