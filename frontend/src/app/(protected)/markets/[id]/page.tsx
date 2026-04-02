@@ -79,6 +79,12 @@ export default function MarketDetailPage() {
     enabled: !!marketId && !!marketQuery.data && marketQuery.data.status !== "open",
   });
 
+  const llmSettingsQuery = useQuery<{ llm_mode: string }>({
+    queryKey: ["llm-settings"],
+    queryFn: async () => (await api.get("/api/users/me")).data,
+  });
+  const aiEnabled = llmSettingsQuery.data?.llm_mode !== "disabled";
+
   // Join bet room on mount, leave on unmount (D-12)
   useEffect(() => {
     if (!socket || !marketId) return;
@@ -545,27 +551,29 @@ export default function MarketDetailPage() {
                   />
 
                   {/* AI suggestion inline */}
-                  <div className="space-y-2">
-                    <textarea
-                      value={evidenceText}
-                      onChange={(e) => setEvidenceText(e.target.value.slice(0, 500))}
-                      placeholder="Evidence for AI (max 500 chars)"
-                      className="w-full rounded border border-gray-300 px-3 py-2 text-sm"
-                      rows={2}
-                    />
-                    <button
-                      onClick={handleGetHint}
-                      disabled={hintLoading || !evidenceText.trim()}
-                      className="rounded border border-blue-300 px-3 py-1 text-sm text-blue-700 hover:bg-blue-50 disabled:opacity-50"
-                    >
-                      {hintLoading ? "Getting suggestion..." : "Get AI suggestion"}
-                    </button>
-                    {hint && (
-                      <div className="rounded bg-blue-50 border border-blue-200 p-2 text-sm text-blue-900">
-                        {hint}
-                      </div>
-                    )}
-                  </div>
+                  {aiEnabled && (
+                    <div className="space-y-2">
+                      <textarea
+                        value={evidenceText}
+                        onChange={(e) => setEvidenceText(e.target.value.slice(0, 500))}
+                        placeholder="Evidence for AI (max 500 chars)"
+                        className="w-full rounded border border-gray-300 px-3 py-2 text-sm"
+                        rows={2}
+                      />
+                      <button
+                        onClick={handleGetHint}
+                        disabled={hintLoading || !evidenceText.trim()}
+                        className="rounded border border-blue-300 px-3 py-1 text-sm text-blue-700 hover:bg-blue-50 disabled:opacity-50"
+                      >
+                        {hintLoading ? "Getting suggestion..." : "Get AI suggestion"}
+                      </button>
+                      {hint && (
+                        <div className="rounded bg-blue-50 border border-blue-200 p-2 text-sm text-blue-900">
+                          {hint}
+                        </div>
+                      )}
+                    </div>
+                  )}
 
                   <button
                     onClick={() => submitResolution.mutate()}
@@ -849,7 +857,7 @@ export default function MarketDetailPage() {
           <section className="rounded border border-gray-200 bg-white p-4">
             <h2 className="mb-3 text-lg font-semibold">Comments</h2>
             {/* LLM summary button — D-13 */}
-            <div className="mb-3">
+            {aiEnabled && <div className="mb-3">
               {summary ? (
                 <div className="rounded bg-gray-50 border border-gray-200 p-3 text-sm text-gray-800 space-y-1">
                   <p className="text-xs font-medium text-gray-500">AI Summary</p>
@@ -867,7 +875,7 @@ export default function MarketDetailPage() {
                   {summaryLoading ? "Summarizing..." : "Summarize discussion"}
                 </button>
               )}
-            </div>
+            </div>}
             <form onSubmit={onSubmitComment} className="mb-4 flex gap-2">
               <input
                 value={commentText}

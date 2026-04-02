@@ -10,6 +10,16 @@ import { useAuthStore } from "@/store/auth";
 
 type Tab = "my_bets" | "my_markets";
 
+function timeLeft(deadline: string): string {
+  const ms = new Date(deadline).getTime() - Date.now();
+  if (ms <= 0) return "closed";
+  const totalMins = Math.floor(ms / 60000);
+  if (totalMins < 60) return `${totalMins}m`;
+  const hours = Math.floor(totalMins / 60);
+  if (hours < 24) return `${hours}h ${totalMins % 60}m`;
+  return `${Math.ceil(ms / 86400000)}d`;
+}
+
 const CLOSED_STATUSES = new Set(["closed"]);
 
 function marketCardBg(status: string, isOwnMarket = false): string {
@@ -170,8 +180,7 @@ export default function DashboardPage() {
                       <p className="font-medium text-gray-900">{market.title}</p>
                       <p className="mt-1 text-sm text-gray-600">
                         deadline {new Date(market.deadline).toLocaleDateString()} ·{" "}
-                        closes in{" "}
-                        {Math.max(0, Math.ceil((new Date(market.deadline).getTime() - Date.now()) / 86400000))}d
+                        closes in {timeLeft(market.deadline)}
                       </p>
                       {badge && (
                         <span className={`mt-1 inline-block rounded px-2 py-0.5 text-xs font-semibold ${badge.cls}`}>

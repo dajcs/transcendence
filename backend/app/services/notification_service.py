@@ -162,18 +162,20 @@ async def notify_new_message(db: AsyncSession, to_user_id: uuid.UUID, from_usern
     })
 
 
-async def notify_bet_resolved(db: AsyncSession, user_id: uuid.UUID, market_title: str, outcome: str) -> None:
+async def notify_bet_resolved(db: AsyncSession, user_id: uuid.UUID, market_title: str, outcome: str, bet_id: str = "") -> None:
     """Notify user about bet resolution."""
     await create_notification(db, user_id, "bet_resolved", {
+        "bet_id": bet_id,
         "market_title": market_title,
         "outcome": outcome,
         "message": f"Market '{market_title}' resolved: {outcome}",
     })
 
 
-async def notify_bet_disputed(db: AsyncSession, user_id: uuid.UUID, market_title: str) -> None:
+async def notify_bet_disputed(db: AsyncSession, user_id: uuid.UUID, market_title: str, bet_id: str = "") -> None:
     """Notify user about bet dispute."""
     await create_notification(db, user_id, "bet_disputed", {
+        "bet_id": bet_id,
         "market_title": market_title,
         "message": f"Market '{market_title}' is being disputed",
     })

@@ -5,7 +5,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 
 type LlmMode = "default" | "disabled" | "custom";
-type LlmProvider = "anthropic" | "openai" | "gemini" | "grok";
+type LlmProvider = "anthropic" | "openai" | "gemini" | "grok" | "openrouter";
 
 interface LlmSettings {
   llm_mode: LlmMode;
@@ -15,10 +15,11 @@ interface LlmSettings {
 }
 
 const PROVIDERS: { id: LlmProvider; label: string }[] = [
-  { id: "openai",    label: "OpenAI (GPT)" },
-  { id: "anthropic", label: "Anthropic (Claude)" },
-  { id: "gemini",    label: "Google Gemini" },
-  { id: "grok",      label: "xAI Grok" },
+  { id: "openrouter", label: "OpenRouter (multi-model)" },
+  { id: "openai",     label: "OpenAI (GPT)" },
+  { id: "anthropic",  label: "Anthropic (Claude)" },
+  { id: "gemini",     label: "Google Gemini" },
+  { id: "grok",       label: "xAI Grok" },
 ];
 
 export default function SettingsPage() {
