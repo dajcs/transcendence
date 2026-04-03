@@ -1,0 +1,58 @@
+{
+  "version": "1.0",
+  "timestamp": "2026-04-01T15:11:53.173Z",
+  "phase": "05",
+  "phase_name": "intelligence-resolution",
+  "phase_dir": ".planning/phases/05-intelligence-resolution",
+  "plan": 6,
+  "task": 1,
+  "total_tasks": 1,
+  "status": "paused",
+  "completed_tasks": [
+    {"id": "05-01", "name": "Test scaffolds (xfail stubs)", "status": "done", "commit": "496086a"},
+    {"id": "05-02", "name": "Resolution service + migration 009", "status": "done", "commit": "a688ae1"},
+    {"id": "05-03", "name": "LLM service + routes", "status": "done", "commit": "2143861"},
+    {"id": "05-04", "name": "Celery resolution tasks + REST endpoints", "status": "done", "commit": "53cc8a8"},
+    {"id": "05-05", "name": "Resolution/dispute UI + LLM buttons + settings page", "status": "done", "commit": "cf28d00"},
+    {"id": "hotfix-6", "name": "Resolution 500 + pending_resolution badges + status colors", "status": "done", "commit": "61d0f00"},
+    {"id": "hotfix-7", "name": "Unified market status colors + dispute button", "status": "done", "commit": "5f6f153"},
+    {"id": "hotfix-8", "name": "Active positions include non-closed + dispute always visible", "status": "done", "commit": "3b6fb18"},
+    {"id": "hotfix-9", "name": "Hide Place Bet when not open + multichoice resolution error", "status": "done", "commit": "1fbe8f3"},
+    {"id": "hotfix-10", "name": "Tier 2.5 review window: accept/dispute voting + migration 011", "status": "done", "commit": "09adf38"},
+    {"id": "hotfix-11", "name": "Your Position hides withdraw/refund when not open; Community Vote opinion-based buttons; backend removes yes/no constraint, vote_weights dict, upsert cast_vote, user_vote in DisputeRecord", "status": "done", "commit": "34c702a"},
+    {"id": "hotfix-12", "name": "Replace 5-min Celery poll with per-market ETA task; per-dispute close_dispute_at_deadline callback; notify_resolution_due; dashboard URL tab; NotificationBell resolution_due", "status": "done", "commit": "81b2471"},
+    {"id": "hotfix-13", "name": "Community vote: active button green+bold+border, tally ordered with 0-weight entries, weight format (x.x), dispute close callback from _escalate_overdue_proposer", "status": "done", "commit": "785e2be"},
+    {"id": "hotfix-14", "name": "Vote weight bug fix: compare body.vote vs user position (not position vs resolution.outcome); all active buttons green+bold", "status": "done", "commit": "b94ede7"},
+    {"id": "hotfix-15", "name": "Numeric community vote: own vote+weight + bar chart; YES button red when voted NO; user_weight in DisputeRecord API + types", "status": "done", "commit": "f4e51ed"}
+  ],
+  "remaining_tasks": [
+    {
+      "id": "05-06",
+      "name": "Socket event wiring + Navbar /settings link",
+      "status": "not_started",
+      "description": "Wire bet:resolved, resolution:proposed, resolution:review_updated, dispute:opened, dispute:voted (update vote_weights live), dispute:closed on market detail page. Add /settings link to Navbar."
+    }
+  ],
+  "blockers": [],
+  "human_actions_pending": [
+    {
+      "action": "Browser-verify community vote UX: opinion buttons per market type, bar chart for numeric, (x.x) weight format, green active button, YES→red when voted NO, Your Position hides withdraw when market not open",
+      "context": "Multiple sessions of UI changes. Optionally test vote weight logic by checking 0.5/2.0/1.0 weights appear correctly based on position vs vote.",
+      "blocking": false
+    }
+  ],
+  "decisions": [
+    {"decision": "Tier 2.5 review window: >10% dispute threshold triggers Tier 3", "rationale": "User requested collective voting mechanic", "phase": "05"},
+    {"decision": "Community vote is opinion-based (what YOU think is correct), not agree/disagree with proposer", "rationale": "Redesign: multichoice/numeric can't be binary agree/disagree", "phase": "05"},
+    {"decision": "Vote weight: compare user VOTE vs user BET POSITION (match→0.5, differ→2.0, no position→1.0)", "rationale": "Bug fix — old code compared position vs resolution.outcome, wrong for users betting against proposed outcome", "phase": "05"},
+    {"decision": "vote_weights: Record<string, float> replaces yes_weight/no_weight throughout", "rationale": "Supports arbitrary outcome values for multichoice/numeric", "phase": "05"},
+    {"decision": "Dispute votes are upsert (changeable) — click another button to change", "rationale": "User-requested: voters should be able to revise opinion", "phase": "05"},
+    {"decision": "5-min Celery beat poll → per-market ETA task (resolve_market_at_deadline) at deadline+5min", "rationale": "Precise callback; proposer notified via bell when Tier 1 fails", "phase": "05"},
+    {"decision": "Per-dispute close_dispute_at_deadline ETA task at closes_at (48h from escalation)", "rationale": "Precise callback; 15-min poll retained as safety net", "phase": "05"},
+    {"decision": "Numeric community vote: own vote+weight display + bar chart of all votes", "rationale": "Continuous range can't list all possibilities; bar chart shows distribution", "phase": "05"},
+    {"decision": "Binary: YES button red when user voted NO (active=green, rejected=red)", "rationale": "Visual clarity of voted vs rejected option", "phase": "05"}
+  ],
+  "uncommitted_files": [],
+  "next_action": "Optional: browser verify community vote. Then /clear and /gsd:execute-phase 05 for plan 05-06 (socket wiring + navbar /settings link)",
+  "context_notes": "Two sessions of hotfixes on community vote UI + scheduling architecture. Tier 3 dispute is now a proper opinion poll with market-type-aware inputs, correct weight logic, bar chart for numeric. Scheduling replaced polling with exact-time ETA callbacks. 05-06 is the last plan — small (6 socket listeners + navbar link). After 05-06, run /gsd:verify-work."
+}

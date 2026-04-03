@@ -16,11 +16,14 @@ A lightweight prediction market designed to reduce the distortions introduced by
 cp .env.example .env   # fill in secrets
 make gen-keys          # Generate SSL cert + RSA key pair for JWT (run once)
 
+# optional seed data for testing:
+make seed               # creates test users, bets, and comments
+
 # Start all services with hot-reload (docker-compose.override.yml picked up automatically)
 make dev               # docker compose up --build
 ```
 
-Open `https://localhost:8443` in Google Chrome.
+Open [https://localhost:8443](https://localhost:8443) in your browser. Use the seeded test accounts or create a new one.
 
 
 ## Motivation

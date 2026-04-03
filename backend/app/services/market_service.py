@@ -1,11 +1,13 @@
 """Market (Bet) service — create, list, get."""
 import uuid
+from datetime import timedelta
 
 from fastapi import HTTPException
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models.bet import Bet, BetPosition, BetUpvote, Comment, Resolution
+from app.db.models.user import User
 from app.schemas.market import MarketCreate, MarketListResponse, MarketResponse
 from app.services.economy_service import deduct_bp, get_bet_odds
 
@@ -34,6 +36,21 @@ async def create_market(
     await db.commit()
     await db.refresh(bet)
 
+    proposer = (await db.execute(select(User).where(User.id == proposer_id))).scalar_one_or_none()
+    proposer_username = proposer.username if proposer else ""
+
+    # Schedule per-market resolution callback at deadline + 5 min grace
+    try:
+        from app.workers.celery_app import celery_app
+        eta = bet.deadline + timedelta(minutes=5)
+        celery_app.send_task(
+            "app.workers.tasks.resolution.resolve_market_at_deadline",
+            args=[str(bet.id)],
+            eta=eta,
+        )
+    except Exception:
+        pass  # celery unavailable in test/dev without worker
+
     return MarketResponse(
         id=bet.id,
         title=bet.title,
@@ -42,6 +59,7 @@ async def create_market(
         deadline=bet.deadline,
         status=bet.status,
         proposer_id=bet.proposer_id,
+        proposer_username=proposer_username,
         created_at=bet.created_at,
         market_type=bet.market_type,
         choices=bet.choices,
@@ -66,6 +84,7 @@ async def list_markets(
     sort_dir: str = "",
     status: str = "all",
     my_bets: bool = False,
+    my_markets: bool = False,
     user_id: uuid.UUID | None = None,
     q: str = "",
     include_desc: bool = False,
@@ -105,6 +124,10 @@ async def list_markets(
             )
         )
 
+    # My markets filter (markets created by user)
+    if my_markets and user_id:
+        query = query.where(Bet.proposer_id == user_id)
+
     # Search
     if q:
         term = f"%{q}%"
@@ -141,6 +164,14 @@ async def list_markets(
     rows = (await db.execute(query.offset(offset).limit(limit))).scalars().all()
     pages = max(1, (total + limit - 1) // limit)
 
+    proposer_ids = {row.proposer_id for row in rows}
+    username_map: dict[uuid.UUID, str] = {}
+    if proposer_ids:
+        uname_rows = (await db.execute(
+            select(User.id, User.username).where(User.id.in_(proposer_ids))
+        )).all()
+        username_map = {uid: uname for uid, uname in uname_rows}
+
     items: list[MarketResponse] = []
     for row in rows:
         odds = await get_bet_odds(db, row.id)
@@ -175,6 +206,7 @@ async def list_markets(
                 deadline=row.deadline,
                 status=row.status,
                 proposer_id=row.proposer_id,
+                proposer_username=username_map.get(row.proposer_id, ""),
                 created_at=row.created_at,
                 market_type=row.market_type,
                 choices=row.choices,
@@ -198,6 +230,9 @@ async def get_market(db: AsyncSession, market_id: uuid.UUID) -> MarketResponse:
     market = (await db.execute(select(Bet).where(Bet.id == market_id))).scalar_one_or_none()
     if market is None:
         raise HTTPException(status_code=404, detail="Market not found")
+
+    proposer = (await db.execute(select(User).where(User.id == market.proposer_id))).scalar_one_or_none()
+    proposer_username = proposer.username if proposer else ""
 
     odds = await get_bet_odds(db, market.id)
     position_count = (
@@ -231,6 +266,7 @@ async def get_market(db: AsyncSession, market_id: uuid.UUID) -> MarketResponse:
         deadline=market.deadline,
         status=market.status,
         proposer_id=market.proposer_id,
+        proposer_username=proposer_username,
         created_at=market.created_at,
         market_type=market.market_type,
         choices=market.choices,

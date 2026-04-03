@@ -61,6 +61,14 @@ def reset_redis_singleton():
 
 
 @pytest.fixture
+async def fake_redis():
+    """Async FakeRedis instance for LLM rate-limit and budget tests."""
+    r = FakeRedis()
+    yield r
+    await r.aclose()
+
+
+@pytest.fixture
 async def db_engine():
     engine = create_async_engine(
         "sqlite+aiosqlite:///:memory:",

@@ -40,12 +40,12 @@
 
 ### Resolution
 
-- [ ] **RES-01**: Tier 1 automatic resolution via configured API source at deadline
-- [ ] **RES-02**: Tier 2 proposer resolution with justification (within 7 days of deadline)
-- [ ] **RES-03**: Tier 3 community vote dispute (48h window, 1% participation minimum)
-- [ ] **RES-04**: Dispute vote weights: 0.5x (own winning side), 1x (neutral), 2x (own losing side)
-- [ ] **RES-05**: Proposer penalty: loses 50% staked bp if resolution overturned
-- [ ] **RES-06**: Winning bet pays +1 bp + tp (`t_win / t_bet`) to each winner
+- [x] **RES-01**: Tier 1 automatic resolution via configured API source at deadline
+- [x] **RES-02**: Tier 2 proposer resolution with justification (within 7 days of deadline)
+- [x] **RES-03**: Tier 3 community vote dispute (48h window, 1% participation minimum)
+- [x] **RES-04**: Dispute vote weights: 0.5x (voted same as own bet), 1x (no stake), 2x (voted against own bet)
+- [x] **RES-05**: Proposer penalty: loses 50% staked bp if resolution overturned
+- [x] **RES-06**: Winning bet pays proportional BP pool share + TP to each winner (D-11: `floor(user_stake / total_winning_stake * total_bp_pool)`)
 
 ### Social
 
@@ -63,10 +63,10 @@
 
 ### Intelligence
 
-- [ ] **LLM-01**: Bet thread summarizer (LLM generates neutral summary)
-- [ ] **LLM-02**: Resolution assistant (LLM suggests YES/NO for proposer)
-- [ ] **LLM-03**: Per-user daily limits enforced (5 summaries, 3 resolution assists)
-- [ ] **LLM-04**: Monthly budget cap with graceful degradation when exceeded
+- [x] **LLM-01**: Bet thread summarizer (LLM generates neutral summary)
+- [x] **LLM-02**: Resolution assistant (LLM suggests YES/NO for proposer)
+- [x] **LLM-03**: Per-user daily limits enforced (5 summaries, 3 resolution assists)
+- [x] **LLM-04**: Monthly budget cap with graceful degradation when exceeded
 
 ### Compliance & Polish
 

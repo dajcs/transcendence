@@ -1,5 +1,6 @@
 """User profile API routes: /api/users/*"""
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_db
@@ -26,6 +27,56 @@ async def _get_optional_user(request: Request, db: AsyncSession):
         return await auth_service.get_current_user(db, access_token)
     except HTTPException:
         return None
+
+
+_VALID_MODES = {"default", "disabled", "custom"}
+_VALID_PROVIDERS = {"anthropic", "openai", "gemini", "grok", "openrouter"}
+
+
+class UpdateUserRequest(BaseModel):
+    llm_mode: str | None = None
+    llm_provider: str | None = None
+    llm_api_key: str | None = None  # empty string clears the key
+    llm_model: str | None = None
+
+
+@router.get("/me")
+async def get_my_settings(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+):
+    """Get per-user LLM settings. API key is never returned, only whether it is set."""
+    user = await _get_current_user(request, db)
+    return {
+        "llm_mode": user.llm_mode,
+        "llm_provider": user.llm_provider,
+        "llm_model": user.llm_model,
+        "llm_api_key_set": bool(user.llm_api_key),
+    }
+
+
+@router.patch("/me")
+async def patch_my_settings(
+    data: UpdateUserRequest,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+):
+    """Update per-user LLM settings."""
+    user = await _get_current_user(request, db)
+    if data.llm_mode is not None:
+        if data.llm_mode not in _VALID_MODES:
+            raise HTTPException(status_code=422, detail=f"llm_mode must be one of {_VALID_MODES}")
+        user.llm_mode = data.llm_mode
+    if data.llm_provider is not None:
+        if data.llm_provider not in _VALID_PROVIDERS:
+            raise HTTPException(status_code=422, detail=f"llm_provider must be one of {_VALID_PROVIDERS}")
+        user.llm_provider = data.llm_provider
+    if data.llm_api_key is not None:
+        user.llm_api_key = data.llm_api_key or None  # empty string → NULL
+    if data.llm_model is not None:
+        user.llm_model = data.llm_model or None  # empty string → NULL
+    await db.commit()
+    return {"ok": True, "llm_mode": user.llm_mode, "llm_provider": user.llm_provider, "llm_model": user.llm_model, "llm_api_key_set": bool(user.llm_api_key)}
 
 
 @router.put("/me", response_model=PublicProfileResponse)

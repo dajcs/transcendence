@@ -5,13 +5,26 @@ import { useRouter } from "next/navigation";
 import { useNotificationStore } from "@/store/notifications";
 import { useSocketStore } from "@/store/socket";
 
-function parsePayload(payload: string | null): { message?: string } {
+function parsePayload(payload: string | null): { message?: string; bet_id?: string; market_id?: string } {
   if (!payload) return {};
   try {
     return JSON.parse(payload);
   } catch {
     return {};
   }
+}
+
+function getNotificationLink(type: string, data: { bet_id?: string; market_id?: string }): string | null {
+  if (type === "bet_resolved" || type === "bet_disputed") {
+    return data.bet_id ? `/markets/${data.bet_id}` : null;
+  }
+  if (type === "resolution_due") {
+    return data.market_id ? `/markets/${data.market_id}` : "/dashboard?tab=my_markets";
+  }
+  if (type === "friend_request") return "/friends?tab=received";
+  if (type === "friend_accepted") return "/friends";
+  if (type === "new_message") return "/chat";
+  return null;
 }
 
 const TYPE_LABELS: Record<string, string> = {
@@ -21,12 +34,7 @@ const TYPE_LABELS: Record<string, string> = {
   new_message: "New Message",
   bet_resolved: "Bet Resolved",
   bet_disputed: "Bet Disputed",
-};
-
-const NOTIFICATION_LINKS: Record<string, string> = {
-  friend_request: "/friends?tab=received",
-  friend_accepted: "/friends",
-  new_message: "/chat",
+  resolution_due: "Resolution Required",
 };
 
 export default function NotificationBell() {
@@ -65,6 +73,7 @@ export default function NotificationBell() {
     socket.on("notification:new_message", handler);
     socket.on("notification:bet_resolved", handler);
     socket.on("notification:bet_disputed", handler);
+    socket.on("notification:resolution_due", handler);
 
     return () => {
       socket.off("notification:friend_request", handler);
@@ -73,6 +82,7 @@ export default function NotificationBell() {
       socket.off("notification:new_message", handler);
       socket.off("notification:bet_resolved", handler);
       socket.off("notification:bet_disputed", handler);
+      socket.off("notification:resolution_due", handler);
     };
   }, [socket, fetchUnreadCount]);
 
@@ -153,7 +163,7 @@ export default function NotificationBell() {
                   }`}
                   onClick={() => {
                     if (!notif.is_read) markAsRead([notif.id]);
-                    const link = NOTIFICATION_LINKS[notif.type];
+                    const link = getNotificationLink(notif.type, data);
                     if (link) {
                       close();
                       if (notif.type === "friend_request") {

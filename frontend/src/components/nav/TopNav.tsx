@@ -49,6 +49,9 @@ export default function TopNav() {
             <Link href="/chat" className="text-sm text-blue-600 hover:underline">
               Chat
             </Link>
+            <Link href="/settings" className="text-sm text-blue-600 hover:underline">
+              Settings
+            </Link>
             <NotificationBell />
             <button
               onClick={handleLogout}

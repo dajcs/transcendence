@@ -12,9 +12,30 @@ function formatDeadline(deadline: string): string {
   return new Date(deadline).toLocaleString();
 }
 
+function marketCardBg(status: string, isOwnMarket = false): string {
+  if (status === "pending_resolution")
+    return isOwnMarket ? "border-red-300 bg-red-50" : "border-yellow-300 bg-yellow-50";
+  if (status === "proposer_resolved") return "border-blue-300 bg-blue-50";
+  if (status === "disputed") return "border-violet-300 bg-violet-50";
+  if (status === "closed") return "border-green-300 bg-green-50";
+  return "border-gray-200 bg-white";
+}
+
+function marketStatusBadge(status: string, isOwnMarket = false): { text: string; cls: string } | null {
+  if (status === "pending_resolution")
+    return isOwnMarket
+      ? { text: "Make Resolution", cls: "bg-red-200 text-red-800" }
+      : { text: "Pending Resolution", cls: "bg-yellow-200 text-yellow-800" };
+  if (status === "proposer_resolved") return { text: "Resolution Proposed", cls: "bg-blue-200 text-blue-800" };
+  if (status === "disputed") return { text: "Dispute Ongoing", cls: "bg-violet-200 text-violet-800" };
+  if (status === "closed") return { text: "Resolved", cls: "bg-green-200 text-green-800" };
+  return null;
+}
+
 function MarketCard({ market }: { market: Market }) {
   const queryClient = useQueryClient();
   const bootstrap = useAuthStore((s) => s.bootstrap);
+  const currentUser = useAuthStore((s) => s.user);
   const upvote = useMutation({
     mutationFn: () => api.post(`/api/markets/${market.id}/upvote`),
     onSuccess: async () => {
@@ -23,16 +44,27 @@ function MarketCard({ market }: { market: Market }) {
     },
   });
 
+  const isOwnMarket = currentUser?.id === market.proposer_id;
+  const badge = marketStatusBadge(market.status, isOwnMarket);
+
   return (
     <Link
       href={`/markets/${market.id}`}
-      className="block rounded border border-gray-200 bg-white p-4 hover:border-gray-300"
+      className={`block rounded border p-4 hover:border-gray-300 ${marketCardBg(market.status, isOwnMarket)}`}
     >
       <div className="flex items-start justify-between gap-4">
         <div>
+          <p className="text-xs font-medium text-gray-500 mb-1">
+            @{market.proposer_username || "unknown"}
+          </p>
           <h2 className="text-lg font-semibold text-gray-900">{market.title}</h2>
           <p className="mt-1 text-sm text-gray-600">{market.description}</p>
           <p className="mt-2 text-xs text-gray-500">Deadline: {formatDeadline(market.deadline)}</p>
+          {badge && (
+            <span className={`mt-2 inline-block rounded px-2 py-0.5 text-xs font-semibold ${badge.cls}`}>
+              {badge.text}
+            </span>
+          )}
         </div>
         <div className="shrink-0 flex flex-col items-end gap-1 text-right text-sm">
           {market.market_type === "binary" && (

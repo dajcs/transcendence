@@ -111,13 +111,34 @@ export default function NewMarketPage() {
 
         <div className="space-y-1">
           <label className="text-sm font-medium">Deadline</label>
-          <input
-            required
-            type="datetime-local"
-            value={deadline}
-            onChange={(e) => setDeadline(e.target.value)}
-            className="w-full rounded border border-gray-300 px-3 py-2 text-sm"
-          />
+          {(() => {
+            const deadlineDate = deadline.split("T")[0] ?? "";
+            const deadlineTime = deadline.split("T")[1] ?? "12:00";
+            return (
+              <div className="flex gap-2">
+                <div className="flex-1 space-y-0.5">
+                  <label className="text-xs text-gray-500">Date</label>
+                  <input
+                    required
+                    type="date"
+                    value={deadlineDate}
+                    onChange={(e) => setDeadline(`${e.target.value}T${deadlineTime}`)}
+                    className="w-full rounded border border-gray-300 px-3 py-2 text-sm"
+                  />
+                </div>
+                <div className="flex-1 space-y-0.5">
+                  <label className="text-xs text-gray-500">Time</label>
+                  <input
+                    required
+                    type="time"
+                    value={deadlineTime}
+                    onChange={(e) => setDeadline(`${deadlineDate}T${e.target.value}`)}
+                    className="w-full rounded border border-gray-300 px-3 py-2 text-sm"
+                  />
+                </div>
+              </div>
+            );
+          })()}
         </div>
 
         <div className="space-y-1">

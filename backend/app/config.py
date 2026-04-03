@@ -45,6 +45,7 @@ class Settings(BaseSettings):
     # LLM
     openrouter_api_key: str = ""
     llm_monthly_budget_usd: float = 20.0
+    openrouter_model: str = "openai/gpt-4o-mini"
 
     # Misc
     allowed_hosts: str = "localhost"

@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v21.0
 milestone_name: milestone
-current_plan: 1
-status: "Phase 04 shipped — PR #11"
-last_updated: "2026-03-29T15:53:57.897Z"
+current_plan: Not started
+status: Milestone complete
+last_updated: "2026-04-02T22:17:43.242Z"
 progress:
-  total_phases: 4
-  completed_phases: 3
-  total_plans: 18
-  completed_plans: 18
+  total_phases: 5
+  completed_phases: 4
+  total_plans: 31
+  completed_plans: 31
 ---
 
 # Project State
@@ -19,13 +19,13 @@ progress:
 See: `.planning/PROJECT.md` (updated 2026-03-24)
 
 **Core value:** Users can bet on real-world outcomes, argue their position, and earn a verifiable reputation score — without real money.
-**Current focus:** Phase 04 — real-time
+**Current focus:** Phase 05 — intelligence-resolution
 
 ## Current Status
 
-**Phase:** 03 complete → 04 next
-**Current Plan:** 1
-**Last session:** 2026-03-28T23:36:48.945Z
+**Phase:** 05
+**Current Plan:** Not started
+**Last session:** 2026-04-02T21:57:16.478Z
 **Resume file:** None
 
 ## Decisions
@@ -57,6 +57,34 @@ See: `.planning/PROJECT.md` (updated 2026-03-24)
 - [Phase 04]: Socket connects with withCredentials: true, no auth token field — D-04 httpOnly cookie constraint
 - [Phase 04-01]: importlib.import_module used in main.py to register socket events without shadowing FastAPI app variable
 - [Phase 04-01]: cors_allowed_origins=[] on AsyncServer singleton — Nginx handles CORS, wildcard conflicts with withCredentials cookie auth
+- [Phase 05]: Community vote button style: active = green+bold+border-2; inactive options = violet (matches multichoice display); binary voted-NO turns YES red (rejected)
+- [Phase 05]: Replaced collection-breaking test_llm.py with xfail stubs where service imports are inside test bodies — Wave 0 Nyquist compliance
+- [Phase 05-02]: TpTransaction has no reason field — omitted from constructor call (plan's sample code was incorrect)
+- [Phase 05-02]: Proposer penalty clamped to current balance to avoid 402 mid-payout transaction
+- [Phase 05-02]: Socket emit in trigger_payout fire-and-forget (try/except pass) so socket failure never rolls back payout
+- [Phase 05-03]: EXPIREAT (not EXPIRE) for rate limit keys ensures exact EOD UTC expiry regardless of creation time
+- [Phase 05-03]: Routes use cookie-based auth (_get_current_user from request cookies) — get_current_user not in deps.py
+- [Phase 05-04]: Tier 1 auto-resolution uses status='proposer_resolved' same as Tier 2 — only Resolution.tier differentiates them
+- [Phase 05-04]: Resolution routes use cookie-based auth (_get_current_user from request) — consistent with bets.py, no get_current_user in deps.py
+- [Phase 05-05]: GET /api/users/me added alongside PATCH — settings page needs to read current llm_opt_out value; route ordering before /{username} required for FastAPI priority
+- [Phase 05-05]: resolutionQuery enabled only when market.status !== open to avoid 404 on open markets (no resolution record yet)
+- [Phase 05-hotfix]: resolution.py async with db.begin() replaced with await db.commit() — SQLAlchemy 2.x autobegin on first query makes nested begin() raise InvalidRequestError
+- [Phase 05-hotfix]: list_positions active condition changed from market.status == "open" to market.status != "closed" — positions on pending_resolution/proposer_resolved/disputed markets must show in active list with status colors
+- [Phase 05-hotfix]: MarketCard status colors: open=white, pending_resolution=red(own)/yellow, proposer_resolved=blue, disputed=violet, closed=green — identical on /markets and /dashboard
+- [Phase 05-hotfix]: Dispute button myPosition guard removed — backend enforces 403; frontend shows error inline so button is always visible on proposer_resolved markets
+- [Phase 05-06]: TopNav.tsx (not Navbar.tsx) is the actual nav component — plan referenced wrong filename
+- [Phase 05-06]: dispute:voted patches React Query cache directly for immediate tally updates without refetch round-trip
+- [Phase 05-06]: UAT issue 1 (date/time picker UX gap) deferred to separate gap closure plan; issues 2+3 addressed by 05-07 LLM settings redesign
+- [Phase 05-08]: D-11 payout: proportional BP pool split replaces flat +1 bp; per-position TP average replaces time-based formula
+- [Phase 05-07]: GET /api/config/llm-available reads OPENROUTER_API_KEY from env; never exposes the value — only bool presence
+- [Phase 05-07]: Settings page defaults to 'disabled' when platform key unavailable to avoid broken default mode
+- [Phase 05-09]: deadlineDate/deadlineTime derived inline via split('T') — no new useState added; IIFE scopes derivations without polluting component scope
+- [Phase 05-10]: check_auto_resolution delegates to resolve_market_at_deadline via send_task — isolates each bet's processing and stays idempotent
+- [Phase 05-10]: Fallback beat complements per-bet ETA: catches markets whose ETA tasks were lost on worker restart or broker flush
+- [Phase 05-11]: vote-vs-position semantics for RES-04 documented as intentional design evolution from original spec
+- [Phase 05-11]: RES-06 formula now reflects D-11 proportional BP pool split, not the pre-D-11 flat +1bp formula
+- [Phase 05-12]: openrouter_model field added to Settings LLM block; pydantic-settings maps OPENROUTER_MODEL env var; _DEFAULT_MODEL retained as fallback in call_openrouter signature
+- [Phase 05]: react-markdown v10 className prop incompatibility: wrap in div with prose classes instead of passing className directly to ReactMarkdown component
 
 ## Performance Metrics
 
@@ -73,6 +101,19 @@ See: `.planning/PROJECT.md` (updated 2026-03-24)
 | Phase 02 P08 | 2 | 2 tasks | 4 files |
 | Phase 04 P03 | 3min | 2 tasks | 3 files |
 | Phase 04 P01 | 8min | 2 tasks | 8 files |
+| Phase 05 P01 | 8min | 2 tasks | 3 files |
+| Phase 05 P02 | 5min | 2 tasks | 4 files |
+| Phase 05 P03 | 12min | 2 tasks | 4 files |
+| Phase 05 P04 | 15min | 2 tasks | 4 files |
+| Phase 05 P05 | 10min | 2 tasks | 4 files |
+| Phase 05 P06 | 8min | 2 tasks | 2 files |
+| Phase 05 P08 | 6min | 1 tasks | 2 files |
+| Phase 05 P07 | 5min | 2 tasks | 7 files |
+| Phase 05 P09 | 3min | 1 tasks | 1 files |
+| Phase 05 P10 | 5min | 2 tasks | 3 files |
+| Phase 05 P11 | 5min | 2 tasks | 3 files |
+| Phase 05 P12 | 5min | 2 tasks | 2 files |
+| Phase 05 P13 | 4min | 2 tasks | 3 files |
 
 ## Session History
 
