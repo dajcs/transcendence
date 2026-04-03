@@ -59,6 +59,13 @@ export default function NotificationBell() {
     fetchUnreadCount();
   }, [fetchUnreadCount]);
 
+  // Request browser notification permission once on mount
+  useEffect(() => {
+    if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "default") {
+      Notification.requestPermission();
+    }
+  }, []);
+
   // Socket listener for new notification events (replaces 10s poll per D-10)
   useEffect(() => {
     if (!socket) return;
@@ -67,13 +74,25 @@ export default function NotificationBell() {
       fetchUnreadCount();
     };
 
+    const handleResolutionDue = (data: { payload?: string }) => {
+      fetchUnreadCount();
+      if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted") {
+        let title = "Resolution required";
+        try {
+          const payload = JSON.parse(data?.payload ?? "{}");
+          if (payload.market_title) title = `Resolve: ${payload.market_title}`;
+        } catch { /* ignore */ }
+        new Notification("Vox Populi", { body: title, icon: "/favicon.ico" });
+      }
+    };
+
     socket.on("notification:friend_request", handler);
     socket.on("notification:friend_accepted", handler);
     socket.on("notification:friend_removed", handler);
     socket.on("notification:new_message", handler);
     socket.on("notification:bet_resolved", handler);
     socket.on("notification:bet_disputed", handler);
-    socket.on("notification:resolution_due", handler);
+    socket.on("notification:resolution_due", handleResolutionDue);
 
     return () => {
       socket.off("notification:friend_request", handler);
@@ -82,7 +101,7 @@ export default function NotificationBell() {
       socket.off("notification:new_message", handler);
       socket.off("notification:bet_resolved", handler);
       socket.off("notification:bet_disputed", handler);
-      socket.off("notification:resolution_due", handler);
+      socket.off("notification:resolution_due", handleResolutionDue);
     };
   }, [socket, fetchUnreadCount]);
 
