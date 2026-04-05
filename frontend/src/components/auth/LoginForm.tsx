@@ -70,21 +70,22 @@ export default function LoginForm() {
         </p>
       )}
       <div>
-        <label className="block text-sm font-medium text-gray-700">Email or Username</label>
+        {/* <label className="block text-sm font-medium text-gray-700">Email or Username + Password</label> */}
         <input
           {...register("identifier")}
           type="text"
-          placeholder="Enter email or username"
+          placeholder="Email or Username"
           autoComplete="username"
           className="mt-1 block w-full border border-gray-300 rounded px-3 py-2 text-sm"
         />
         {errors.identifier && <p className="text-red-500 text-xs mt-1">{errors.identifier.message}</p>}
       </div>
       <div>
-        <label className="block text-sm font-medium text-gray-700">Password</label>
+        {/* <label className="block text-sm font-medium text-gray-700">Password</label> */}
         <input
           {...register("password")}
           type="password"
+          placeholder="Password"
           className="mt-1 block w-full border border-gray-300 rounded px-3 py-2 text-sm"
         />
         {errors.password && <p className="text-red-500 text-xs mt-1">{errors.password.message}</p>}
