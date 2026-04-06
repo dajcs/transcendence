@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models.transaction import BpTransaction, KpEvent
 from app.db.models.user import User
-from app.db.session import AsyncSessionLocal
+from app.db.session import make_task_session
 from app.workers.celery_app import celery_app
 
 
@@ -56,7 +56,7 @@ async def _run_allocation(db: AsyncSession | None = None) -> None:
         await _apply_daily_allocation(db, today)
         return
 
-    async with AsyncSessionLocal() as session:
+    async with make_task_session()() as session:
         await _apply_daily_allocation(session, today)
 
 

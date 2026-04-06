@@ -7,8 +7,9 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { useAuthStore } from "@/store/auth";
 import { useSocketStore } from "@/store/socket";
-import type { BetPosition, BetPositionsListResponse, Comment, Market } from "@/lib/types";
+import type { BetPosition, BetPositionsListResponse, Comment, Market, ResolutionState } from "@/lib/types";
 import UserLink from "@/components/UserLink";
+import ReactMarkdown from 'react-markdown';
 
 function estimateRefund(position: { side: string }, market: Market): { bp: number; reason: string } {
   if (market.market_type === "numeric") {
@@ -44,6 +45,16 @@ export default function MarketDetailPage() {
   const [showWithdrawConfirm, setShowWithdrawConfirm] = useState(false);
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [replyText, setReplyText] = useState("");
+  const [resolutionOutcome, setResolutionOutcome] = useState<string>("yes");
+  const [resolutionJustification, setResolutionJustification] = useState("");
+  const [evidenceText, setEvidenceText] = useState("");
+  const [hint, setHint] = useState<string | null>(null);
+  const [hintLoading, setHintLoading] = useState(false);
+  const [summary, setSummary] = useState<string | null>(null);
+  const [summaryLoading, setSummaryLoading] = useState(false);
+  const [payoutBanner, setPayoutBanner] = useState<string | null>(null);
+  const [voteOpinion, setVoteOpinion] = useState<string>("");
+  const currentUser = useAuthStore((s) => s.user);
 
   const positionsQuery = useQuery<BetPositionsListResponse>({
     queryKey: ["positions"],
@@ -63,6 +74,18 @@ export default function MarketDetailPage() {
     queryFn: async () => (await api.get(`/api/markets/${marketId}/comments`)).data,
   });
 
+  const resolutionQuery = useQuery<ResolutionState>({
+    queryKey: ["resolution", marketId],
+    queryFn: async () => (await api.get(`/api/bets/${marketId}/resolution`)).data,
+    enabled: !!marketId && !!marketQuery.data && marketQuery.data.status !== "open",
+  });
+
+  const llmSettingsQuery = useQuery<{ llm_mode: string }>({
+    queryKey: ["llm-settings"],
+    queryFn: async () => (await api.get("/api/users/me")).data,
+  });
+  const aiEnabled = llmSettingsQuery.data?.llm_mode !== "disabled";
+
   // Join bet room on mount, leave on unmount (D-12)
   useEffect(() => {
     if (!socket || !marketId) return;
@@ -81,15 +104,68 @@ export default function MarketDetailPage() {
       queryClient.invalidateQueries({ queryKey: ["comments", marketId] });
     };
 
+    // RT-03: Bet resolved — show payout banner, refresh state
+    const onBetResolved = (data: { bet_id: string; outcome: string; payout_summary: { winners: number; overturned: boolean } }) => {
+      queryClient.invalidateQueries({ queryKey: ["market", marketId] });
+      queryClient.invalidateQueries({ queryKey: ["resolution", marketId] });
+      queryClient.invalidateQueries({ queryKey: ["positions"] });
+      const msg = data.payout_summary.overturned
+        ? `Resolution overturned! Outcome: ${data.outcome.toUpperCase()}. ${data.payout_summary.winners} winner(s) paid.`
+        : `Bet resolved: ${data.outcome.toUpperCase()}. ${data.payout_summary.winners} winner(s) paid.`;
+      setPayoutBanner(msg);
+      bootstrap();
+    };
+
+    // RT-04: Dispute opened — refresh resolution section
+    const onDisputeOpened = () => {
+      queryClient.invalidateQueries({ queryKey: ["resolution", marketId] });
+      queryClient.invalidateQueries({ queryKey: ["market", marketId] });
+    };
+
+    // RT-05: Dispute vote cast — update tallies in cache directly
+    const onDisputeVoted = (data: { bet_id: string; vote_weights: Record<string, number> }) => {
+      queryClient.setQueryData(
+        ["resolution", marketId],
+        (old: { resolution: unknown; dispute: { vote_weights: Record<string, number> } | null } | undefined) =>
+          old?.dispute
+            ? { ...old, dispute: { ...old.dispute, vote_weights: data.vote_weights } }
+            : old
+      );
+    };
+
+    // RT-06: Dispute closed — refresh resolution and market
+    const onDisputeClosed = () => {
+      queryClient.invalidateQueries({ queryKey: ["resolution", marketId] });
+      queryClient.invalidateQueries({ queryKey: ["market", marketId] });
+    };
+
+    // RT-07: Status changed (pending_resolution, proposer_resolved, disputed) — refresh market
+    const onStatusChanged = (data: { bet_id: string; status: string }) => {
+      if (data.bet_id === marketId) {
+        queryClient.invalidateQueries({ queryKey: ["market", marketId] });
+        queryClient.invalidateQueries({ queryKey: ["resolution", marketId] });
+      }
+    };
+
     socket.on("bet:odds_updated", onOddsUpdated);
     socket.on("bet:comment_added", onCommentAdded);
+    socket.on("bet:resolved", onBetResolved);
+    socket.on("bet:status_changed", onStatusChanged);
+    socket.on("dispute:opened", onDisputeOpened);
+    socket.on("dispute:voted", onDisputeVoted);
+    socket.on("dispute:closed", onDisputeClosed);
 
     return () => {
       socket.emit("leave_bet", { bet_id: marketId });
       socket.off("bet:odds_updated", onOddsUpdated);
       socket.off("bet:comment_added", onCommentAdded);
+      socket.off("bet:resolved", onBetResolved);
+      socket.off("bet:status_changed", onStatusChanged);
+      socket.off("dispute:opened", onDisputeOpened);
+      socket.off("dispute:voted", onDisputeVoted);
+      socket.off("dispute:closed", onDisputeClosed);
     };
-  }, [socket, marketId, queryClient]);
+  }, [socket, marketId, queryClient, bootstrap]);
 
   const placeBet = useMutation({
     mutationFn: async () => (await api.post<BetPosition>("/api/bets", { bet_id: marketId, side })).data,
@@ -137,6 +213,81 @@ export default function MarketDetailPage() {
     },
   });
 
+  const submitResolution = useMutation({
+    mutationFn: async () =>
+      (await api.post(`/api/bets/${marketId}/resolve`, {
+        outcome: resolutionOutcome,
+        justification: resolutionJustification,
+      })).data,
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["market", marketId] });
+      await queryClient.invalidateQueries({ queryKey: ["resolution", marketId] });
+    },
+  });
+
+  const acceptResolution = useMutation({
+    mutationFn: async () => (await api.post(`/api/bets/${marketId}/accept-resolution`)).data,
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["resolution", marketId] });
+    },
+  });
+
+  const openDispute = useMutation({
+    mutationFn: async () => (await api.post(`/api/bets/${marketId}/dispute`)).data,
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["market", marketId] });
+      await queryClient.invalidateQueries({ queryKey: ["resolution", marketId] });
+      await bootstrap();
+    },
+  });
+
+  const castVote = useMutation({
+    mutationFn: async (vote: string) =>
+      (await api.post(`/api/bets/${marketId}/vote`, { vote })).data,
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["resolution", marketId] });
+    },
+  });
+
+  const handleGetHint = async () => {
+    if (!evidenceText.trim()) return;
+    setHintLoading(true);
+    try {
+      const resp = await api.post(`/api/bets/${marketId}/resolution-hint`, { evidence: evidenceText });
+      setHint(resp.data.hint ?? "No suggestion available.");
+    } catch (err: unknown) {
+      const status = (err as { response?: { status?: number } })?.response?.status;
+      if (status === 503) {
+        setHint("AI suggestion unavailable — monthly AI budget exceeded.");
+      } else if (status === 429) {
+        setHint("AI suggestion unavailable — daily limit (3) reached.");
+      } else {
+        setHint("AI suggestion unavailable.");
+      }
+    } finally {
+      setHintLoading(false);
+    }
+  };
+
+  const handleGetSummary = async () => {
+    setSummaryLoading(true);
+    try {
+      const resp = await api.post(`/api/bets/${marketId}/summary`);
+      setSummary(resp.data.summary ?? "Summary unavailable.");
+    } catch (err: unknown) {
+      const status = (err as { response?: { status?: number } })?.response?.status;
+      if (status === 503) {
+        setSummary("Summary unavailable — monthly AI budget exceeded.");
+      } else if (status === 429) {
+        setSummary("Summary unavailable — daily limit (5) reached.");
+      } else {
+        setSummary("Summary unavailable.");
+      }
+    } finally {
+      setSummaryLoading(false);
+    }
+  };
+
   const onSubmitComment = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!commentText.trim()) {
@@ -147,6 +298,15 @@ export default function MarketDetailPage() {
 
   const market = marketQuery.data;
   const refundEstimate = market && myPosition ? estimateRefund(myPosition, market) : null;
+  const deadlinePassed = market ? new Date(market.deadline) < new Date() : false;
+
+  // Seed outcome selector once market type is known
+  useEffect(() => {
+    if (!market) return;
+    if (market.market_type === "binary") setResolutionOutcome("yes");
+    else if (market.market_type === "multiple_choice") setResolutionOutcome(market.choices?.[0] ?? "");
+    else setResolutionOutcome("");
+  }, [market?.market_type]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const commentItems = commentsQuery.data ?? [];
   // Build depth map and children map for tree-ordered rendering
@@ -296,43 +456,375 @@ export default function MarketDetailPage() {
                   <>Side: <span className="font-medium">{myPosition.side.toUpperCase()}</span></>
                 )}
                 {" · "}Staked: <span className="font-medium">{myPosition.bp_staked} BP</span>
-                {" · "}Est. refund: <span className="font-medium">{refundEstimate!.bp} BP</span>
               </p>
-              {!showWithdrawConfirm ? (
-                <button
-                  onClick={() => setShowWithdrawConfirm(true)}
-                  className="mt-3 rounded border border-red-300 px-3 py-1 text-sm text-red-700 hover:bg-red-50"
-                >
-                  Withdraw
-                </button>
-              ) : (
-                <div className="mt-3 flex items-center gap-3 flex-wrap">
-                  <p className="text-sm text-red-700">
-                    Refund {refundEstimate!.bp} BP{" "}
-                    <span className="text-gray-500">({refundEstimate!.reason})</span>
-                  </p>
-                  <button
-                    onClick={() => withdrawBet.mutate(myPosition.id)}
-                    disabled={withdrawBet.isPending}
-                    className="rounded bg-red-600 px-3 py-1 text-sm text-white hover:bg-red-700 disabled:opacity-50"
-                  >
-                    {withdrawBet.isPending ? "Withdrawing..." : "Confirm"}
-                  </button>
-                  <button
-                    onClick={() => setShowWithdrawConfirm(false)}
-                    className="text-sm text-gray-600 hover:underline"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              )}
-              {withdrawBet.isError && (
-                <p className="mt-2 text-sm text-red-600">Withdrawal failed.</p>
+              {market.status === "open" && (
+                <>
+                  {!showWithdrawConfirm ? (
+                    <button
+                      onClick={() => setShowWithdrawConfirm(true)}
+                      className="mt-3 rounded border border-red-300 px-3 py-1 text-sm text-red-700 hover:bg-red-50"
+                    >
+                      Withdraw
+                    </button>
+                  ) : (
+                    <div className="mt-3 flex items-center gap-3 flex-wrap">
+                      <p className="text-sm text-red-700">
+                        Refund {refundEstimate!.bp} BP{" "}
+                        <span className="text-gray-500">({refundEstimate!.reason})</span>
+                      </p>
+                      <button
+                        onClick={() => withdrawBet.mutate(myPosition.id)}
+                        disabled={withdrawBet.isPending}
+                        className="rounded bg-red-600 px-3 py-1 text-sm text-white hover:bg-red-700 disabled:opacity-50"
+                      >
+                        {withdrawBet.isPending ? "Withdrawing..." : "Confirm"}
+                      </button>
+                      <button
+                        onClick={() => setShowWithdrawConfirm(false)}
+                        className="text-sm text-gray-600 hover:underline"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  )}
+                  {withdrawBet.isError && (
+                    <p className="mt-2 text-sm text-red-600">Withdrawal failed.</p>
+                  )}
+                </>
               )}
             </section>
           )}
 
-          {!myPosition && <section className="rounded border border-gray-200 bg-white p-4">
+          {/* ResolutionSection: visible when deadline passed or status is in resolution */}
+          {(deadlinePassed || market.status !== "open") && (
+            <section className="rounded border border-yellow-200 bg-yellow-50 p-4 space-y-3">
+              <h2 className="text-lg font-semibold text-yellow-900">Resolution</h2>
+
+              {/* Payout banner */}
+              {payoutBanner && (
+                <div className="rounded bg-green-100 border border-green-300 p-3 text-sm text-green-800">
+                  {payoutBanner}
+                </div>
+              )}
+
+              {/* Status display */}
+              <p className="text-sm text-yellow-800">
+                Status: <span className="font-medium capitalize">{market.status.replace(/_/g, " ")}</span>
+              </p>
+
+              {/* Proposer resolution form: visible to proposer when deadline passed and not yet closed */}
+              {(market.status === "pending_resolution" || (deadlinePassed && market.status === "open")) && currentUser?.id === market.proposer_id && (
+                <div className="space-y-3 border-t border-yellow-200 pt-3">
+                  <p className="text-sm font-medium text-yellow-900">Submit Resolution</p>
+
+                  {/* binary */}
+                  {market.market_type === "binary" && (
+                    <div className="flex gap-2">
+                      {["yes", "no"].map((opt) => (
+                        <button
+                          key={opt}
+                          onClick={() => setResolutionOutcome(opt)}
+                          className={`rounded px-3 py-1 text-sm ${resolutionOutcome === opt ? "bg-green-600 text-white" : "bg-gray-200"}`}
+                        >
+                          {opt.toUpperCase()}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* multiple choice */}
+                  {market.market_type === "multiple_choice" && market.choices && (
+                    <div className="flex flex-wrap gap-2">
+                      {market.choices.map((opt) => (
+                        <button
+                          key={opt}
+                          onClick={() => setResolutionOutcome(opt)}
+                          className={`rounded px-3 py-1 text-sm ${resolutionOutcome === opt ? "bg-green-600 text-white" : "bg-gray-200"}`}
+                        >
+                          {opt}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* numeric range */}
+                  {market.market_type === "numeric" && (
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="number"
+                        value={resolutionOutcome}
+                        onChange={(e) => setResolutionOutcome(e.target.value)}
+                        min={market.numeric_min ?? undefined}
+                        max={market.numeric_max ?? undefined}
+                        step="any"
+                        placeholder="Enter value"
+                        className="w-36 rounded border border-gray-300 px-3 py-1 text-sm"
+                      />
+                      {(market.numeric_min != null || market.numeric_max != null) && (
+                        <span className="text-xs text-gray-500">
+                          range: {market.numeric_min ?? "−∞"} – {market.numeric_max ?? "+∞"}
+                        </span>
+                      )}
+                    </div>
+                  )}
+                  <textarea
+                    value={resolutionJustification}
+                    onChange={(e) => setResolutionJustification(e.target.value)}
+                    placeholder="Justification (min 20 chars)"
+                    className="w-full rounded border border-gray-300 px-3 py-2 text-sm"
+                    rows={3}
+                  />
+
+                  {/* AI suggestion inline */}
+                  {aiEnabled && (
+                    <div className="space-y-2">
+                      <textarea
+                        value={evidenceText}
+                        onChange={(e) => setEvidenceText(e.target.value.slice(0, 500))}
+                        placeholder="Evidence for AI (max 500 chars)"
+                        className="w-full rounded border border-gray-300 px-3 py-2 text-sm"
+                        rows={2}
+                      />
+                      <button
+                        onClick={handleGetHint}
+                        disabled={hintLoading || !evidenceText.trim()}
+                        className="rounded border border-blue-300 px-3 py-1 text-sm text-blue-700 hover:bg-blue-50 disabled:opacity-50"
+                      >
+                        {hintLoading ? "Getting suggestion..." : "Get AI suggestion"}
+                      </button>
+                      {hint && (
+                        <div className="rounded bg-blue-50 border border-blue-200 p-2 text-sm text-blue-900">
+                          <div className="prose prose-sm max-w-none"><ReactMarkdown>{hint}</ReactMarkdown></div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  <button
+                    onClick={() => submitResolution.mutate()}
+                    disabled={submitResolution.isPending || resolutionJustification.length < 20}
+                    className="rounded bg-yellow-700 px-4 py-2 text-sm text-white hover:bg-yellow-800 disabled:opacity-50"
+                  >
+                    {submitResolution.isPending ? "Submitting..." : "Submit Resolution"}
+                  </button>
+                  {submitResolution.isError && (
+                    <p className="text-sm text-red-600">
+                      {(() => {
+                        const d = (submitResolution.error as { response?: { data?: { detail?: unknown } } })?.response?.data?.detail;
+                        if (!d) return "Failed to submit";
+                        if (typeof d === "string") return d;
+                        if (Array.isArray(d)) return (d as { msg: string }[]).map((e) => e.msg).join("; ");
+                        return "Failed to submit";
+                      })()}
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {/* Show existing resolution */}
+              {resolutionQuery.data?.resolution && (
+                <div className="border-t border-yellow-200 pt-3 text-sm text-yellow-800 space-y-1">
+                  <p>Outcome: <span className="font-bold uppercase">{resolutionQuery.data.resolution.outcome}</span></p>
+                  {resolutionQuery.data.resolution.justification && (
+                    <p className="text-xs text-yellow-700">{resolutionQuery.data.resolution.justification}</p>
+                  )}
+                  {resolutionQuery.data.resolution.overturned && (
+                    <p className="text-xs text-red-600 font-medium">Resolution was overturned by community vote</p>
+                  )}
+                </div>
+              )}
+            </section>
+          )}
+
+          {/* Review window: proposer_resolved — accept/dispute voting */}
+          {market.status === "proposer_resolved" && (
+            <section className="rounded border border-blue-200 bg-blue-50 p-4 space-y-3">
+              <h2 className="text-lg font-semibold text-blue-900">Resolution Proposed</h2>
+
+              {resolutionQuery.data?.review && (
+                <>
+                  <p className="text-sm text-blue-800">
+                    Time to finalize:{" "}
+                    <span className="font-medium">
+                      {(() => {
+                        const ms = new Date(resolutionQuery.data!.review!.closes_at).getTime() - Date.now();
+                        if (ms <= 0) return "window closed";
+                        const h = Math.floor(ms / 3600000);
+                        const m = Math.floor((ms % 3600000) / 60000);
+                        return h > 0 ? `${h}h ${m}m` : `${m}m`;
+                      })()}
+                    </span>
+                  </p>
+                  <p className="text-xs text-blue-600">
+                    {resolutionQuery.data.review.accept_count} accepted ·{" "}
+                    {resolutionQuery.data.review.dispute_count} disputed ·{" "}
+                    threshold {resolutionQuery.data.review.threshold} of {resolutionQuery.data.review.total_participants}
+                  </p>
+                </>
+              )}
+
+              {/* Proposer: no voting buttons */}
+              {currentUser?.id === market.proposer_id ? (
+                <p className="text-sm text-blue-700 italic">Awaiting participant review…</p>
+              ) : !myPosition ? (
+                <p className="text-sm text-blue-700 italic">Only participants can accept or dispute.</p>
+              ) : resolutionQuery.data?.review?.user_vote ? (
+                <p className="text-sm text-blue-700">
+                  You voted: <span className="font-semibold capitalize">{resolutionQuery.data.review.user_vote}</span>
+                </p>
+              ) : (
+                <div className="space-y-2">
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => acceptResolution.mutate()}
+                      disabled={acceptResolution.isPending || openDispute.isPending}
+                      className="rounded bg-green-600 px-4 py-2 text-sm text-white hover:bg-green-700 disabled:opacity-50"
+                    >
+                      {acceptResolution.isPending ? "Accepting…" : "Accept Resolution"}
+                    </button>
+                    <button
+                      onClick={() => openDispute.mutate()}
+                      disabled={openDispute.isPending || acceptResolution.isPending}
+                      className="rounded bg-violet-700 px-4 py-2 text-sm text-white hover:bg-violet-800 disabled:opacity-50"
+                    >
+                      {openDispute.isPending ? "Disputing…" : "Dispute Resolution"}
+                    </button>
+                  </div>
+                  <p className="text-xs text-blue-600">Dispute costs 1 BP · if &gt;{Math.round(10)}% dispute → community vote</p>
+                  {(acceptResolution.isError || openDispute.isError) && (
+                    <p className="text-sm text-red-600">
+                      {(((acceptResolution.error ?? openDispute.error) as { response?: { data?: { detail?: unknown } } })?.response?.data?.detail as string) ?? "Action failed"}
+                    </p>
+                  )}
+                </div>
+              )}
+            </section>
+          )}
+
+          {/* Tier 3 community dispute vote */}
+          {market.status === "disputed" && (
+            <section className="rounded border border-violet-200 bg-violet-50 p-4 space-y-3">
+              <h2 className="text-lg font-semibold text-violet-900">Community Vote</h2>
+              {resolutionQuery.data?.dispute ? (
+                <>
+                  <p className="text-sm text-violet-800">
+                    Window closes: {new Date(resolutionQuery.data.dispute.closes_at).toLocaleString()}
+                  </p>
+                  {/* Vote tally */}
+                  {market.market_type === "numeric" ? (() => {
+                    const dispute = resolutionQuery.data!.dispute!;
+                    const weights = dispute.vote_weights;
+                    const entries = Object.entries(weights).sort((a, b) => parseFloat(a[0]) - parseFloat(b[0]));
+                    const maxW = entries.length > 0 ? Math.max(...entries.map(([, w]) => w)) : 1;
+                    return (
+                      <div className="space-y-2">
+                        {dispute.user_vote !== null && (
+                          <p className="text-sm text-violet-800">
+                            Your vote: <span className="font-medium">{dispute.user_vote}</span>
+                            {" "}<span className="text-violet-500">({dispute.user_weight?.toFixed(1)})</span>
+                          </p>
+                        )}
+                        {entries.length > 0 && (
+                          <div className="space-y-1">
+                            <p className="text-xs text-violet-600 font-medium">Community</p>
+                            {entries.map(([val, w]) => (
+                              <div key={val} className="flex items-center gap-2 text-xs">
+                                <span className="w-16 text-right text-violet-700 shrink-0">{val}</span>
+                                <div className="flex-1 bg-violet-100 rounded-full h-3 overflow-hidden">
+                                  <div
+                                    className="h-full bg-violet-500 rounded-full"
+                                    style={{ width: `${(w / maxW) * 100}%` }}
+                                  />
+                                </div>
+                                <span className="w-10 text-violet-600 shrink-0">({w.toFixed(1)})</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })() : (() => {
+                    const weights = resolutionQuery.data!.dispute!.vote_weights;
+                    const outcomes = market.market_type === "binary" ? ["yes", "no"] : (market.choices ?? []);
+                    if (outcomes.length === 0) return null;
+                    return (
+                      <div className="flex gap-4 text-sm flex-wrap">
+                        {outcomes.map((o) => (
+                          <span key={o} className="text-violet-700">
+                            {o.toUpperCase()} <span className="font-medium">({(weights[o] ?? 0).toFixed(1)})</span>
+                          </span>
+                        ))}
+                      </div>
+                    );
+                  })()}
+                  {resolutionQuery.data.dispute.status === "open" && (
+                    <div className="space-y-2">
+                      <p className="text-sm font-medium text-violet-800">
+                        My Opinion
+                        {resolutionQuery.data.dispute.user_vote && (
+                          <span className="ml-2 text-xs text-violet-500 font-normal">
+                            (voted: {resolutionQuery.data.dispute.user_vote.toUpperCase()} — click another to change)
+                          </span>
+                        )}
+                      </p>
+                      {market.market_type === "binary" && (() => {
+                        const uv = resolutionQuery.data!.dispute!.user_vote;
+                        return (
+                          <div className="flex gap-2">
+                            {["yes", "no"].map((choice) => (
+                              <button key={choice} onClick={() => castVote.mutate(choice)} disabled={castVote.isPending}
+                                className={`rounded px-3 py-1 text-sm text-white disabled:opacity-50 ${uv === choice ? "bg-green-700 border-2 border-green-300 font-bold" : "bg-violet-600 hover:bg-violet-700"}`}>
+                                {choice.toUpperCase()}
+                              </button>
+                            ))}
+                          </div>
+                        );
+                      })()}
+                      {market.market_type === "multiple_choice" && (() => {
+                        const uv = resolutionQuery.data!.dispute!.user_vote;
+                        return (
+                          <div className="flex gap-2 flex-wrap">
+                            {(market.choices ?? []).map((choice) => (
+                              <button key={choice} onClick={() => castVote.mutate(choice)} disabled={castVote.isPending}
+                                className={`rounded px-3 py-1 text-sm text-white disabled:opacity-50 ${uv === choice ? "bg-green-700 border-2 border-green-300 font-bold" : "bg-violet-600 hover:bg-violet-700"}`}>
+                                {choice}
+                              </button>
+                            ))}
+                          </div>
+                        );
+                      })()}
+                      {market.market_type === "numeric" && (
+                        <div className="flex gap-2 items-center">
+                          <input
+                            type="number"
+                            min={market.numeric_min ?? undefined}
+                            max={market.numeric_max ?? undefined}
+                            step="any"
+                            value={voteOpinion}
+                            onChange={(e) => setVoteOpinion(e.target.value)}
+                            placeholder={resolutionQuery.data.dispute.user_vote ?? `${market.numeric_min ?? ""}–${market.numeric_max ?? ""}`}
+                            className="w-32 rounded border border-violet-300 px-2 py-1 text-sm"
+                          />
+                          <button
+                            onClick={() => { if (voteOpinion) castVote.mutate(voteOpinion); }}
+                            disabled={castVote.isPending || !voteOpinion}
+                            className="rounded bg-violet-600 px-3 py-1 text-sm text-white hover:bg-violet-700 disabled:opacity-50"
+                          >
+                            {resolutionQuery.data.dispute.user_vote ? "Change" : "Submit"}
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  {castVote.isError && <p className="text-sm text-red-600">Vote failed — you may have already voted.</p>}
+                </>
+              ) : (
+                <p className="text-sm text-violet-700">Loading dispute info…</p>
+              )}
+            </section>
+          )}
+
+          {!myPosition && market.status === "open" && <section className="rounded border border-gray-200 bg-white p-4">
             <h2 className="mb-3 text-lg font-semibold">Place Bet</h2>
             {market.market_type === "binary" && (
               <div className="mb-3 flex gap-2">
@@ -391,6 +883,26 @@ export default function MarketDetailPage() {
 
           <section className="rounded border border-gray-200 bg-white p-4">
             <h2 className="mb-3 text-lg font-semibold">Comments</h2>
+            {/* LLM summary button — D-13 */}
+            {aiEnabled && <div className="mb-3">
+              {summary ? (
+                <div className="rounded bg-gray-50 border border-gray-200 p-3 text-sm text-gray-800 space-y-1">
+                  <p className="text-xs font-medium text-gray-500">AI Summary</p>
+                  <div className="prose prose-sm max-w-none"><ReactMarkdown>{summary}</ReactMarkdown></div>
+                  <button onClick={() => setSummary(null)} className="text-xs text-blue-600 hover:underline">
+                    Refresh
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={handleGetSummary}
+                  disabled={summaryLoading}
+                  className="rounded border border-gray-300 px-3 py-1 text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-50"
+                >
+                  {summaryLoading ? "Summarizing..." : "Summarize discussion"}
+                </button>
+              )}
+            </div>}
             <form onSubmit={onSubmitComment} className="mb-4 flex gap-2">
               <input
                 value={commentText}

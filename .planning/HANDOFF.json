@@ -1,0 +1,70 @@
+{
+  "version": "1.0",
+  "timestamp": "2026-04-05T23:34:35.135Z",
+  "phase": "fix/logic",
+  "phase_name": "real-time UAT fixes",
+  "phase_dir": "fix/logic branch — no GSD phase dir (post-milestone UAT fixes)",
+  "plan": null,
+  "task": null,
+  "total_tasks": 3,
+  "status": "paused",
+  "completed_tasks": [
+    {
+      "id": 1,
+      "name": "Issue 1 — Market listing real-time status updates",
+      "status": "done",
+      "files": ["frontend/src/app/(protected)/markets/page.tsx"],
+      "summary": "Added bet:status_changed and bet:resolved socket listeners to MarketsPage; invalidates ['markets'] query on event so listing refreshes without a page click"
+    },
+    {
+      "id": 2,
+      "name": "Issue 2 — Deadline resolution delay (~5 min)",
+      "status": "done",
+      "files": ["backend/app/workers/celery_app.py", "backend/app/workers/tasks/resolution.py"],
+      "summary": "Changed check_auto_resolution beat from crontab(minute=*/5) to schedule=60.0 (every 60s); eliminated double-hop by calling _process_auto_resolution inline instead of re-enqueuing a task"
+    },
+    {
+      "id": 3,
+      "name": "Issue 3 — Browser notification click navigates to market",
+      "status": "done",
+      "files": ["frontend/src/components/NotificationBell.tsx"],
+      "summary": "Added onclick handler to new Notification() for resolution_due, bet_resolved, bet_disputed — calls window.focus() + router.push(/markets/{bet_id}); restructured handler order so showBrowserNotification is defined first"
+    }
+  ],
+  "remaining_tasks": [
+    {
+      "id": 4,
+      "name": "Human UAT test — verify all 3 fixes with docker compose up --build",
+      "status": "not_started"
+    }
+  ],
+  "blockers": [],
+  "human_actions_pending": [
+    {
+      "action": "Run docker compose up --build and perform UAT for all 3 issues",
+      "context": "(1) Open /markets in two tabs, wait for deadline — listing should update without clicking through; (2) status change should appear within ~1 min of deadline; (3) allow browser notifications, click one, confirm it opens the market detail page",
+      "blocking": true
+    }
+  ],
+  "decisions": [
+    {
+      "decision": "60-second polling interval for check_auto_resolution instead of 5-minute crontab",
+      "rationale": "crontab(*/5) fires at fixed clock minutes so worst case is ~5 min wait; schedule=60.0 fires every 60s from last run — max delay ~1 min",
+      "phase": "fix/logic"
+    },
+    {
+      "decision": "Inline resolution in check_auto_resolution instead of re-enqueueing resolve_market_at_deadline",
+      "rationale": "Removed double-hop (sweep enqueues task → worker picks up) which added extra queue latency. _process_auto_resolution has idempotency guard (status == open check)",
+      "phase": "fix/logic"
+    }
+  ],
+  "uncommitted_files": [
+    "backend/app/workers/celery_app.py",
+    "backend/app/workers/tasks/resolution.py",
+    "frontend/src/app/(protected)/markets/page.tsx",
+    "frontend/src/app/page.tsx",
+    "frontend/src/components/NotificationBell.tsx"
+  ],
+  "next_action": "Run docker compose up --build; test all 3 issues; if UAT passes, commit all files and update .planning/phases/05-intelligence-resolution/05-HUMAN-UAT.md test 4 result to 'pass' and status to 'resolved'",
+  "context_notes": "Branch: fix/logic. All 5 GSD phases complete. Post-milestone UAT session for phase 05. Outstanding UAT item was test 4 (Socket events reach browser from Celery). User ran manual test and found 3 sub-issues which are now fixed in code but not yet committed. The page.tsx homepage tagline change was already present before this session."
+}

@@ -236,7 +236,7 @@ async def list_positions(db: AsyncSession, user_id: uuid.UUID) -> BetPositionsLi
             yes_pct=float(odds["yes_pct"]),
             no_pct=float(odds["no_pct"]),
         )
-        if position.withdrawn_at is None and market.status == "open":
+        if position.withdrawn_at is None and market.status != "closed":
             active.append(record)
         else:
             resolved.append(record)

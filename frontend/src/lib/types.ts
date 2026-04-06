@@ -4,8 +4,9 @@ export interface Market {
   description: string;
   resolution_criteria: string;
   deadline: string;
-  status: "open" | "pending" | "closed";
+  status: "open" | "pending" | "pending_resolution" | "proposer_resolved" | "disputed" | "closed";
   proposer_id: string;
+  proposer_username: string;
   created_at: string;
   market_type: "binary" | "multiple_choice" | "numeric";
   choices: string[] | null;
@@ -71,4 +72,36 @@ export interface Comment {
 
 export interface ApiError {
   detail: string;
+}
+
+export interface ResolutionRecord {
+  tier: number;
+  outcome: string;
+  justification: string | null;
+  resolved_at: string;
+  overturned: boolean;
+}
+
+export interface DisputeRecord {
+  id: string;
+  status: "open" | "closed";
+  closes_at: string;
+  vote_weights: Record<string, number>;
+  user_vote: string | null;
+  user_weight: number | null;
+}
+
+export interface ReviewRecord {
+  accept_count: number;
+  dispute_count: number;
+  total_participants: number;
+  threshold: number;
+  user_vote: "accept" | "dispute" | null;
+  closes_at: string;
+}
+
+export interface ResolutionState {
+  resolution: ResolutionRecord | null;
+  dispute: DisputeRecord | null;
+  review: ReviewRecord | null;
 }

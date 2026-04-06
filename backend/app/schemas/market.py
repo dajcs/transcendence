@@ -64,6 +64,7 @@ class MarketResponse(BaseModel):
     deadline: datetime
     status: str
     proposer_id: uuid.UUID
+    proposer_username: str = ""
     created_at: datetime
     market_type: str = "binary"
     choices: list[str] | None = None

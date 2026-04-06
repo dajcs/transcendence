@@ -35,6 +35,7 @@ async def list_markets(
     sort_dir: str = Query(default="", pattern="^(asc|desc|)$"),
     status: str = Query(default="all", pattern="^(all|open|closed|resolved)$"),
     my_bets: bool = Query(default=False),
+    my_markets: bool = Query(default=False),
     q: str = Query(default=""),
     include_desc: bool = Query(default=False),
     page: int = Query(default=1, ge=1),
@@ -42,12 +43,12 @@ async def list_markets(
     db: AsyncSession = Depends(get_db),
 ):
     user_id = None
-    if my_bets:
+    if my_bets or my_markets:
         try:
             user = await _get_current_user(request, db)
             user_id = user.id
         except HTTPException:
-            raise HTTPException(status_code=401, detail="Login required for My Bets filter")
+            raise HTTPException(status_code=401, detail="Login required for this filter")
 
     return await market_service.list_markets(
         db,
@@ -55,6 +56,7 @@ async def list_markets(
         sort_dir=sort_dir,
         status=status,
         my_bets=my_bets,
+        my_markets=my_markets,
         user_id=user_id,
         q=q,
         include_desc=include_desc,

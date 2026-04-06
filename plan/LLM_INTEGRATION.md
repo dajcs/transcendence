@@ -13,23 +13,41 @@ No other LLM usage in v1.
 
 ## Provider
 
+Users choose one of three LLM modes in `/settings`:
+
+| Mode | Description |
+|------|-------------|
+| `default` | Platform-shared key via OpenRouter (free tier). Subject to per-user daily limits. |
+| `disabled` | All AI features hidden — summarize button and AI suggestion not rendered. |
+| `custom` | User supplies their own API key for a supported provider. No daily limits applied. |
+
+Stored in `users.llm_mode`, `users.llm_provider`, `users.llm_api_key` (migration 010).
+`GET /api/users/me` returns `llm_api_key_set: bool` — the key itself is never returned.
+
+### Platform default (`default` mode)
 - **OpenRouter** (`https://openrouter.ai/api/v1`)
-- Model preference (cheapest capable models):
-  - Default: `openai/gpt-oss-120b:free` (free)
-  - Fallback: `openai/gpt-oss-120b` (if free tier exhausted/not performing well)
-- API key stored in `.env` as `OPENROUTER_API_KEY`
+- Model: `openai/gpt-4o-mini` / fallback `openai/gpt-3.5-turbo`
+- API key in `.env` as `OPENROUTER_API_KEY`
+
+### User-supplied providers (`custom` mode)
+| Provider | Endpoint | Model |
+|----------|----------|-------|
+| `openai` | `https://api.openai.com/v1/chat/completions` | `gpt-4o-mini` |
+| `anthropic` | `https://api.anthropic.com/v1/messages` | `claude-3-haiku-20240307` |
+| `gemini` | `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent` | `gemini-1.5-flash` |
+| `grok` | `https://api.x.ai/v1/chat/completions` (OpenAI-compatible) | `grok-2-latest` |
 
 ---
 
 ## Usage Limits
 
-### Per-User
+### Per-User (applies to `default` mode only; `custom` mode bypasses limits)
 | Function | Limit |
 |---|---|
 | Market summary requests | 5 per user per day |
 | Resolution assistant requests | 3 per user per day |
 
-Limits tracked in Redis: `llm_usage:{function}:{user_id}:{date}` with TTL until end of UTC day.
+Limits tracked in Redis: `llm_usage:{function}:{user_id}:{date}` with `EXPIREAT` to next 00:00 UTC.
 
 ### Global Budget
 - Hard monthly cap: configurable via `LLM_MONTHLY_BUDGET_USD` env var (default: $20)
@@ -154,4 +172,4 @@ OpenRouter returns usage in response; use actual values, not estimates where pos
 
 ---
 
-*Last updated: 2026-03-24*
+*Last updated: 2026-03-31*

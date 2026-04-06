@@ -12,7 +12,13 @@ Users can bet on real-world outcomes, argue their position in discussion threads
 
 ### Validated
 
-(None yet — ship to validate)
+**Intelligence & Resolution** — Validated in Phase 05: intelligence-resolution
+- Tiered resolution (auto Celery ETA + beat fallback, proposer, community vote with weighted voting)
+- LLM via OpenRouter: thread summarizer + resolution assistant with rate limits (5/day summary, 3/day hint)
+- OPENROUTER_MODEL env var configures model at runtime (default: openai/gpt-4o-mini)
+- Monthly budget cap enforced via Redis; graceful 503 degradation on cap exceeded
+- AI responses rendered as markdown via react-markdown in market detail page
+- Prompt injection prevention (sanitized inputs, system-role isolation)
 
 ### Active
 

@@ -25,6 +25,7 @@ class Bet(Base):
     numeric_max: Mapped[float | None] = mapped_column(Float, nullable=True)
     status: Mapped[str] = mapped_column(Text, nullable=False, default="open")
     winning_side: Mapped[str | None] = mapped_column(Text, nullable=True)
+    celery_task_id: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     closed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
@@ -91,6 +92,20 @@ class DisputeVote(Base):
     voted_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
     __table_args__ = (UniqueConstraint("dispute_id", "user_id"),)
+
+
+class ResolutionReview(Base):
+    """Tracks per-user accept/dispute votes during the proposer_resolved 48h window."""
+
+    __tablename__ = "resolution_reviews"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    bet_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("bets.id"), nullable=False)
+    user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    vote: Mapped[str] = mapped_column(Text, nullable=False)  # 'accept' | 'dispute'
+    voted_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+    __table_args__ = (UniqueConstraint("bet_id", "user_id"),)
 
 
 class Comment(Base):

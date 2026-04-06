@@ -136,7 +136,7 @@ Plans:
 - LLM thread summarizer + resolution assistant (OpenRouter)
 - Budget caps, prompt injection prevention, opt-out setting
 
-**Requirements:** RES-01–06, LLM-01–04
+**Requirements:** RES-01–06, LLM-01–05, ECON-01
 
 **Canonical refs:**
 - `plan/RESOLUTION.md`
@@ -144,6 +144,23 @@ Plans:
 - `plan/ECONOMY.md` (payout formulas)
 
 **42 modules:** LLM interface (2pts)
+
+**Plans:** 13/13 plans complete
+
+Plans:
+- [x] 05-01-PLAN.md — Wave 0: test scaffolds (test_resolution.py, test_llm.py, fake_redis fixture)
+- [x] 05-02-PLAN.md — Migration 009 (llm_opt_out) + resolution_service.py (payout, vote weights, tp)
+- [x] 05-03-PLAN.md — LLM service (OpenRouter, rate-limit, budget cap) + LLM API routes
+- [x] 05-04-PLAN.md — Celery resolution tasks (auto-resolution, dispute deadlines) + REST routes
+- [x] 05-05-PLAN.md — Frontend: inline ResolutionSection, DisputeSection, LLM buttons, settings page
+- [x] 05-06-PLAN.md — Frontend: socket wiring (bet:resolved, dispute:*) + UAT checkpoint
+- [x] 05-07-PLAN.md — Gap closure: LLM settings redesign (migration 012, config endpoint, conditional platform-default, model field, profile cogwheel)
+- [x] 05-08-PLAN.md — Gap closure: payout formula fix (proportional BP pool split, per-position averaged TP)
+- [x] 05-09-PLAN.md — Gap closure: deadline input UX fix (split datetime-local into date + time inputs)
+- [x] 05-10-PLAN.md — Gap closure: add check_auto_resolution fallback beat task (RES-01 safety net)
+- [x] 05-11-PLAN.md — Gap closure: align RES-04/RES-06 spec text + fix asyncio decorator warnings
+- [x] 05-12-PLAN.md — Gap closure: wire OPENROUTER_MODEL env var through Settings to call_openrouter
+- [x] 05-13-PLAN.md — Gap closure: render AI summary and hint as markdown via react-markdown
 
 ---
 

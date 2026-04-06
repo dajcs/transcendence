@@ -26,20 +26,17 @@ async def create_notification(
     db.add(notif)
     await db.commit()
     await db.refresh(notif)
-    try:
-        from app.socket.server import sio
-        await sio.emit(
-            f"notification:{notif.type}",
-            {
-                "id": str(notif.id),
-                "type": notif.type,
-                "payload": notif.payload,
-                "created_at": notif.created_at.isoformat(),
-            },
-            room=f"user:{user_id}",
-        )
-    except Exception:
-        pass
+    from app.socket.server import celery_emit
+    await celery_emit(
+        f"notification:{notif.type}",
+        {
+            "id": str(notif.id),
+            "type": notif.type,
+            "payload": notif.payload,
+            "created_at": notif.created_at.isoformat(),
+        },
+        room=f"user:{user_id}",
+    )
     return notif
 
 
@@ -165,21 +162,51 @@ async def notify_new_message(db: AsyncSession, to_user_id: uuid.UUID, from_usern
     })
 
 
-async def notify_bet_resolved(db: AsyncSession, user_id: uuid.UUID, market_title: str, outcome: str) -> None:
+async def notify_bet_resolved(db: AsyncSession, user_id: uuid.UUID, market_title: str, outcome: str, bet_id: str = "") -> None:
     """Notify user about bet resolution."""
     await create_notification(db, user_id, "bet_resolved", {
+        "bet_id": bet_id,
         "market_title": market_title,
         "outcome": outcome,
         "message": f"Market '{market_title}' resolved: {outcome}",
     })
 
 
-async def notify_bet_disputed(db: AsyncSession, user_id: uuid.UUID, market_title: str) -> None:
+async def notify_bet_disputed(db: AsyncSession, user_id: uuid.UUID, market_title: str, bet_id: str = "") -> None:
     """Notify user about bet dispute."""
     await create_notification(db, user_id, "bet_disputed", {
+        "bet_id": bet_id,
         "market_title": market_title,
         "message": f"Market '{market_title}' is being disputed",
     })
+
+
+async def notify_resolution_due(db: AsyncSession, proposer_id: uuid.UUID, market_title: str, market_id: str) -> None:
+    """Notify market proposer that their market needs manual resolution.
+
+    Delivers three channels: bell (DB + socket), browser notification (client-side via socket),
+    and email (if SMTP configured).
+    """
+    await create_notification(db, proposer_id, "resolution_due", {
+        "market_title": market_title,
+        "market_id": market_id,
+        "message": f"'{market_title}' needs your resolution — deadline reached",
+        "link": f"/markets/{market_id}",
+    })
+
+    # Email channel — fire-and-forget, never block the resolution flow
+    try:
+        from app.db.models.user import User
+        from app.services.email_service import send_resolution_due_email
+        from app.config import settings
+
+        proposer = (await db.execute(select(User).where(User.id == proposer_id))).scalar_one_or_none()
+        if proposer and proposer.email:
+            market_url = f"{settings.oauth_redirect_base}/markets/{market_id}"
+            await send_resolution_due_email(proposer.email, market_title, market_url)
+    except Exception as exc:
+        import logging
+        logging.getLogger(__name__).warning("resolution_due email failed for %s: %s", proposer_id, exc)
 
 
 async def notify_friend_removed(db: AsyncSession, user_id: uuid.UUID, by_username: str) -> None:

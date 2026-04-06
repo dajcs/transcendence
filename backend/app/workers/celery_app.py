@@ -20,13 +20,22 @@ celery_app.conf.update(
         "daily-allocation-midnight-utc": {
             "task": "app.workers.tasks.daily.daily_allocation",
             "schedule": crontab(minute=0, hour=0),
-        }
+        },
+        "check-dispute-deadlines-every-15min": {
+            "task": "app.workers.tasks.resolution.check_dispute_deadlines",
+            "schedule": crontab(minute="*/15"),
+        },
+        "check-auto-resolution-every-1min": {
+            "task": "app.workers.tasks.resolution.check_auto_resolution",
+            "schedule": 60.0,
+        },
     },
 )
 
 celery_app.autodiscover_tasks(["app.workers.tasks"])
 
 import app.workers.tasks.daily  # noqa: E402,F401
+import app.workers.tasks.resolution  # noqa: E402,F401
 
 
 @celery_app.task

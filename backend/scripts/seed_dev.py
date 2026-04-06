@@ -1,12 +1,20 @@
 """Dev seed script.
 
-Creates 8 test users with markets, bets, upvotes, and comments.
+Creates 8 test users with markets, bets, upvotes, comments, friend relations,
+and direct chat messages.
 Password == username (bypasses API validation — direct DB insert).
 
 Run via: make seed
 Or: docker compose exec -e PYTHONPATH=/app backend uv run python scripts/seed_dev.py
 
 Safe to run multiple times — skips existing users/markets.
+
+Note:
+discard DB data:
+
+docker compose down -v
+
+to stop and remove compose stack + volumes
 """
 import asyncio
 import random
@@ -16,6 +24,7 @@ from datetime import datetime, timedelta, timezone
 from sqlalchemy import select
 
 from app.db.models.bet import Bet, BetPosition, BetUpvote, Comment, CommentUpvote
+from app.db.models.social import FriendRequest, Message
 from app.db.models.transaction import BpTransaction, KpEvent
 from app.db.models.user import User
 from app.db.session import AsyncSessionLocal
@@ -25,10 +34,13 @@ random.seed(42)
 
 TODAY = datetime.now(timezone.utc).date()
 
+# Deadlines: a few minutes out, a few hours out, a few days out
 DEADLINE_OFFSETS = [
-    timedelta(hours=3),
+    timedelta(minutes=5),
+    timedelta(minutes=10),
+    timedelta(hours=2),
+    timedelta(hours=6),
     timedelta(days=1),
-    timedelta(days=2),
     timedelta(days=3),
     timedelta(days=5),
 ]
@@ -43,6 +55,77 @@ SEED_USERS = [
     {"username": "gina",   "email": "gina@example.com"},
     {"username": "hugo",   "email": "hugo@example.com"},
 ]
+
+# Each user gets 2-3 accepted friends via these pairs.
+# alice: bob, claude, gina (3)   bob: alice, dave, hugo (3)
+# claude: alice, eve (2)         dave: bob, faust (2)
+# eve: claude, gina (2)          faust: dave, hugo (2)
+# gina: alice, eve (2)           hugo: bob, faust (2)
+FRIEND_PAIRS = [
+    ("alice", "bob"),
+    ("alice", "claude"),
+    ("alice", "gina"),
+    ("bob", "dave"),
+    ("bob", "hugo"),
+    ("claude", "eve"),
+    ("dave", "faust"),
+    ("eve", "gina"),
+    ("faust", "hugo"),
+]
+
+# 3-4 messages per pair, alternating sender
+CHAT_SCRIPTS: dict[tuple[str, str], list[tuple[str, str]]] = {
+    ("alice", "bob"): [
+        ("alice", "Hey, did you see that new AI coding benchmark?"),
+        ("bob",   "Yeah, crazy numbers. I bet it breaks TIOBE top 5 within a year."),
+        ("alice", "That's what my market is about! Already got 4 positions on it."),
+        ("bob",   "Nice. I threw in a no — incumbents don't move that fast."),
+    ],
+    ("alice", "claude"): [
+        ("claude", "Your social media shutdown market is interesting."),
+        ("alice",  "Right? Twitter almost qualified in 2023. One big platform feels inevitable."),
+        ("claude", "I'm hedging yes. Too much VC pressure on the smaller ones."),
+    ],
+    ("alice", "gina"): [
+        ("alice", "How are you tracking the open-source LLM race?"),
+        ("gina",  "Closely. Llama 4 already nips at GPT-4 on some subsets."),
+        ("alice", "So you're bullish on your market resolving yes?"),
+        ("gina",  "Yep. Staked accordingly."),
+    ],
+    ("bob", "dave"): [
+        ("bob",   "Quantum 1000-qubit by 2027 — that's a bold call."),
+        ("dave",  "IBM already announced 1000+ but stability is the hard part."),
+        ("bob",   "Fair. I'm leaning no on the stability criterion."),
+    ],
+    ("bob", "hugo"): [
+        ("hugo", "Remote work at 50% of tech jobs — I think we're almost there."),
+        ("bob",  "LinkedIn data says otherwise. Lots of return-to-office pressure."),
+        ("hugo", "Short-term noise. Long-term trend is clear."),
+        ("bob",  "We'll settle this at resolution time then."),
+    ],
+    ("claude", "eve"): [
+        ("eve",    "Robotaxi in 5+ cities by 2027 feels optimistic."),
+        ("claude", "Waymo is already in 3. One more plus an international launch could do it."),
+        ("eve",    "Regulatory approval timelines are brutal though."),
+    ],
+    ("dave", "faust"): [
+        ("faust", "New language in TIOBE top 10 — I'm thinking Zig or Mojo."),
+        ("dave",  "Mojo could ride the AI wave. But 2027 is tight."),
+        ("faust", "Agreed, tight. But the hype cycle is faster than ever."),
+        ("dave",  "Staked a small yes just in case."),
+    ],
+    ("eve", "gina"): [
+        ("gina", "Your systems programming market — I voted Rust obviously."),
+        ("eve",  "Same. Though Go is quietly eating a lot of that space."),
+        ("gina", "Go is too garbage-collected for 'systems' purists."),
+    ],
+    ("faust", "hugo"): [
+        ("hugo",  "Which company for most impactful AI release? I went Anthropic."),
+        ("faust", "I went DeepMind — they've been quietly crushing benchmarks."),
+        ("hugo",  "Fair. Anthropic has the safety narrative though, more citations."),
+        ("faust", "We'll see. May the best model win."),
+    ],
+}
 
 # 3 markets per user (binary, multiple_choice, numeric)
 MARKET_TEMPLATES = [
@@ -295,7 +378,7 @@ async def seed():
                 is_active=True,
             )
             db.add(user)
-            await db.flush()  # ensure user row exists before FK references
+            await db.flush()
             db.add(BpTransaction(user_id=user.id, amount=11.0, reason="seed"))
             db.add(KpEvent(
                 user_id=user.id, amount=100, source_type="seed",
@@ -303,6 +386,58 @@ async def seed():
             ))
             user_map[u["username"]] = user
             print(f"  created user: {u['username']}")
+
+        await db.flush()
+
+        # ── Create friend relations ───────────────────────────────────────────
+        for u1_name, u2_name in FRIEND_PAIRS:
+            u1, u2 = user_map[u1_name], user_map[u2_name]
+            existing = (await db.execute(
+                select(FriendRequest).where(
+                    FriendRequest.from_user_id == u1.id,
+                    FriendRequest.to_user_id == u2.id,
+                )
+            )).scalar_one_or_none()
+            if existing:
+                print(f"  skip friends: {u1_name} <-> {u2_name}")
+                continue
+            db.add(FriendRequest(
+                id=uuid.uuid4(),
+                from_user_id=u1.id,
+                to_user_id=u2.id,
+                status="accepted",
+            ))
+            print(f"  friends: {u1_name} <-> {u2_name}")
+
+        await db.flush()
+
+        # ── Create chat messages ──────────────────────────────────────────────
+        for (u1_name, u2_name), lines in CHAT_SCRIPTS.items():
+            u1, u2 = user_map[u1_name], user_map[u2_name]
+            # Check if any message already exists between this pair
+            first_sender = lines[0][0]
+            first_recipient = u2_name if first_sender == u1_name else u1_name
+            existing = (await db.execute(
+                select(Message).where(
+                    Message.from_user_id == user_map[first_sender].id,
+                    Message.to_user_id == user_map[first_recipient].id,
+                )
+            )).scalar_one_or_none()
+            if existing:
+                print(f"  skip messages: {u1_name} <-> {u2_name}")
+                continue
+            for i, (sender_name, content) in enumerate(lines):
+                sender = user_map[sender_name]
+                recipient_name = u2_name if sender_name == u1_name else u1_name
+                recipient = user_map[recipient_name]
+                db.add(Message(
+                    id=uuid.uuid4(),
+                    from_user_id=sender.id,
+                    to_user_id=recipient.id,
+                    content=content,
+                    sent_at=now + timedelta(minutes=i),
+                ))
+            print(f"  messages: {u1_name} <-> {u2_name} ({len(lines)} msgs)")
 
         await db.flush()
 
@@ -393,7 +528,7 @@ async def seed():
                     content=random.choice(COMMENT_POOL),
                 )
                 db.add(comment)
-                await db.flush()  # need comment.id before inserting upvotes
+                await db.flush()
 
                 upvoters = [u for u in all_users if u.id != commenter.id]
                 for cup in random.sample(upvoters, k=random.randint(1, 2)):
