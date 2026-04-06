@@ -666,6 +666,8 @@ export default function MarketDetailPage() {
               {/* Proposer: no voting buttons */}
               {currentUser?.id === market.proposer_id ? (
                 <p className="text-sm text-blue-700 italic">Awaiting participant review…</p>
+              ) : !myPosition ? (
+                <p className="text-sm text-blue-700 italic">Only participants can accept or dispute.</p>
               ) : resolutionQuery.data?.review?.user_vote ? (
                 <p className="text-sm text-blue-700">
                   You voted: <span className="font-semibold capitalize">{resolutionQuery.data.review.user_vote}</span>

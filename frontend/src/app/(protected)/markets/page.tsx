@@ -1,12 +1,14 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { api } from "@/lib/api";
 import { useAuthStore } from "@/store/auth";
 import type { Market, MarketListResponse } from "@/lib/types";
 import { useMarketStore } from "@/store/market";
+import { useSocketStore } from "@/store/socket";
 
 function formatDeadline(deadline: string): string {
   return new Date(deadline).toLocaleString();
@@ -128,6 +130,23 @@ export default function MarketsPage() {
     setIncludeDesc,
     setPage,
   } = useMarketStore();
+
+  const queryClient = useQueryClient();
+  const socket = useSocketStore((s) => s.socket);
+
+  // Refresh listing when any market status changes (real-time)
+  useEffect(() => {
+    if (!socket) return;
+    const handler = () => {
+      queryClient.invalidateQueries({ queryKey: ["markets"] });
+    };
+    socket.on("bet:status_changed", handler);
+    socket.on("bet:resolved", handler);
+    return () => {
+      socket.off("bet:status_changed", handler);
+      socket.off("bet:resolved", handler);
+    };
+  }, [socket, queryClient]);
 
   const { data, isLoading, isError } = useQuery<MarketListResponse>({
     queryKey: ["markets", sort, sortDir, filter, search, includeDesc, page],

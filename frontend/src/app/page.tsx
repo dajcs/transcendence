@@ -5,8 +5,9 @@ export default function HomePage() {
     <div className="flex flex-col items-center justify-center min-h-[60vh] text-center gap-6">
       <h1 className="text-4xl font-bold text-gray-900">Vox Populi</h1>
       <p className="text-xl text-gray-600 max-w-lg">
-        Bet on real-world outcomes, argue your position, and earn a verifiable reputation score
-        — without real money.
+        A lightweight prediction market
+        <span className="block">Reducing the distortions by money</span>
+        <span className="block">Preserving truth-seeking and high-quality discussions</span>
       </p>
       <div className="flex gap-4">
         <Link

@@ -126,6 +126,9 @@ async def proposer_resolve(
             {"bet_id": str(bet_id), "outcome": body.outcome},
             room=f"bet:{bet_id}",
         )
+        status_data = {"bet_id": str(bet_id), "status": "proposer_resolved"}
+        await sio.emit("bet:status_changed", status_data, room=f"bet:{bet_id}")
+        await sio.emit("bet:status_changed", status_data, room="global")
     except Exception:
         pass
 
@@ -273,6 +276,9 @@ async def vote_dispute(
         await sio.emit("resolution:review_updated", {"bet_id": str(bet_id), **counts}, room=f"bet:{bet_id}")
         if bet.status == "disputed":
             await sio.emit("dispute:opened", {"bet_id": str(bet_id)}, room=f"bet:{bet_id}")
+            status_data = {"bet_id": str(bet_id), "status": "disputed"}
+            await sio.emit("bet:status_changed", status_data, room=f"bet:{bet_id}")
+            await sio.emit("bet:status_changed", status_data, room="global")
     except Exception:
         pass
 

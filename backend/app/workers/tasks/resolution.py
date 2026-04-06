@@ -141,11 +141,9 @@ async def _process_auto_resolution(db: AsyncSession) -> None:
     # Notify clients of status change so UIs refresh without polling
     from app.socket.server import celery_emit
     for b in bets:
-        await celery_emit(
-            "bet:status_changed",
-            {"bet_id": str(b.id), "status": b.status},
-            room=f"bet:{b.id}",
-        )
+        data = {"bet_id": str(b.id), "status": b.status}
+        await celery_emit("bet:status_changed", data, room=f"bet:{b.id}")
+        await celery_emit("bet:status_changed", data, room="global")
 
 
 async def _escalate_overdue_proposer(db: AsyncSession) -> None:
@@ -195,11 +193,9 @@ async def _escalate_overdue_proposer(db: AsyncSession) -> None:
     from app.socket.server import celery_emit
     for bet in overdue_bets:
         if bet.status == "disputed":
-            await celery_emit(
-                "bet:status_changed",
-                {"bet_id": str(bet.id), "status": "disputed"},
-                room=f"bet:{bet.id}",
-            )
+            data = {"bet_id": str(bet.id), "status": "disputed"}
+            await celery_emit("bet:status_changed", data, room=f"bet:{bet.id}")
+            await celery_emit("bet:status_changed", data, room="global")
 
 
 async def _process_dispute_deadlines(db: AsyncSession) -> None:
@@ -425,11 +421,9 @@ async def _resolve_single_market(bet_id_str: str) -> None:
 
     # Notify clients so UIs refresh without polling
     from app.socket.server import celery_emit
-    await celery_emit(
-        "bet:status_changed",
-        {"bet_id": bet_id_str, "status": bet.status},
-        room=f"bet:{bet_id}",
-    )
+    data = {"bet_id": bet_id_str, "status": bet.status}
+    await celery_emit("bet:status_changed", data, room=f"bet:{bet_id}")
+    await celery_emit("bet:status_changed", data, room="global")
 
     async with TaskSession() as db:
         await _escalate_overdue_proposer(db)
@@ -439,37 +433,18 @@ async def _resolve_single_market(bet_id_str: str) -> None:
 def check_auto_resolution() -> str:
     """Fallback beat poller — RES-01 safety net.
 
-    Runs every 5 min via Celery Beat. Finds open bets at or past deadline and
-    enqueues resolve_market_at_deadline for each. Safe to run alongside the per-bet ETA
-    approach: resolve_market_at_deadline checks bet.status == "open" and exits early if
-    already processing.
+    Runs every 60s via Celery Beat. Finds open bets at or past deadline and resolves them
+    inline. Safe alongside per-bet ETA tasks: status check prevents double-processing.
     """
     import asyncio
-    asyncio.run(_scan_and_enqueue_expired_bets())
+    asyncio.run(_run_auto_resolution())
     return "ok"
 
 
-async def _scan_and_enqueue_expired_bets() -> None:
-    """Query open bets at or past deadline, send resolve_market_at_deadline task for each."""
+async def _run_auto_resolution() -> None:
     TaskSession = make_task_session()
     async with TaskSession() as db:
-        now = datetime.now(timezone.utc)
-        bets = (await db.execute(
-            select(Bet).where(
-                Bet.status == "open",
-                Bet.deadline <= now,
-            )
-        )).scalars().all()
-
-        for bet in bets:
-            try:
-                celery_app.send_task(
-                    "app.workers.tasks.resolution.resolve_market_at_deadline",
-                    args=[str(bet.id)],
-                )
-                logger.info("check_auto_resolution: enqueued resolve for stuck bet %s", bet.id)
-            except Exception as exc:
-                logger.warning("check_auto_resolution: failed to enqueue bet %s: %s", bet.id, exc)
+        await _process_auto_resolution(db)
 
 
 @celery_app.task(name="app.workers.tasks.resolution.check_dispute_deadlines", max_retries=1)
