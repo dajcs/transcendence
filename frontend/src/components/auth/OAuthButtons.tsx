@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 
 const PROVIDER_INFO: Record<string, { label: string; bg: string; hover: string }> = {
-  google: { label: "Continue with Google", bg: "bg-white border border-gray-300 text-gray-700", hover: "hover:bg-gray-50" },
+  google: { label: "Continue with Google", bg: "bg-white border border-gray-300 text-gray-700 dark:bg-slate-700 dark:border-slate-600 dark:text-gray-200", hover: "hover:bg-gray-50 dark:hover:bg-slate-600" },
   github: { label: "Continue with GitHub", bg: "bg-gray-900 text-white", hover: "hover:bg-gray-800" },
   "42": { label: "Continue with 42", bg: "bg-teal-600 text-white", hover: "hover:bg-teal-700" },
 };
@@ -27,10 +27,10 @@ export default function OAuthButtons() {
     <div className="flex flex-col gap-2 w-full max-w-sm">
       <div className="relative my-2">
         <div className="absolute inset-0 flex items-center">
-          <div className="w-full border-t border-gray-300" />
+          <div className="w-full border-t border-gray-300 dark:border-slate-600" />
         </div>
         <div className="relative flex justify-center text-xs">
-          <span className="bg-white px-2 text-gray-500 uppercase tracking-wide">or OAUTH</span>
+          <span className="bg-gray-50 px-2 text-gray-500 uppercase tracking-wide dark:bg-slate-900 dark:text-gray-400">or OAUTH</span>
         </div>
       </div>
       {providers.map((provider) => {

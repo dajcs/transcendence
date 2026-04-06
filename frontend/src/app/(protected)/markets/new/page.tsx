@@ -74,66 +74,66 @@ export default function NewMarketPage() {
   return (
     <div className="space-y-4">
       <h1 className="text-2xl font-bold">Create Market</h1>
-      <p className="text-sm text-gray-600">Creating a market costs 1 BP.</p>
+      <p className="text-sm text-gray-600 dark:text-gray-300">Creating a market costs 1 BP.</p>
 
-      <form className="space-y-3 rounded border border-gray-200 bg-white p-4" onSubmit={onSubmit}>
+      <form className="space-y-3 rounded border border-gray-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-800" onSubmit={onSubmit}>
         <div className="space-y-1">
-          <label className="text-sm font-medium">Title</label>
+          <label className="text-sm font-medium dark:text-gray-300">Title</label>
           <input
             required
             minLength={3}
             maxLength={200}
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            className="w-full rounded border border-gray-300 px-3 py-2 text-sm"
+            className="w-full rounded border border-gray-300 px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-700 dark:text-gray-100"
           />
         </div>
 
         <div className="space-y-1">
-          <label className="text-sm font-medium">Description</label>
+          <label className="text-sm font-medium dark:text-gray-300">Description</label>
           <textarea
             required
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            className="w-full rounded border border-gray-300 px-3 py-2 text-sm"
+            className="w-full rounded border border-gray-300 px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-700 dark:text-gray-100"
           />
         </div>
 
         <div className="space-y-1">
-          <label className="text-sm font-medium">Resolution Criteria</label>
+          <label className="text-sm font-medium dark:text-gray-300">Resolution Criteria</label>
           <textarea
             required
             value={resolutionCriteria}
             onChange={(e) => setResolutionCriteria(e.target.value)}
-            className="w-full rounded border border-gray-300 px-3 py-2 text-sm"
+            className="w-full rounded border border-gray-300 px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-700 dark:text-gray-100"
           />
         </div>
 
         <div className="space-y-1">
-          <label className="text-sm font-medium">Deadline</label>
+          <label className="text-sm font-medium dark:text-gray-300">Deadline</label>
           {(() => {
             const deadlineDate = deadline.split("T")[0] ?? "";
             const deadlineTime = deadline.split("T")[1] ?? "12:00";
             return (
               <div className="flex gap-2">
                 <div className="flex-1 space-y-0.5">
-                  <label className="text-xs text-gray-500">Date</label>
+                  <label className="text-xs text-gray-500 dark:text-gray-400">Date</label>
                   <input
                     required
                     type="date"
                     value={deadlineDate}
                     onChange={(e) => setDeadline(`${e.target.value}T${deadlineTime}`)}
-                    className="w-full rounded border border-gray-300 px-3 py-2 text-sm"
+                    className="w-full rounded border border-gray-300 px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-700 dark:text-gray-100"
                   />
                 </div>
                 <div className="flex-1 space-y-0.5">
-                  <label className="text-xs text-gray-500">Time</label>
+                  <label className="text-xs text-gray-500 dark:text-gray-400">Time</label>
                   <input
                     required
                     type="time"
                     value={deadlineTime}
                     onChange={(e) => setDeadline(`${deadlineDate}T${e.target.value}`)}
-                    className="w-full rounded border border-gray-300 px-3 py-2 text-sm"
+                    className="w-full rounded border border-gray-300 px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-700 dark:text-gray-100"
                   />
                 </div>
               </div>
@@ -142,14 +142,14 @@ export default function NewMarketPage() {
         </div>
 
         <div className="space-y-1">
-          <label className="text-sm font-medium">Market Type</label>
+          <label className="text-sm font-medium dark:text-gray-300">Market Type</label>
           <div className="flex gap-2">
             {(["binary", "multiple_choice", "numeric"] as const).map((t) => (
               <button
                 key={t}
                 type="button"
                 onClick={() => setMarketType(t)}
-                className={`rounded px-3 py-1 text-sm ${marketType === t ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-700"}`}
+                className={`rounded px-3 py-1 text-sm ${marketType === t ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-700 dark:bg-slate-700 dark:text-gray-300"}`}
               >
                 {t === "binary" ? "Yes/No" : t === "multiple_choice" ? "Multiple Choice" : "Numeric"}
               </button>
@@ -159,7 +159,7 @@ export default function NewMarketPage() {
 
         {marketType === "multiple_choice" && (
           <div className="space-y-2">
-            <label className="text-sm font-medium">Choices (2–10)</label>
+            <label className="text-sm font-medium dark:text-gray-300">Choices (2-10)</label>
             {choices.map((choice, i) => (
               <div key={i} className="flex gap-2">
                 <input
@@ -167,7 +167,7 @@ export default function NewMarketPage() {
                   value={choice}
                   onChange={(e) => updateChoice(i, e.target.value)}
                   placeholder={`Choice ${i + 1}`}
-                  className="flex-1 rounded border border-gray-300 px-3 py-2 text-sm"
+                  className="flex-1 rounded border border-gray-300 px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-700 dark:text-gray-100"
                 />
                 {choices.length > 2 && (
                   <button
@@ -195,23 +195,23 @@ export default function NewMarketPage() {
         {marketType === "numeric" && (
           <div className="flex gap-3">
             <div className="flex-1 space-y-1">
-              <label className="text-sm font-medium">Min</label>
+              <label className="text-sm font-medium dark:text-gray-300">Min</label>
               <input
                 required
                 type="number"
                 value={numericMin}
                 onChange={(e) => setNumericMin(e.target.value)}
-                className="w-full rounded border border-gray-300 px-3 py-2 text-sm"
+                className="w-full rounded border border-gray-300 px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-700 dark:text-gray-100"
               />
             </div>
             <div className="flex-1 space-y-1">
-              <label className="text-sm font-medium">Max</label>
+              <label className="text-sm font-medium dark:text-gray-300">Max</label>
               <input
                 required
                 type="number"
                 value={numericMax}
                 onChange={(e) => setNumericMax(e.target.value)}
-                className="w-full rounded border border-gray-300 px-3 py-2 text-sm"
+                className="w-full rounded border border-gray-300 px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-700 dark:text-gray-100"
               />
             </div>
           </div>

@@ -24,7 +24,7 @@ export default function ResetForm() {
 
   if (submitted) {
     return (
-      <p className="text-sm text-gray-600">
+      <p className="text-sm text-gray-600 dark:text-gray-400">
         If that email exists, a reset link has been sent.
       </p>
     );
@@ -33,11 +33,11 @@ export default function ResetForm() {
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4 w-full max-w-sm">
       <div>
-        <label className="block text-sm font-medium text-gray-700">Email</label>
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Email</label>
         <input
           {...register("email")}
           type="email"
-          className="mt-1 block w-full border border-gray-300 rounded px-3 py-2 text-sm"
+          className="mt-1 block w-full border border-gray-300 rounded px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-700 dark:text-gray-100"
         />
         {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email.message}</p>}
       </div>

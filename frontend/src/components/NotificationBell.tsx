@@ -106,7 +106,7 @@ export default function NotificationBell() {
     <div ref={dropdownRef} className="relative">
       <button
         onClick={toggle}
-        className="relative p-1 text-gray-600 hover:text-gray-900 transition-colors"
+        className="relative p-1 text-gray-600 hover:text-gray-900 transition-colors dark:text-gray-400 dark:hover:text-gray-100"
         aria-label="Notifications"
       >
         {/* Bell icon (SVG) */}
@@ -132,10 +132,10 @@ export default function NotificationBell() {
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 top-full mt-2 w-80 rounded-lg border border-gray-200 bg-white shadow-xl z-50">
+        <div className="absolute right-0 top-full mt-2 w-80 rounded-lg border border-gray-200 bg-white shadow-xl z-50 dark:border-slate-700 dark:bg-slate-800">
           {/* Header */}
-          <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3">
-            <h3 className="text-sm font-semibold text-gray-900">Notifications</h3>
+          <div className="flex items-center justify-between border-b border-gray-100 dark:border-slate-700 px-4 py-3">
+            <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Notifications</h3>
             {unreadCount > 0 && (
               <button
                 onClick={() => markAllAsRead()}
@@ -149,7 +149,7 @@ export default function NotificationBell() {
           {/* List */}
           <div className="max-h-80 overflow-y-auto">
             {notifications.length === 0 && (
-              <p className="px-4 py-6 text-center text-sm text-gray-500">
+              <p className="px-4 py-6 text-center text-sm text-gray-500 dark:text-gray-400">
                 No notifications
               </p>
             )}
@@ -158,8 +158,8 @@ export default function NotificationBell() {
               return (
                 <button
                   key={notif.id}
-                  className={`w-full text-left flex items-start gap-3 px-4 py-3 border-b border-gray-50 hover:bg-gray-50 transition-colors ${
-                    !notif.is_read ? "bg-blue-50" : ""
+                  className={`w-full text-left flex items-start gap-3 px-4 py-3 border-b border-gray-50 hover:bg-gray-50 transition-colors dark:border-slate-700 dark:hover:bg-slate-700 ${
+                    !notif.is_read ? "bg-blue-50 dark:bg-blue-950" : ""
                   }`}
                   onClick={() => {
                     if (!notif.is_read) markAsRead([notif.id]);
@@ -174,13 +174,13 @@ export default function NotificationBell() {
                   }}
                 >
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-medium text-gray-500">
+                    <p className="text-xs font-medium text-gray-500 dark:text-gray-400">
                       {TYPE_LABELS[notif.type] || notif.type}
                     </p>
-                    <p className="text-sm text-gray-800 truncate">
+                    <p className="text-sm text-gray-800 dark:text-gray-200 truncate">
                       {data.message || "New notification"}
                     </p>
-                    <p className="text-xs text-gray-400 mt-0.5">
+                    <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
                       {new Date(notif.created_at).toLocaleString()}
                     </p>
                   </div>

@@ -3,8 +3,8 @@ import Link from "next/link";
 export default function HomePage() {
   return (
     <div className="flex flex-col items-center justify-center min-h-[60vh] text-center gap-6">
-      <h1 className="text-4xl font-bold text-gray-900">Vox Populi</h1>
-      <p className="text-xl text-gray-600 max-w-lg">
+      <h1 className="text-4xl font-bold text-gray-900 dark:text-gray-100">Vox Populi</h1>
+      <p className="text-xl text-gray-600 dark:text-gray-300 max-w-lg">
         Bet on real-world outcomes, argue your position, and earn a verifiable reputation score
         — without real money.
       </p>
@@ -17,10 +17,15 @@ export default function HomePage() {
         </Link>
         <Link
           href="/login"
-          className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium"
+          className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium dark:border-slate-600 dark:text-gray-300 dark:hover:bg-slate-800"
         >
           Log In
         </Link>
+      </div>
+      <div className="flex gap-4 text-sm text-gray-500 dark:text-gray-400">
+        <Link href="/privacy" className="hover:underline">Privacy Policy</Link>
+        <span>·</span>
+        <Link href="/terms" className="hover:underline">Terms of Service</Link>
       </div>
     </div>
   );

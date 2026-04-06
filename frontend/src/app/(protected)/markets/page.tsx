@@ -14,11 +14,11 @@ function formatDeadline(deadline: string): string {
 
 function marketCardBg(status: string, isOwnMarket = false): string {
   if (status === "pending_resolution")
-    return isOwnMarket ? "border-red-300 bg-red-50" : "border-yellow-300 bg-yellow-50";
-  if (status === "proposer_resolved") return "border-blue-300 bg-blue-50";
-  if (status === "disputed") return "border-violet-300 bg-violet-50";
-  if (status === "closed") return "border-green-300 bg-green-50";
-  return "border-gray-200 bg-white";
+    return isOwnMarket ? "border-red-300 bg-red-50 dark:bg-red-950" : "border-yellow-300 bg-yellow-50 dark:bg-yellow-950";
+  if (status === "proposer_resolved") return "border-blue-300 bg-blue-50 dark:bg-blue-950";
+  if (status === "disputed") return "border-violet-300 bg-violet-50 dark:bg-violet-950";
+  if (status === "closed") return "border-green-300 bg-green-50 dark:bg-green-950";
+  return "border-gray-200 bg-white dark:border-slate-700 dark:bg-slate-800";
 }
 
 function marketStatusBadge(status: string, isOwnMarket = false): { text: string; cls: string } | null {
@@ -50,16 +50,16 @@ function MarketCard({ market }: { market: Market }) {
   return (
     <Link
       href={`/markets/${market.id}`}
-      className={`block rounded border p-4 hover:border-gray-300 ${marketCardBg(market.status, isOwnMarket)}`}
+      className={`block rounded border p-4 hover:border-gray-300 dark:hover:border-slate-600 ${marketCardBg(market.status, isOwnMarket)}`}
     >
       <div className="flex items-start justify-between gap-4">
         <div>
-          <p className="text-xs font-medium text-gray-500 mb-1">
+          <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
             @{market.proposer_username || "unknown"}
           </p>
-          <h2 className="text-lg font-semibold text-gray-900">{market.title}</h2>
-          <p className="mt-1 text-sm text-gray-600">{market.description}</p>
-          <p className="mt-2 text-xs text-gray-500">Deadline: {formatDeadline(market.deadline)}</p>
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">{market.title}</h2>
+          <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">{market.description}</p>
+          <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">Deadline: {formatDeadline(market.deadline)}</p>
           {badge && (
             <span className={`mt-2 inline-block rounded px-2 py-0.5 text-xs font-semibold ${badge.cls}`}>
               {badge.text}
@@ -81,7 +81,7 @@ function MarketCard({ market }: { market: Market }) {
               {market.numeric_min} – {market.numeric_max}
             </p>
           )}
-          <p className="text-xs text-gray-500">
+          <p className="text-xs text-gray-500 dark:text-gray-400">
             {market.position_count} votes · {market.comment_count} comments
           </p>
           <button
@@ -90,7 +90,7 @@ function MarketCard({ market }: { market: Market }) {
               upvote.mutate();
             }}
             disabled={upvote.isPending}
-            className="mt-1 rounded border border-gray-300 px-2 py-0.5 text-xs hover:bg-gray-100 disabled:opacity-50"
+            className="mt-1 rounded border border-gray-300 px-2 py-0.5 text-xs hover:bg-gray-100 disabled:opacity-50 dark:border-slate-600 dark:hover:bg-slate-700"
           >
             ▲ {market.upvote_count}
           </button>
@@ -167,9 +167,9 @@ export default function MarketsPage() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search markets..."
-          className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+          className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none dark:border-slate-600 dark:bg-slate-700 dark:text-gray-100"
         />
-        <label className="flex items-center gap-2 text-xs text-gray-500 cursor-pointer">
+        <label className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400 cursor-pointer">
           <input
             type="checkbox"
             checked={includeDesc}
@@ -184,7 +184,7 @@ export default function MarketsPage() {
       <div className="flex flex-wrap items-start gap-4">
         {/* Sort */}
         <div className="flex flex-col gap-1">
-          <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Sort by</span>
+          <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Sort by</span>
           <div className="flex gap-1.5">
             {(["active", "newest", "deadline"] as const).map((s) => {
               const active = sort === s;
@@ -207,11 +207,11 @@ export default function MarketsPage() {
         </div>
 
         {/* Divider */}
-        <div className="hidden sm:block w-px self-stretch bg-gray-200 my-0.5" />
+        <div className="hidden sm:block w-px self-stretch bg-gray-200 dark:bg-slate-700 my-0.5" />
 
         {/* Filter */}
         <div className="flex flex-col gap-1">
-          <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Filter</span>
+          <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Filter</span>
           <div className="flex flex-wrap gap-1.5">
             {(["all", "my_bets", "open", "closed", "resolved"] as const).map((f) => {
               const active = filter === f;
@@ -221,8 +221,8 @@ export default function MarketsPage() {
                   onClick={() => setFilter(f)}
                   className={`rounded px-3 py-1 text-sm font-medium transition-colors ${
                     active
-                      ? "bg-gray-800 text-white"
-                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                      ? "bg-gray-800 text-white dark:bg-gray-200 dark:text-gray-900"
+                      : "bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-slate-700 dark:text-gray-300 dark:hover:bg-slate-600"
                   }`}
                 >
                   {FILTER_LABELS[f]}
@@ -234,7 +234,7 @@ export default function MarketsPage() {
       </div>
 
       {/* Results */}
-      {isLoading && <p className="text-sm text-gray-500">Loading markets...</p>}
+      {isLoading && <p className="text-sm text-gray-500 dark:text-gray-400">Loading markets...</p>}
       {isError && <p className="text-sm text-red-600">Failed to load markets.</p>}
 
       <div className="space-y-3">
@@ -242,13 +242,13 @@ export default function MarketsPage() {
           <MarketCard key={market.id} market={market} />
         ))}
         {data?.items.length === 0 && (
-          <p className="text-sm text-gray-500">No markets match your criteria.</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400">No markets match your criteria.</p>
         )}
       </div>
 
       {/* Pagination */}
       {!!data && data.pages > 1 && (
-        <div className="flex items-center justify-between border-t border-gray-200 pt-3 text-sm">
+        <div className="flex items-center justify-between border-t border-gray-200 dark:border-slate-700 pt-3 text-sm">
           <span>
             Page {data.page} / {data.pages}
           </span>
@@ -256,14 +256,14 @@ export default function MarketsPage() {
             <button
               onClick={() => setPage(Math.max(1, page - 1))}
               disabled={page <= 1}
-              className="rounded border border-gray-300 px-3 py-1 disabled:opacity-50"
+              className="rounded border border-gray-300 px-3 py-1 disabled:opacity-50 dark:border-slate-600 dark:text-gray-300"
             >
               Prev
             </button>
             <button
               onClick={() => setPage(Math.min(data.pages, page + 1))}
               disabled={page >= data.pages}
-              className="rounded border border-gray-300 px-3 py-1 disabled:opacity-50"
+              className="rounded border border-gray-300 px-3 py-1 disabled:opacity-50 dark:border-slate-600 dark:text-gray-300"
             >
               Next
             </button>

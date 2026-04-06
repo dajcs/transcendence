@@ -64,16 +64,16 @@ export default function ProfilePage() {
 
   return (
     <div className="space-y-6">
-      {profileQuery.isLoading && <p className="text-sm text-gray-500">Loading profile...</p>}
+      {profileQuery.isLoading && <p className="text-sm text-gray-500 dark:text-gray-400">Loading profile...</p>}
       {profileQuery.isError && <p className="text-sm text-red-600">Profile not found.</p>}
 
       {profile && (
         <>
           {/* Profile header */}
-          <div className="rounded border border-gray-200 bg-white p-6">
+          <div className="rounded border border-gray-200 bg-white p-6 dark:border-slate-700 dark:bg-slate-800">
             <div className="flex items-start gap-6">
               {/* Avatar */}
-              <div className="h-20 w-20 shrink-0 rounded-full bg-gray-300 flex items-center justify-center text-2xl font-bold text-gray-700">
+              <div className="h-20 w-20 shrink-0 rounded-full bg-gray-300 dark:bg-slate-600 flex items-center justify-center text-2xl font-bold text-gray-700 dark:text-gray-300">
                 {profile.avatar_url ? (
                   <img
                     src={profile.avatar_url}
@@ -92,7 +92,7 @@ export default function ProfilePage() {
                     <Link
                       href="/settings"
                       title="Settings"
-                      className="rounded border border-gray-200 p-1.5 text-gray-500 hover:bg-gray-100 hover:text-gray-900"
+                      className="rounded border border-gray-200 p-1.5 text-gray-500 hover:bg-gray-100 hover:text-gray-900 dark:border-slate-700 dark:text-gray-400 dark:hover:bg-slate-700 dark:hover:text-gray-100"
                       aria-label="Settings"
                     >
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -126,7 +126,7 @@ export default function ProfilePage() {
                   )}
                 </div>
 
-                <p className="mt-1 text-sm text-gray-500">
+                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
                   Joined {new Date(profile.created_at).toLocaleDateString()}
                 </p>
 
@@ -138,7 +138,7 @@ export default function ProfilePage() {
                       onChange={(e) => setBio(e.target.value)}
                       maxLength={500}
                       rows={3}
-                      className="w-full rounded border border-gray-300 px-3 py-2 text-sm"
+                      className="w-full rounded border border-gray-300 px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-700 dark:text-gray-100"
                       placeholder="Write something about yourself..."
                     />
                     <div className="flex gap-2">
@@ -154,7 +154,7 @@ export default function ProfilePage() {
                           setEditing(false);
                           setBio(profile.bio || "");
                         }}
-                        className="rounded border border-gray-300 px-3 py-1 text-sm text-gray-700"
+                        className="rounded border border-gray-300 px-3 py-1 text-sm text-gray-700 dark:border-slate-600 dark:text-gray-300"
                       >
                         Cancel
                       </button>
@@ -162,7 +162,7 @@ export default function ProfilePage() {
                   </div>
                 ) : (
                   <div className="mt-3">
-                    <p className="text-sm text-gray-700">
+                    <p className="text-sm text-gray-700 dark:text-gray-300">
                       {profile.bio || (isOwnProfile ? "No bio yet." : "")}
                     </p>
                     {isOwnProfile && (
@@ -181,21 +181,21 @@ export default function ProfilePage() {
 
           {/* Stats */}
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-            <div className="rounded border border-gray-200 bg-white p-4 text-center">
-              <p className="text-2xl font-bold text-gray-900">{profile.kp}</p>
-              <p className="text-xs text-gray-500">Karma Points</p>
+            <div className="rounded border border-gray-200 bg-white p-4 text-center dark:border-slate-700 dark:bg-slate-800">
+              <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{profile.kp}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Karma Points</p>
             </div>
-            <div className="rounded border border-gray-200 bg-white p-4 text-center">
-              <p className="text-2xl font-bold text-gray-900">{profile.tp}</p>
-              <p className="text-xs text-gray-500">Truth Points</p>
+            <div className="rounded border border-gray-200 bg-white p-4 text-center dark:border-slate-700 dark:bg-slate-800">
+              <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{profile.tp}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Truth Points</p>
             </div>
-            <div className="rounded border border-gray-200 bg-white p-4 text-center">
-              <p className="text-2xl font-bold text-gray-900">{profile.total_bets}</p>
-              <p className="text-xs text-gray-500">Total Bets</p>
+            <div className="rounded border border-gray-200 bg-white p-4 text-center dark:border-slate-700 dark:bg-slate-800">
+              <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{profile.total_bets}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Total Bets</p>
             </div>
-            <div className="rounded border border-gray-200 bg-white p-4 text-center">
-              <p className="text-2xl font-bold text-gray-900">{profile.win_rate}%</p>
-              <p className="text-xs text-gray-500">Win Rate</p>
+            <div className="rounded border border-gray-200 bg-white p-4 text-center dark:border-slate-700 dark:bg-slate-800">
+              <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{profile.win_rate}%</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Win Rate</p>
             </div>
           </div>
 

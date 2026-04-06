@@ -65,27 +65,27 @@ export default function LoginForm() {
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4 w-full max-w-sm">
       {oauthError && (
-        <p className="text-red-500 text-sm rounded border border-red-200 bg-red-50 px-3 py-2">
+        <p className="text-red-500 text-sm rounded border border-red-200 bg-red-50 px-3 py-2 dark:border-red-800 dark:bg-red-950">
           {oauthError}
         </p>
       )}
       <div>
-        <label className="block text-sm font-medium text-gray-700">Email or Username</label>
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Email or Username</label>
         <input
           {...register("identifier")}
           type="text"
           placeholder="Enter email or username"
           autoComplete="username"
-          className="mt-1 block w-full border border-gray-300 rounded px-3 py-2 text-sm"
+          className="mt-1 block w-full border border-gray-300 rounded px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-700 dark:text-gray-100"
         />
         {errors.identifier && <p className="text-red-500 text-xs mt-1">{errors.identifier.message}</p>}
       </div>
       <div>
-        <label className="block text-sm font-medium text-gray-700">Password</label>
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Password</label>
         <input
           {...register("password")}
           type="password"
-          className="mt-1 block w-full border border-gray-300 rounded px-3 py-2 text-sm"
+          className="mt-1 block w-full border border-gray-300 rounded px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-700 dark:text-gray-100"
         />
         {errors.password && <p className="text-red-500 text-xs mt-1">{errors.password.message}</p>}
       </div>
