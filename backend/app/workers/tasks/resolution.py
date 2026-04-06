@@ -1,13 +1,18 @@
 """Resolution Celery tasks.
 
-Architecture: two-pronged resolution scheduling.
-  Per-bet ETA: when a market is created, market_service.py schedules resolve_market_at_deadline
-    via apply_async(eta=deadline+timedelta(minutes=5)) — fires once per market.
-  Fallback beat: check_auto_resolution runs every 5 min via Celery Beat — catches open bets
-    whose ETA task was lost (worker restart, broker flush, or pre-deploy markets).
-check_dispute_deadlines: every 15 min — closes expired disputes, triggers payout
+Architecture: hybrid ETA + sweep scheduling.
+  Per-bet ETA: market_service.py schedules resolve_market_at_deadline via send_task(eta=deadline)
+    and stores the Celery task ID on Bet.celery_task_id for revocation if the market is cancelled
+    or its deadline changes.
+  Fallback beat: check_auto_resolution runs every 60 seconds — catches open bets whose ETA task was
+    lost (worker restart, broker flush, or pre-deploy markets).
+  Dispute deadlines: check_dispute_deadlines runs every 15 min — closes expired disputes and
+    finalizes uncontested proposer_resolved bets after the 48h review window.
 
-Pitfall 3 from RESEARCH.md: query condition is deadline+5min <= now, NOT deadline <= now.
+Socket events: every status transition emits bet:status_changed so browser tabs update
+  without polling. Final payout emits bet:resolved (from resolution_service.trigger_payout).
+
+Resolution fires at deadline (no grace period). Sweep also uses deadline <= now.
 """
 import json
 import logging
@@ -87,17 +92,13 @@ async def _fetch_open_meteo_outcome(source: dict) -> str | None:
 
 
 async def _process_auto_resolution(db: AsyncSession) -> None:
-    """Transition open expired bets; attempt Tier 1 or escalate.
-    Pitfall 3: grace period = deadline + 5 minutes.
-    """
+    """Transition open expired bets; attempt Tier 1 or escalate."""
     now = datetime.now(timezone.utc)
-    grace = now - timedelta(minutes=5)
 
-    # Find open bets past deadline + grace
     bets = (await db.execute(
         select(Bet).where(
             Bet.status == "open",
-            Bet.deadline <= grace,
+            Bet.deadline <= now,
         )
     )).scalars().all()
 
@@ -136,6 +137,13 @@ async def _process_auto_resolution(db: AsyncSession) -> None:
             logger.info("Bet %s escalated to Tier 2 (proposer resolution)", bet.id)
 
     await db.commit()
+
+    # Notify clients of status change so UIs refresh without polling
+    from app.socket.server import celery_emit
+    for b in bets:
+        data = {"bet_id": str(b.id), "status": b.status}
+        await celery_emit("bet:status_changed", data, room=f"bet:{b.id}")
+        await celery_emit("bet:status_changed", data, room="global")
 
 
 async def _escalate_overdue_proposer(db: AsyncSession) -> None:
@@ -180,6 +188,14 @@ async def _escalate_overdue_proposer(db: AsyncSession) -> None:
             pass
 
     await db.commit()
+
+    # Notify clients for each escalated bet
+    from app.socket.server import celery_emit
+    for bet in overdue_bets:
+        if bet.status == "disputed":
+            data = {"bet_id": str(bet.id), "status": "disputed"}
+            await celery_emit("bet:status_changed", data, room=f"bet:{bet.id}")
+            await celery_emit("bet:status_changed", data, room="global")
 
 
 async def _process_dispute_deadlines(db: AsyncSession) -> None:
@@ -349,8 +365,8 @@ async def _close_single_dispute(dispute_id_str: str) -> None:
 
 @celery_app.task(name="app.workers.tasks.resolution.resolve_market_at_deadline", max_retries=1)
 def resolve_market_at_deadline(bet_id: str) -> str:
-    """Scheduled at market creation to fire at deadline+5min.
-    Attempts Tier 1 auto-resolution; if unavailable, notifies proposer.
+    """Scheduled at market creation to fire at deadline.
+    Attempts Tier 1 auto-resolution; if unavailable, notifies proposer immediately.
     """
     import asyncio
     asyncio.run(_resolve_single_market(bet_id))
@@ -403,6 +419,12 @@ async def _resolve_single_market(bet_id_str: str) -> None:
                 await notify_resolution_due(notif_db, proposer_id, market_title, market_id)
             logger.info("Bet %s needs manual resolution — proposer notified", bet.id)
 
+    # Notify clients so UIs refresh without polling
+    from app.socket.server import celery_emit
+    data = {"bet_id": bet_id_str, "status": bet.status}
+    await celery_emit("bet:status_changed", data, room=f"bet:{bet_id}")
+    await celery_emit("bet:status_changed", data, room="global")
+
     async with TaskSession() as db:
         await _escalate_overdue_proposer(db)
 
@@ -411,41 +433,18 @@ async def _resolve_single_market(bet_id_str: str) -> None:
 def check_auto_resolution() -> str:
     """Fallback beat poller — RES-01 safety net.
 
-    Runs every 5 min via Celery Beat. Finds open bets past deadline+5min grace and
-    enqueues resolve_market_at_deadline for each. Safe to run alongside the per-bet ETA
-    approach: resolve_market_at_deadline checks bet.status == "open" and exits early if
-    already processing.
+    Runs every 60s via Celery Beat. Finds open bets at or past deadline and resolves them
+    inline. Safe alongside per-bet ETA tasks: status check prevents double-processing.
     """
     import asyncio
-    asyncio.run(_scan_and_enqueue_expired_bets())
+    asyncio.run(_run_auto_resolution())
     return "ok"
 
 
-async def _scan_and_enqueue_expired_bets() -> None:
-    """Query open bets past deadline+5min, send resolve_market_at_deadline task for each."""
-    from datetime import timedelta
-
+async def _run_auto_resolution() -> None:
     TaskSession = make_task_session()
     async with TaskSession() as db:
-        now = datetime.now(timezone.utc)
-        grace = now - timedelta(minutes=5)
-
-        bets = (await db.execute(
-            select(Bet).where(
-                Bet.status == "open",
-                Bet.deadline <= grace,
-            )
-        )).scalars().all()
-
-        for bet in bets:
-            try:
-                celery_app.send_task(
-                    "app.workers.tasks.resolution.resolve_market_at_deadline",
-                    args=[str(bet.id)],
-                )
-                logger.info("check_auto_resolution: enqueued resolve for stuck bet %s", bet.id)
-            except Exception as exc:
-                logger.warning("check_auto_resolution: failed to enqueue bet %s: %s", bet.id, exc)
+        await _process_auto_resolution(db)
 
 
 @celery_app.task(name="app.workers.tasks.resolution.check_dispute_deadlines", max_retries=1)

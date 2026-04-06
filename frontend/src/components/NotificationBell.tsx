@@ -50,6 +50,9 @@ export default function NotificationBell() {
     close,
   } = useNotificationStore();
 
+  const markAllAsReadRef = useRef(markAllAsRead);
+  markAllAsReadRef.current = markAllAsRead;
+
   const router = useRouter();
   const socket = useSocketStore((s) => s.socket);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -59,32 +62,73 @@ export default function NotificationBell() {
     fetchUnreadCount();
   }, [fetchUnreadCount]);
 
+  // Request browser notification permission once on mount
+  useEffect(() => {
+    if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "default") {
+      Notification.requestPermission();
+    }
+  }, []);
+
   // Socket listener for new notification events (replaces 10s poll per D-10)
   useEffect(() => {
     if (!socket) return;
 
+    const showBrowserNotification = (body: string, url?: string) => {
+      if (typeof window === "undefined" || !("Notification" in window) || Notification.permission !== "granted") return;
+      const n = new Notification("Vox Populi", { body, icon: "/favicon.ico", requireInteraction: true });
+      n.onclick = () => {
+        window.focus();
+        markAllAsReadRef.current();
+        if (url) router.push(url);
+        n.close();
+      };
+    };
+
     const handler = () => {
       fetchUnreadCount();
+    };
+
+    const handleWithMarketLink = (data: { payload?: string }, fallbackBody: string) => {
+      fetchUnreadCount();
+      try {
+        const payload = JSON.parse(data?.payload ?? "{}");
+        const url = payload.bet_id ? `/markets/${payload.bet_id}` : payload.market_id ? `/markets/${payload.market_id}` : undefined;
+        showBrowserNotification(payload.message || fallbackBody, url);
+      } catch { /* ignore */ }
+    };
+
+    const handleResolutionDue = (data: { payload?: string }) => {
+      fetchUnreadCount();
+      let title = "Resolution required";
+      let url: string | undefined = "/dashboard?tab=my_markets";
+      try {
+        const payload = JSON.parse(data?.payload ?? "{}");
+        if (payload.market_title) title = `Resolve: ${payload.market_title}`;
+        if (payload.market_id) url = `/markets/${payload.market_id}`;
+      } catch { /* ignore */ }
+      showBrowserNotification(title, url);
     };
 
     socket.on("notification:friend_request", handler);
     socket.on("notification:friend_accepted", handler);
     socket.on("notification:friend_removed", handler);
     socket.on("notification:new_message", handler);
-    socket.on("notification:bet_resolved", handler);
-    socket.on("notification:bet_disputed", handler);
-    socket.on("notification:resolution_due", handler);
+    const handleBetResolved = (d: { payload?: string }) => handleWithMarketLink(d, "Your bet was resolved");
+    const handleBetDisputed = (d: { payload?: string }) => handleWithMarketLink(d, "A dispute was opened");
+    socket.on("notification:bet_resolved", handleBetResolved);
+    socket.on("notification:bet_disputed", handleBetDisputed);
+    socket.on("notification:resolution_due", handleResolutionDue);
 
     return () => {
       socket.off("notification:friend_request", handler);
       socket.off("notification:friend_accepted", handler);
       socket.off("notification:friend_removed", handler);
       socket.off("notification:new_message", handler);
-      socket.off("notification:bet_resolved", handler);
-      socket.off("notification:bet_disputed", handler);
-      socket.off("notification:resolution_due", handler);
+      socket.off("notification:bet_resolved", handleBetResolved);
+      socket.off("notification:bet_disputed", handleBetDisputed);
+      socket.off("notification:resolution_due", handleResolutionDue);
     };
-  }, [socket, fetchUnreadCount]);
+  }, [socket, fetchUnreadCount, router]);
 
   // Fetch full list when dropdown opens
   useEffect(() => {

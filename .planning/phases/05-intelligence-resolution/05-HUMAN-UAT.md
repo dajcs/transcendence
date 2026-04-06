@@ -22,20 +22,22 @@ result: pass
 notes: "Spec changes identified: (1) OPENROUTER_MODEL env var should select model when set; (2) AI response is markdown — UI should render it as markdown not plain text"
 
 ### 3. Budget cap enforcement
-expected: Set LLM_MONTHLY_BUDGET_USD=0.0001. After one LLM call, subsequent calls return 503 (budget exceeded).
-result: skipped
+expected: Set LLM_MONTHLY_BUDGET_USD=0.0001. After one LLM call, subsequent calls degrade gracefully — no LLM summary is returned and the UI shows "Summary unavailable — monthly AI budget exceeded." instead of a generic error.
+result: pass
+notes: "Spec updated: implementation degrades gracefully (returns null) rather than raising 503. Frontend now shows specific reason strings per error code (503 → budget exceeded, 429 → daily limit reached)."
 
 ### 4. Socket events reach browser from Celery
-expected: Open market detail page in two browser tabs. Trigger resolution (or wait for Celery auto-resolve). Other tab shows payout banner/status update without refresh — validates Redis pub/sub cross-process delivery.
+expected: Open market detail page in two browser tabs. Trigger resolution (or wait for Celery auto-resolve). Other tab shows status update (pending_resolution → proposer_resolved) without refresh; after full payout, shows payout banner — validates Redis pub/sub cross-process delivery.
 result: skipped
+notes: "Requires full Docker stack with Celery worker + Beat + Redis running. Redesigned: (1) ETA task_id now stored on Bet.celery_task_id for revocation; (2) bet:status_changed socket event emitted on every state transition (pending_resolution, proposer_resolved, disputed); (3) 5-min sweep (check_auto_resolution) is safety net for lost ETA tasks. Frontend listens for bet:status_changed and refreshes market state without polling."
 
 ## Summary
 
 total: 4
-passed: 2
-issues: 2
+passed: 3
+issues: 1
 pending: 0
-skipped: 2
+skipped: 1
 blocked: 0
 
 ## Gaps

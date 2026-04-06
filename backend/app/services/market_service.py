@@ -39,15 +39,17 @@ async def create_market(
     proposer = (await db.execute(select(User).where(User.id == proposer_id))).scalar_one_or_none()
     proposer_username = proposer.username if proposer else ""
 
-    # Schedule per-market resolution callback at deadline + 5 min grace
+    # Schedule per-market resolution callback exactly at deadline; store task_id for revocation
     try:
         from app.workers.celery_app import celery_app
-        eta = bet.deadline + timedelta(minutes=5)
-        celery_app.send_task(
+        eta = bet.deadline
+        result = celery_app.send_task(
             "app.workers.tasks.resolution.resolve_market_at_deadline",
             args=[str(bet.id)],
             eta=eta,
         )
+        bet.celery_task_id = result.id
+        await db.commit()
     except Exception:
         pass  # celery unavailable in test/dev without worker
 
@@ -66,6 +68,20 @@ async def create_market(
         numeric_min=bet.numeric_min,
         numeric_max=bet.numeric_max,
     )
+
+
+def revoke_market_task(task_id: str, *, terminate: bool = False) -> None:
+    """Revoke a scheduled Celery ETA task (e.g. on market cancel/deadline change).
+
+    By default this only marks the task as revoked so a scheduled ETA task will not
+    start. Forceful termination of an already-running task must be explicitly opted
+    into because it can interrupt execution mid-flight and leave partial side effects.
+    """
+    try:
+        from app.workers.celery_app import celery_app
+        celery_app.control.revoke(task_id, terminate=terminate)
+    except Exception:
+        pass
 
 
 async def _get_choice_counts(db: AsyncSession, bet_id: uuid.UUID) -> dict[str, int]:

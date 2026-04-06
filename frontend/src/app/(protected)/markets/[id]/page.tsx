@@ -139,9 +139,18 @@ export default function MarketDetailPage() {
       queryClient.invalidateQueries({ queryKey: ["market", marketId] });
     };
 
+    // RT-07: Status changed (pending_resolution, proposer_resolved, disputed) — refresh market
+    const onStatusChanged = (data: { bet_id: string; status: string }) => {
+      if (data.bet_id === marketId) {
+        queryClient.invalidateQueries({ queryKey: ["market", marketId] });
+        queryClient.invalidateQueries({ queryKey: ["resolution", marketId] });
+      }
+    };
+
     socket.on("bet:odds_updated", onOddsUpdated);
     socket.on("bet:comment_added", onCommentAdded);
     socket.on("bet:resolved", onBetResolved);
+    socket.on("bet:status_changed", onStatusChanged);
     socket.on("dispute:opened", onDisputeOpened);
     socket.on("dispute:voted", onDisputeVoted);
     socket.on("dispute:closed", onDisputeClosed);
@@ -151,6 +160,7 @@ export default function MarketDetailPage() {
       socket.off("bet:odds_updated", onOddsUpdated);
       socket.off("bet:comment_added", onCommentAdded);
       socket.off("bet:resolved", onBetResolved);
+      socket.off("bet:status_changed", onStatusChanged);
       socket.off("dispute:opened", onDisputeOpened);
       socket.off("dispute:voted", onDisputeVoted);
       socket.off("dispute:closed", onDisputeClosed);
@@ -245,8 +255,15 @@ export default function MarketDetailPage() {
     try {
       const resp = await api.post(`/api/bets/${marketId}/resolution-hint`, { evidence: evidenceText });
       setHint(resp.data.hint ?? "No suggestion available.");
-    } catch {
-      setHint("AI suggestion unavailable.");
+    } catch (err: unknown) {
+      const status = (err as { response?: { status?: number } })?.response?.status;
+      if (status === 503) {
+        setHint("AI suggestion unavailable — monthly AI budget exceeded.");
+      } else if (status === 429) {
+        setHint("AI suggestion unavailable — daily limit (3) reached.");
+      } else {
+        setHint("AI suggestion unavailable.");
+      }
     } finally {
       setHintLoading(false);
     }
@@ -257,8 +274,15 @@ export default function MarketDetailPage() {
     try {
       const resp = await api.post(`/api/bets/${marketId}/summary`);
       setSummary(resp.data.summary ?? "Summary unavailable.");
-    } catch {
-      setSummary("Summary unavailable.");
+    } catch (err: unknown) {
+      const status = (err as { response?: { status?: number } })?.response?.status;
+      if (status === 503) {
+        setSummary("Summary unavailable — monthly AI budget exceeded.");
+      } else if (status === 429) {
+        setSummary("Summary unavailable — daily limit (5) reached.");
+      } else {
+        setSummary("Summary unavailable.");
+      }
     } finally {
       setSummaryLoading(false);
     }
@@ -642,6 +666,8 @@ export default function MarketDetailPage() {
               {/* Proposer: no voting buttons */}
               {currentUser?.id === market.proposer_id ? (
                 <p className="text-sm text-blue-700 italic">Awaiting participant review…</p>
+              ) : !myPosition ? (
+                <p className="text-sm text-blue-700 italic">Only participants can accept or dispute.</p>
               ) : resolutionQuery.data?.review?.user_vote ? (
                 <p className="text-sm text-blue-700">
                   You voted: <span className="font-semibold capitalize">{resolutionQuery.data.review.user_vote}</span>

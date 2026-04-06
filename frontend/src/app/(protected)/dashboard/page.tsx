@@ -179,8 +179,8 @@ export default function DashboardPage() {
                     >
                       <p className="font-medium text-gray-900">{market.title}</p>
                       <p className="mt-1 text-sm text-gray-600">
-                        deadline {new Date(market.deadline).toLocaleDateString()} ·{" "}
-                        closes in {timeLeft(market.deadline)}
+                        deadline {new Date(market.deadline).toLocaleString()} ·{" "}
+                        {timeLeft(market.deadline) === "closed" ? "closed" : `closes in ${timeLeft(market.deadline)}`}
                       </p>
                       {badge && (
                         <span className={`mt-1 inline-block rounded px-2 py-0.5 text-xs font-semibold ${badge.cls}`}>
@@ -214,7 +214,7 @@ export default function DashboardPage() {
                     <p className="font-medium text-gray-900">{market.title}</p>
                     <p className="mt-1 text-gray-600">
                       {market.status.replace(/_/g, " ")} · deadline{" "}
-                      {new Date(market.deadline).toLocaleDateString()}
+                      {new Date(market.deadline).toLocaleString()}
                     </p>
                   </Link>
                 ))}
