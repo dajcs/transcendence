@@ -85,6 +85,11 @@ See: `.planning/PROJECT.md` (updated 2026-03-24)
 - [Phase 05-11]: RES-06 formula now reflects D-11 proportional BP pool split, not the pre-D-11 flat +1bp formula
 - [Phase 05-12]: openrouter_model field added to Settings LLM block; pydantic-settings maps OPENROUTER_MODEL env var; _DEFAULT_MODEL retained as fallback in call_openrouter signature
 - [Phase 05]: react-markdown v10 className prop incompatibility: wrap in div with prose classes instead of passing className directly to ReactMarkdown component
+- [fix/logic]: bet:status_changed emitted to both room="bet:{id}" AND room="global" — market list page (and all tabs) update live without refresh; applies to Celery beat, _resolve_single_market, _escalate_overdue_proposer, propose_resolution route, and dispute route
+- [fix/logic]: check_auto_resolution beat interval changed 5min→60s; inline _process_auto_resolution replaces enqueue pattern for lower latency
+- [fix/logic]: Browser Notification requireInteraction:true — stays until clicked/dismissed; onclick calls markAllAsRead() to clear bell badge
+- [fix/logic]: Dashboard "closes in closed" fixed — conditional render shows "closed" when timeLeft()="closed", toLocaleDateString→toLocaleString for deadline time display
+- [fix/logic]: Dispute/Accept buttons hidden from non-participants — myPosition guard added; proposers see "Awaiting…", non-participants see info text, only betters see action buttons
 
 ## Performance Metrics
 
@@ -126,3 +131,4 @@ See: `.planning/PROJECT.md` (updated 2026-03-24)
 | 2026-03-24 | Completed 01-foundation/01-05-PLAN.md — Dev seed + full stack smoke test; Phase 1 complete |
 | 2026-03-26 | Phase 2 complete — markets, betting, economy, comments, dashboard |
 | 2026-03-28 | Phase 3 complete (via Claude Code) — friend system, user profiles, chat, notifications |
+| 2026-04-06 | fix/logic UAT complete — real-time market list refresh, browser push notifications, auto-resolution latency, deadline display, dispute button gating |
