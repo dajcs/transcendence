@@ -70,11 +70,16 @@ async def create_market(
     )
 
 
-def revoke_market_task(task_id: str) -> None:
-    """Revoke a scheduled Celery ETA task (e.g. on market cancel/deadline change)."""
+def revoke_market_task(task_id: str, *, terminate: bool = False) -> None:
+    """Revoke a scheduled Celery ETA task (e.g. on market cancel/deadline change).
+
+    By default this only marks the task as revoked so a scheduled ETA task will not
+    start. Forceful termination of an already-running task must be explicitly opted
+    into because it can interrupt execution mid-flight and leave partial side effects.
+    """
     try:
         from app.workers.celery_app import celery_app
-        celery_app.control.revoke(task_id, terminate=True)
+        celery_app.control.revoke(task_id, terminate=terminate)
     except Exception:
         pass
 
