@@ -4,7 +4,7 @@ Architecture: hybrid ETA + sweep scheduling.
   Per-bet ETA: market_service.py schedules resolve_market_at_deadline via send_task(eta=deadline)
     and stores the Celery task ID on Bet.celery_task_id for revocation if the market is cancelled
     or its deadline changes.
-  Fallback beat: check_auto_resolution runs every 5 min — catches open bets whose ETA task was
+  Fallback beat: check_auto_resolution runs every 60 seconds — catches open bets whose ETA task was
     lost (worker restart, broker flush, or pre-deploy markets).
   Dispute deadlines: check_dispute_deadlines runs every 15 min — closes expired disputes and
     finalizes uncontested proposer_resolved bets after the 48h review window.
