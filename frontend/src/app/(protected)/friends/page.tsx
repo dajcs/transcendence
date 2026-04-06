@@ -69,8 +69,8 @@ function UserSearch() {
   };
 
   return (
-    <div className="rounded border border-gray-200 bg-white p-4">
-      <label htmlFor="user-search" className="block text-sm font-medium text-gray-700 mb-2">
+    <div className="rounded border border-gray-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-800">
+      <label htmlFor="user-search" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
         Add a friend
       </label>
       <input
@@ -79,18 +79,18 @@ function UserSearch() {
         value={query}
         onChange={(e) => handleSearch(e.target.value)}
         placeholder="Search by username..."
-        className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+        className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-700 dark:text-gray-100"
       />
-      {searching && <p className="mt-2 text-xs text-gray-400">Searching...</p>}
+      {searching && <p className="mt-2 text-xs text-gray-400 dark:text-gray-500">Searching...</p>}
       {results.length > 0 && (
-        <ul className="mt-2 divide-y divide-gray-100">
+        <ul className="mt-2 divide-y divide-gray-100 dark:divide-slate-700">
           {results.map((user) => (
             <li key={user.id} className="flex items-center justify-between py-2">
               <div className="flex items-center gap-2">
-                <div className="h-8 w-8 rounded-full bg-gray-300 flex items-center justify-center text-xs font-medium text-gray-700">
+                <div className="h-8 w-8 rounded-full bg-gray-300 dark:bg-slate-600 flex items-center justify-center text-xs font-medium text-gray-700 dark:text-gray-300">
                   {user.username[0].toUpperCase()}
                 </div>
-                <span className="text-sm font-medium text-gray-900">{user.username}</span>
+                <span className="text-sm font-medium text-gray-900 dark:text-gray-100">{user.username}</span>
               </div>
               <div className="flex flex-col items-end gap-1">
                 <button
@@ -113,7 +113,7 @@ function UserSearch() {
         </ul>
       )}
       {query.trim() && !searching && results.length === 0 && (
-        <p className="mt-2 text-xs text-gray-400">No users found.</p>
+        <p className="mt-2 text-xs text-gray-400 dark:text-gray-500">No users found.</p>
       )}
     </div>
   );
@@ -174,13 +174,13 @@ export default function FriendsPage() {
       <UserSearch />
 
       {/* Tab navigation */}
-      <div className="flex gap-1 border-b border-gray-200">
+      <div className="flex gap-1 border-b border-gray-200 dark:border-slate-700">
         <button
           onClick={() => setActiveTab("friends")}
           className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
             activeTab === "friends"
               ? "border-blue-600 text-blue-600"
-              : "border-transparent text-gray-500 hover:text-gray-700"
+              : "border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
           }`}
         >
           Friends ({friends.length})
@@ -190,7 +190,7 @@ export default function FriendsPage() {
           className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
             activeTab === "received"
               ? "border-blue-600 text-blue-600"
-              : "border-transparent text-gray-500 hover:text-gray-700"
+              : "border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
           }`}
         >
           Requests ({pendingReceived.length})
@@ -205,7 +205,7 @@ export default function FriendsPage() {
           className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
             activeTab === "sent"
               ? "border-blue-600 text-blue-600"
-              : "border-transparent text-gray-500 hover:text-gray-700"
+              : "border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
           }`}
         >
           Sent ({pendingSent.length})
@@ -216,7 +216,7 @@ export default function FriendsPage() {
             className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
               activeTab === "blocked"
                 ? "border-red-600 text-red-600"
-                : "border-transparent text-gray-500 hover:text-gray-700"
+                : "border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
             }`}
           >
             Blocked ({blocked.length})
@@ -224,22 +224,22 @@ export default function FriendsPage() {
         )}
       </div>
 
-      {isLoading && <p className="text-sm text-gray-500">Loading...</p>}
+      {isLoading && <p className="text-sm text-gray-500 dark:text-gray-400">Loading...</p>}
 
       {/* Friends list */}
       {activeTab === "friends" && (
         <div className="space-y-2">
           {friends.length === 0 && !isLoading && (
-            <p className="text-sm text-gray-500">No friends yet. Use the search above to add friends!</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">No friends yet. Use the search above to add friends!</p>
           )}
           {friends.map((friend) => (
             <div
               key={friend.user_id}
-              className="flex items-center justify-between rounded border border-gray-200 bg-white p-4"
+              className="flex items-center justify-between rounded border border-gray-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-800"
             >
               <div className="flex items-center gap-3">
                 <div className="relative">
-                  <div className="h-10 w-10 rounded-full bg-gray-300 flex items-center justify-center text-sm font-medium text-gray-700">
+                  <div className="h-10 w-10 rounded-full bg-gray-300 dark:bg-slate-600 flex items-center justify-center text-sm font-medium text-gray-700 dark:text-gray-300">
                     {friend.username[0].toUpperCase()}
                   </div>
                   <span
@@ -249,8 +249,8 @@ export default function FriendsPage() {
                   />
                 </div>
                 <div>
-                  <UserLink username={friend.username} className="font-medium text-gray-900" />
-                  <p className="text-xs text-gray-500">
+                  <UserLink username={friend.username} className="font-medium text-gray-900 dark:text-gray-100" />
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
                     Friends since {new Date(friend.since).toLocaleDateString()}
                   </p>
                 </div>
@@ -270,7 +270,7 @@ export default function FriendsPage() {
                 </button>
                 <button
                   onClick={() => blockUser(friend.user_id)}
-                  className="rounded border border-gray-300 px-3 py-1 text-sm text-gray-500 hover:bg-gray-50"
+                  className="rounded border border-gray-300 px-3 py-1 text-sm text-gray-500 hover:bg-gray-50 dark:border-slate-600 dark:text-gray-400 dark:hover:bg-slate-700"
                 >
                   Block
                 </button>
@@ -284,16 +284,16 @@ export default function FriendsPage() {
       {activeTab === "received" && (
         <div className="space-y-2">
           {pendingReceived.length === 0 && !isLoading && (
-            <p className="text-sm text-gray-500">No pending friend requests.</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">No pending friend requests.</p>
           )}
           {pendingReceived.map((req) => (
             <div
               key={req.id}
-              className="flex items-center justify-between rounded border border-yellow-200 bg-yellow-50 p-4"
+              className="flex items-center justify-between rounded border border-yellow-200 bg-yellow-50 p-4 dark:bg-yellow-950"
             >
               <div>
-                <UserLink username={req.from_username} className="font-medium text-gray-900" />
-                <p className="text-xs text-gray-500">
+                <UserLink username={req.from_username} className="font-medium text-gray-900 dark:text-gray-100" />
+                <p className="text-xs text-gray-500 dark:text-gray-400">
                   Sent {new Date(req.created_at).toLocaleDateString()}
                 </p>
               </div>
@@ -306,7 +306,7 @@ export default function FriendsPage() {
                 </button>
                 <button
                   onClick={() => rejectRequest(req.id)}
-                  className="rounded border border-gray-300 px-3 py-1 text-sm text-gray-700 hover:bg-gray-50"
+                  className="rounded border border-gray-300 px-3 py-1 text-sm text-gray-700 hover:bg-gray-50 dark:border-slate-600 dark:text-gray-300 dark:hover:bg-slate-700"
                 >
                   Decline
                 </button>
@@ -322,17 +322,17 @@ export default function FriendsPage() {
           {blocked.map((u: BlockedUser) => (
             <div
               key={u.user_id}
-              className="flex items-center justify-between rounded border border-gray-200 bg-white p-4"
+              className="flex items-center justify-between rounded border border-gray-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-800"
             >
               <div className="flex items-center gap-2">
-                <div className="h-8 w-8 rounded-full bg-gray-300 flex items-center justify-center text-xs font-medium text-gray-700">
+                <div className="h-8 w-8 rounded-full bg-gray-300 dark:bg-slate-600 flex items-center justify-center text-xs font-medium text-gray-700 dark:text-gray-300">
                   {u.username[0].toUpperCase()}
                 </div>
-                <UserLink username={u.username} className="text-sm font-medium text-gray-900" />
+                <UserLink username={u.username} className="text-sm font-medium text-gray-900 dark:text-gray-100" />
               </div>
               <button
                 onClick={() => unblockUser(u.user_id)}
-                className="rounded border border-gray-300 px-3 py-1 text-sm text-gray-700 hover:bg-gray-50"
+                className="rounded border border-gray-300 px-3 py-1 text-sm text-gray-700 hover:bg-gray-50 dark:border-slate-600 dark:text-gray-300 dark:hover:bg-slate-700"
               >
                 Unblock
               </button>
@@ -345,16 +345,16 @@ export default function FriendsPage() {
       {activeTab === "sent" && (
         <div className="space-y-2">
           {pendingSent.length === 0 && !isLoading && (
-            <p className="text-sm text-gray-500">No pending sent requests.</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">No pending sent requests.</p>
           )}
           {pendingSent.map((req) => (
             <div
               key={req.id}
-              className="flex items-center justify-between rounded border border-gray-200 bg-white p-4"
+              className="flex items-center justify-between rounded border border-gray-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-800"
             >
               <div>
-                <UserLink username={req.to_username} className="font-medium text-gray-900" />
-                <p className="text-xs text-gray-500">
+                <UserLink username={req.to_username} className="font-medium text-gray-900 dark:text-gray-100" />
+                <p className="text-xs text-gray-500 dark:text-gray-400">
                   Sent {new Date(req.created_at).toLocaleDateString()}
                 </p>
               </div>

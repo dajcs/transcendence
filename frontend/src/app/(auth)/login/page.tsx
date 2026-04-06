@@ -12,17 +12,22 @@ export default function LoginPage() {
         <LoginForm />
       </Suspense>
       <OAuthButtons />
-      <p className="text-sm text-gray-600">
+      <p className="text-sm text-gray-600 dark:text-gray-400">
         No account?{" "}
-        <Link href="/register" className="text-blue-600 hover:underline">
+        <Link href="/register" className="text-blue-600 hover:underline dark:text-blue-400">
           Register
         </Link>
       </p>
-      <p className="text-sm text-gray-600">
-        <Link href="/reset-password" className="text-blue-600 hover:underline">
+      <p className="text-sm text-gray-600 dark:text-gray-400">
+        <Link href="/reset-password" className="text-blue-600 hover:underline dark:text-blue-400">
           Forgot password?
         </Link>
       </p>
+      <div className="flex gap-3 text-xs text-gray-400 dark:text-gray-500">
+        <Link href="/privacy" className="hover:underline">Privacy</Link>
+        <span>·</span>
+        <Link href="/terms" className="hover:underline">Terms</Link>
+      </div>
     </div>
   );
 }

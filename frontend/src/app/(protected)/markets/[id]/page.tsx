@@ -340,7 +340,7 @@ export default function MarketDetailPage() {
 
   return (
     <div className="space-y-6">
-      {marketQuery.isLoading && <p className="text-sm text-gray-500">Loading market...</p>}
+      {marketQuery.isLoading && <p className="text-sm text-gray-500 dark:text-gray-400">Loading market...</p>}
       {marketQuery.isError && <p className="text-sm text-red-600">Failed to load market.</p>}
 
       {market && (
@@ -351,21 +351,21 @@ export default function MarketDetailPage() {
               <button
                 onClick={() => upvoteMarket.mutate()}
                 disabled={upvoteMarket.isPending}
-                className="shrink-0 flex flex-col items-center text-gray-400 hover:text-orange-500 transition-colors disabled:opacity-50 px-2"
+                className="shrink-0 flex flex-col items-center text-gray-400 hover:text-orange-500 transition-colors disabled:opacity-50 px-2 dark:text-gray-500 dark:hover:text-orange-400"
               >
                 <span className="text-2xl leading-none">▲</span>
                 <span className="text-xs font-medium">{market.upvote_count}</span>
               </button>
             </div>
-            <p className="text-sm text-gray-600">{market.description}</p>
-            <p className="text-sm text-gray-500">Resolution: {market.resolution_criteria}</p>
+            <p className="text-sm text-gray-600 dark:text-gray-300">{market.description}</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Resolution: {market.resolution_criteria}</p>
           </header>
 
-          <section className="rounded border border-gray-200 bg-white p-4">
+          <section className="rounded border border-gray-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-800">
             <h2 className="mb-2 text-lg font-semibold">Live Odds</h2>
             {market.market_type === "binary" && (
               <>
-                <div className="mb-2 h-3 overflow-hidden rounded bg-gray-200">
+                <div className="mb-2 h-3 overflow-hidden rounded bg-gray-200 dark:bg-slate-700">
                   <div className="h-full bg-green-500" style={{ width: `${market.yes_pct}%` }} />
                 </div>
                 <div className="flex justify-between text-sm">
@@ -383,15 +383,15 @@ export default function MarketDetailPage() {
                     <div key={choice}>
                       <div className="flex justify-between text-sm mb-1">
                         <span>{choice}</span>
-                        <span className="text-gray-500">{count} votes ({pct}%)</span>
+                        <span className="text-gray-500 dark:text-gray-400">{count} votes ({pct}%)</span>
                       </div>
-                      <div className="h-3 overflow-hidden rounded bg-gray-200">
+                      <div className="h-3 overflow-hidden rounded bg-gray-200 dark:bg-slate-700">
                         <div className="h-full bg-blue-500 transition-all" style={{ width: `${pct}%` }} />
                       </div>
                     </div>
                   );
                 })}
-                <p className="text-xs text-gray-500 pt-1">{market.position_count} total votes</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 pt-1">{market.position_count} total votes</p>
               </div>
             )}
             {market.market_type === "numeric" && (() => {
@@ -413,7 +413,7 @@ export default function MarketDetailPage() {
               const barW = (W - pad * (BINS + 1)) / BINS;
               return (
                 <div>
-                  <p className="text-xs text-gray-500 mb-2">
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
                     Range: {min} – {max} · {market.position_count} votes
                   </p>
                   <svg width={W} height={H + 16} className="overflow-visible">
@@ -445,9 +445,9 @@ export default function MarketDetailPage() {
           </section>
 
           {myPosition && market && (
-            <section className="rounded border border-blue-200 bg-blue-50 p-4">
-              <h2 className="mb-2 text-lg font-semibold text-blue-900">Your Position</h2>
-              <p className="text-sm text-blue-800">
+            <section className="rounded border border-blue-200 bg-blue-50 p-4 dark:bg-blue-950">
+              <h2 className="mb-2 text-lg font-semibold text-blue-900 dark:text-blue-100">Your Position</h2>
+              <p className="text-sm text-blue-800 dark:text-blue-200">
                 {market.market_type === "numeric" ? (
                   <>Estimate: <span className="font-medium">{myPosition.side}</span></>
                 ) : market.market_type === "multiple_choice" ? (
@@ -497,25 +497,25 @@ export default function MarketDetailPage() {
 
           {/* ResolutionSection: visible when deadline passed or status is in resolution */}
           {(deadlinePassed || market.status !== "open") && (
-            <section className="rounded border border-yellow-200 bg-yellow-50 p-4 space-y-3">
-              <h2 className="text-lg font-semibold text-yellow-900">Resolution</h2>
+            <section className="rounded border border-yellow-200 bg-yellow-50 p-4 space-y-3 dark:bg-yellow-950">
+              <h2 className="text-lg font-semibold text-yellow-900 dark:text-yellow-100">Resolution</h2>
 
               {/* Payout banner */}
               {payoutBanner && (
-                <div className="rounded bg-green-100 border border-green-300 p-3 text-sm text-green-800">
+                <div className="rounded bg-green-100 border border-green-300 p-3 text-sm text-green-800 dark:bg-green-950 dark:text-green-200">
                   {payoutBanner}
                 </div>
               )}
 
               {/* Status display */}
-              <p className="text-sm text-yellow-800">
+              <p className="text-sm text-yellow-800 dark:text-yellow-200">
                 Status: <span className="font-medium capitalize">{market.status.replace(/_/g, " ")}</span>
               </p>
 
               {/* Proposer resolution form: visible to proposer when deadline passed and not yet closed */}
               {(market.status === "pending_resolution" || (deadlinePassed && market.status === "open")) && currentUser?.id === market.proposer_id && (
                 <div className="space-y-3 border-t border-yellow-200 pt-3">
-                  <p className="text-sm font-medium text-yellow-900">Submit Resolution</p>
+                  <p className="text-sm font-medium text-yellow-900 dark:text-yellow-100">Submit Resolution</p>
 
                   {/* binary */}
                   {market.market_type === "binary" && (
@@ -524,7 +524,7 @@ export default function MarketDetailPage() {
                         <button
                           key={opt}
                           onClick={() => setResolutionOutcome(opt)}
-                          className={`rounded px-3 py-1 text-sm ${resolutionOutcome === opt ? "bg-green-600 text-white" : "bg-gray-200"}`}
+                          className={`rounded px-3 py-1 text-sm ${resolutionOutcome === opt ? "bg-green-600 text-white" : "bg-gray-200 dark:bg-slate-700 dark:text-gray-300"}`}
                         >
                           {opt.toUpperCase()}
                         </button>
@@ -539,7 +539,7 @@ export default function MarketDetailPage() {
                         <button
                           key={opt}
                           onClick={() => setResolutionOutcome(opt)}
-                          className={`rounded px-3 py-1 text-sm ${resolutionOutcome === opt ? "bg-green-600 text-white" : "bg-gray-200"}`}
+                          className={`rounded px-3 py-1 text-sm ${resolutionOutcome === opt ? "bg-green-600 text-white" : "bg-gray-200 dark:bg-slate-700 dark:text-gray-300"}`}
                         >
                           {opt}
                         </button>
@@ -558,10 +558,10 @@ export default function MarketDetailPage() {
                         max={market.numeric_max ?? undefined}
                         step="any"
                         placeholder="Enter value"
-                        className="w-36 rounded border border-gray-300 px-3 py-1 text-sm"
+                        className="w-36 rounded border border-gray-300 px-3 py-1 text-sm dark:border-slate-600 dark:bg-slate-700 dark:text-gray-100"
                       />
                       {(market.numeric_min != null || market.numeric_max != null) && (
-                        <span className="text-xs text-gray-500">
+                        <span className="text-xs text-gray-500 dark:text-gray-400">
                           range: {market.numeric_min ?? "−∞"} – {market.numeric_max ?? "+∞"}
                         </span>
                       )}
@@ -571,7 +571,7 @@ export default function MarketDetailPage() {
                     value={resolutionJustification}
                     onChange={(e) => setResolutionJustification(e.target.value)}
                     placeholder="Justification (min 20 chars)"
-                    className="w-full rounded border border-gray-300 px-3 py-2 text-sm"
+                    className="w-full rounded border border-gray-300 px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-700 dark:text-gray-100"
                     rows={3}
                   />
 
@@ -582,7 +582,7 @@ export default function MarketDetailPage() {
                         value={evidenceText}
                         onChange={(e) => setEvidenceText(e.target.value.slice(0, 500))}
                         placeholder="Evidence for AI (max 500 chars)"
-                        className="w-full rounded border border-gray-300 px-3 py-2 text-sm"
+                        className="w-full rounded border border-gray-300 px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-700 dark:text-gray-100"
                         rows={2}
                       />
                       <button
@@ -593,7 +593,7 @@ export default function MarketDetailPage() {
                         {hintLoading ? "Getting suggestion..." : "Get AI suggestion"}
                       </button>
                       {hint && (
-                        <div className="rounded bg-blue-50 border border-blue-200 p-2 text-sm text-blue-900">
+                        <div className="rounded bg-blue-50 border border-blue-200 p-2 text-sm text-blue-900 dark:bg-blue-950 dark:text-blue-100">
                           <div className="prose prose-sm max-w-none"><ReactMarkdown>{hint}</ReactMarkdown></div>
                         </div>
                       )}
@@ -638,12 +638,12 @@ export default function MarketDetailPage() {
 
           {/* Review window: proposer_resolved — accept/dispute voting */}
           {market.status === "proposer_resolved" && (
-            <section className="rounded border border-blue-200 bg-blue-50 p-4 space-y-3">
-              <h2 className="text-lg font-semibold text-blue-900">Resolution Proposed</h2>
+            <section className="rounded border border-blue-200 bg-blue-50 p-4 space-y-3 dark:bg-blue-950">
+              <h2 className="text-lg font-semibold text-blue-900 dark:text-blue-100">Resolution Proposed</h2>
 
               {resolutionQuery.data?.review && (
                 <>
-                  <p className="text-sm text-blue-800">
+                  <p className="text-sm text-blue-800 dark:text-blue-200">
                     Time to finalize:{" "}
                     <span className="font-medium">
                       {(() => {
@@ -703,8 +703,8 @@ export default function MarketDetailPage() {
 
           {/* Tier 3 community dispute vote */}
           {market.status === "disputed" && (
-            <section className="rounded border border-violet-200 bg-violet-50 p-4 space-y-3">
-              <h2 className="text-lg font-semibold text-violet-900">Community Vote</h2>
+            <section className="rounded border border-violet-200 bg-violet-50 p-4 space-y-3 dark:bg-violet-950">
+              <h2 className="text-lg font-semibold text-violet-900 dark:text-violet-100">Community Vote</h2>
               {resolutionQuery.data?.dispute ? (
                 <>
                   <p className="text-sm text-violet-800">
@@ -824,18 +824,18 @@ export default function MarketDetailPage() {
             </section>
           )}
 
-          {!myPosition && market.status === "open" && <section className="rounded border border-gray-200 bg-white p-4">
+          {!myPosition && market.status === "open" && <section className="rounded border border-gray-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-800">
             <h2 className="mb-3 text-lg font-semibold">Place Bet</h2>
             {market.market_type === "binary" && (
               <div className="mb-3 flex gap-2">
                 <button
-                  className={`rounded px-3 py-1 text-sm ${side === "yes" ? "bg-green-600 text-white" : "bg-gray-200"}`}
+                  className={`rounded px-3 py-1 text-sm ${side === "yes" ? "bg-green-600 text-white" : "bg-gray-200 dark:bg-slate-700 dark:text-gray-300"}`}
                   onClick={() => setSide("yes")}
                 >
                   YES
                 </button>
                 <button
-                  className={`rounded px-3 py-1 text-sm ${side === "no" ? "bg-red-600 text-white" : "bg-gray-200"}`}
+                  className={`rounded px-3 py-1 text-sm ${side === "no" ? "bg-red-600 text-white" : "bg-gray-200 dark:bg-slate-700 dark:text-gray-300"}`}
                   onClick={() => setSide("no")}
                 >
                   NO
@@ -847,7 +847,7 @@ export default function MarketDetailPage() {
                 {(market.choices ?? []).map((choice) => (
                   <button
                     key={choice}
-                    className={`rounded px-3 py-1 text-sm ${side === choice ? "bg-blue-600 text-white" : "bg-gray-200"}`}
+                    className={`rounded px-3 py-1 text-sm ${side === choice ? "bg-blue-600 text-white" : "bg-gray-200 dark:bg-slate-700 dark:text-gray-300"}`}
                     onClick={() => setSide(choice)}
                   >
                     {choice}
@@ -867,7 +867,7 @@ export default function MarketDetailPage() {
                   step="any"
                   value={side}
                   onChange={(e) => setSide(e.target.value)}
-                  className="rounded border border-gray-300 px-3 py-1 text-sm w-40"
+                  className="rounded border border-gray-300 px-3 py-1 text-sm w-40 dark:border-slate-600 dark:bg-slate-700 dark:text-gray-100"
                 />
               </div>
             )}
@@ -881,13 +881,13 @@ export default function MarketDetailPage() {
             {placeBet.isError && <p className="mt-2 text-sm text-red-600">Unable to place bet.</p>}
           </section>}
 
-          <section className="rounded border border-gray-200 bg-white p-4">
+          <section className="rounded border border-gray-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-800">
             <h2 className="mb-3 text-lg font-semibold">Comments</h2>
             {/* LLM summary button — D-13 */}
             {aiEnabled && <div className="mb-3">
               {summary ? (
-                <div className="rounded bg-gray-50 border border-gray-200 p-3 text-sm text-gray-800 space-y-1">
-                  <p className="text-xs font-medium text-gray-500">AI Summary</p>
+                <div className="rounded bg-gray-50 border border-gray-200 p-3 text-sm text-gray-800 space-y-1 dark:bg-slate-700 dark:border-slate-600 dark:text-gray-200">
+                  <p className="text-xs font-medium text-gray-500 dark:text-gray-400">AI Summary</p>
                   <div className="prose prose-sm max-w-none"><ReactMarkdown>{summary}</ReactMarkdown></div>
                   <button onClick={() => setSummary(null)} className="text-xs text-blue-600 hover:underline">
                     Refresh
@@ -897,7 +897,7 @@ export default function MarketDetailPage() {
                 <button
                   onClick={handleGetSummary}
                   disabled={summaryLoading}
-                  className="rounded border border-gray-300 px-3 py-1 text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-50"
+                  className="rounded border border-gray-300 px-3 py-1 text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-50 dark:border-slate-600 dark:text-gray-300 dark:hover:bg-slate-700"
                 >
                   {summaryLoading ? "Summarizing..." : "Summarize discussion"}
                 </button>
@@ -907,7 +907,7 @@ export default function MarketDetailPage() {
               <input
                 value={commentText}
                 onChange={(event) => setCommentText(event.target.value)}
-                className="flex-1 rounded border border-gray-300 px-3 py-2 text-sm"
+                className="flex-1 rounded border border-gray-300 px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-700 dark:text-gray-100"
                 placeholder="Share your reasoning"
               />
               <button
@@ -926,11 +926,11 @@ export default function MarketDetailPage() {
                   <div
                     key={comment.id}
                     style={{ marginLeft: `${depth * 24}px` }}
-                    className="rounded border border-gray-200 p-3"
+                    className="rounded border border-gray-200 p-3 dark:border-slate-700"
                   >
-                    <UserLink username={comment.author_username} className="text-xs font-medium text-gray-700 mb-1 block" />
-                    <p className="text-sm text-gray-800">{comment.content}</p>
-                    <div className="mt-2 flex items-center gap-3 text-xs text-gray-500">
+                    <UserLink username={comment.author_username} className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1 block" />
+                    <p className="text-sm text-gray-800 dark:text-gray-200">{comment.content}</p>
+                    <div className="mt-2 flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
                       <span>{new Date(comment.created_at).toLocaleString()}</span>
                       <button
                         onClick={() => upvoteComment.mutate(comment.id)}
@@ -942,7 +942,7 @@ export default function MarketDetailPage() {
                       {depth < 4 && (
                         <button
                           onClick={() => setReplyingTo(replyingTo === comment.id ? null : comment.id)}
-                          className="rounded border border-gray-300 px-2 py-0.5 hover:bg-gray-100"
+                          className="rounded border border-gray-300 px-2 py-0.5 hover:bg-gray-100 dark:border-slate-600 dark:hover:bg-slate-700"
                         >
                           Reply
                         </button>
@@ -960,7 +960,7 @@ export default function MarketDetailPage() {
                         <input
                           value={replyText}
                           onChange={(e) => setReplyText(e.target.value)}
-                          className="flex-1 rounded border border-gray-300 px-3 py-1 text-sm"
+                          className="flex-1 rounded border border-gray-300 px-3 py-1 text-sm dark:border-slate-600 dark:bg-slate-700 dark:text-gray-100"
                           placeholder="Write a reply..."
                           autoFocus
                         />
@@ -972,7 +972,7 @@ export default function MarketDetailPage() {
                   </div>
                 );
               })}
-              {commentsQuery.isLoading && <p className="text-sm text-gray-500">Loading comments...</p>}
+              {commentsQuery.isLoading && <p className="text-sm text-gray-500 dark:text-gray-400">Loading comments...</p>}
             </div>
           </section>
         </>

@@ -24,11 +24,11 @@ const CLOSED_STATUSES = new Set(["closed"]);
 
 function marketCardBg(status: string, isOwnMarket = false): string {
   if (status === "pending_resolution")
-    return isOwnMarket ? "border-red-300 bg-red-50" : "border-yellow-300 bg-yellow-50";
-  if (status === "proposer_resolved") return "border-blue-300 bg-blue-50";
-  if (status === "disputed") return "border-violet-300 bg-violet-50";
-  if (status === "closed") return "border-green-300 bg-green-50";
-  return "border-gray-200 bg-white";
+    return isOwnMarket ? "border-red-300 bg-red-50 dark:bg-red-950" : "border-yellow-300 bg-yellow-50 dark:bg-yellow-950";
+  if (status === "proposer_resolved") return "border-blue-300 bg-blue-50 dark:bg-blue-950";
+  if (status === "disputed") return "border-violet-300 bg-violet-50 dark:bg-violet-950";
+  if (status === "closed") return "border-green-300 bg-green-50 dark:bg-green-950";
+  return "border-gray-200 bg-white dark:border-slate-700 dark:bg-slate-800";
 }
 
 function marketStatusBadge(status: string, isOwnMarket = false): { text: string; cls: string } | null {
@@ -78,7 +78,7 @@ export default function DashboardPage() {
     <div className="flex flex-col gap-6">
       <h1 className="text-2xl font-bold">Dashboard</h1>
       {user && (
-        <div className="rounded border border-gray-200 bg-white p-4 text-sm text-gray-700">
+        <div className="rounded border border-gray-200 bg-white p-4 text-sm text-gray-700 dark:border-slate-700 dark:bg-slate-800 dark:text-gray-300">
           <p>
             Welcome, <span className="font-medium">{user.username}</span>
           </p>
@@ -87,15 +87,15 @@ export default function DashboardPage() {
       )}
 
       {/* Filter tabs */}
-      <div className="flex gap-1 border-b border-gray-200">
+      <div className="flex gap-1 border-b border-gray-200 dark:border-slate-700">
         {tabs.map(({ id, label }) => (
           <button
             key={id}
             onClick={() => setTab(id)}
             className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
               tab === id
-                ? "border-gray-900 text-gray-900"
-                : "border-transparent text-gray-500 hover:text-gray-700"
+                ? "border-gray-900 text-gray-900 dark:border-gray-100 dark:text-gray-100"
+                : "border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
             }`}
           >
             {label}
@@ -107,7 +107,7 @@ export default function DashboardPage() {
       {tab === "my_bets" && (
         <div className="space-y-6">
           <section className="space-y-3">
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">Active</h2>
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Active</h2>
             {positionsQuery.data?.active.length ? (
               <div className="space-y-2">
                 {positionsQuery.data.active.map((position) => {
@@ -116,10 +116,10 @@ export default function DashboardPage() {
                     <Link
                       key={position.id}
                       href={`/markets/${position.bet_id}`}
-                      className={`block rounded border p-3 hover:border-gray-300 ${marketCardBg(position.market_status)}`}
+                      className={`block rounded border p-3 hover:border-gray-300 dark:hover:border-slate-600 ${marketCardBg(position.market_status)}`}
                     >
-                      <p className="font-medium text-gray-900">{position.market_title}</p>
-                      <p className="mt-1 text-sm text-gray-600">
+                      <p className="font-medium text-gray-900 dark:text-gray-100">{position.market_title}</p>
+                      <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">
                         {position.side.toUpperCase()} · {position.bp_staked} BP staked ·{" "}
                         Win {position.side === "yes" ? position.yes_pct : position.no_pct}%
                       </p>
@@ -133,21 +133,21 @@ export default function DashboardPage() {
                 })}
               </div>
             ) : (
-              <p className="text-sm text-gray-500">No active bets.</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">No active bets.</p>
             )}
           </section>
 
           <section className="space-y-3">
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">Resolved / Withdrawn</h2>
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Resolved / Withdrawn</h2>
             {positionsQuery.data?.resolved.length ? (
               <div className="space-y-2">
                 {positionsQuery.data.resolved.map((position) => (
                   <Link
                     key={position.id}
                     href={`/markets/${position.bet_id}`}
-                    className="block rounded border border-gray-200 bg-white p-3 text-sm text-gray-700 hover:border-gray-300"
+                    className="block rounded border border-gray-200 bg-white p-3 text-sm text-gray-700 hover:border-gray-300 dark:border-slate-700 dark:bg-slate-800 dark:text-gray-300 dark:hover:border-slate-600"
                   >
-                    <p className="font-medium text-gray-900">{position.market_title}</p>
+                    <p className="font-medium text-gray-900 dark:text-gray-100">{position.market_title}</p>
                     <p className="mt-1">
                       {position.side.toUpperCase()} · Stake {position.bp_staked} BP · Refund{" "}
                       {position.refund_bp ?? 0} BP
@@ -156,7 +156,7 @@ export default function DashboardPage() {
                 ))}
               </div>
             ) : (
-              <p className="text-sm text-gray-500">No resolved positions yet.</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">No resolved positions yet.</p>
             )}
           </section>
         </div>
@@ -166,7 +166,7 @@ export default function DashboardPage() {
       {tab === "my_markets" && (
         <div className="space-y-6">
           <section className="space-y-3">
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">Active</h2>
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Active</h2>
             {activeMarkets.length ? (
               <div className="space-y-2">
                 {activeMarkets.map((market) => {
@@ -175,7 +175,7 @@ export default function DashboardPage() {
                     <Link
                       key={market.id}
                       href={`/markets/${market.id}`}
-                      className={`block rounded border p-3 hover:border-gray-300 ${marketCardBg(market.status, true)}`}
+                      className={`block rounded border p-3 hover:border-gray-300 dark:hover:border-slate-600 ${marketCardBg(market.status, true)}`}
                     >
                       <p className="font-medium text-gray-900">{market.title}</p>
                       <p className="mt-1 text-sm text-gray-600">
@@ -192,7 +192,7 @@ export default function DashboardPage() {
                 })}
               </div>
             ) : (
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-gray-500 dark:text-gray-400">
                 No active markets.{" "}
                 <Link href="/markets/new" className="text-blue-600 hover:underline">
                   Create one
@@ -202,17 +202,17 @@ export default function DashboardPage() {
           </section>
 
           <section className="space-y-3">
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">Resolved / Withdrawn</h2>
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Resolved / Withdrawn</h2>
             {closedMarkets.length ? (
               <div className="space-y-2">
                 {closedMarkets.map((market) => (
                   <Link
                     key={market.id}
                     href={`/markets/${market.id}`}
-                    className="block rounded border border-gray-200 bg-white p-3 text-sm text-gray-700 hover:border-gray-300"
+                    className="block rounded border border-gray-200 bg-white p-3 text-sm text-gray-700 hover:border-gray-300 dark:border-slate-700 dark:bg-slate-800 dark:text-gray-300 dark:hover:border-slate-600"
                   >
-                    <p className="font-medium text-gray-900">{market.title}</p>
-                    <p className="mt-1 text-gray-600">
+                    <p className="font-medium text-gray-900 dark:text-gray-100">{market.title}</p>
+                    <p className="mt-1 text-gray-600 dark:text-gray-300">
                       {market.status.replace(/_/g, " ")} · deadline{" "}
                       {new Date(market.deadline).toLocaleString()}
                     </p>
@@ -220,7 +220,7 @@ export default function DashboardPage() {
                 ))}
               </div>
             ) : (
-              <p className="text-sm text-gray-500">No closed markets yet.</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">No closed markets yet.</p>
             )}
           </section>
         </div>

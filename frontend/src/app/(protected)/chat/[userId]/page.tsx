@@ -67,33 +67,33 @@ export default function ChatConversationPage() {
   return (
     <div className="flex flex-col h-[calc(100vh-12rem)]">
       {/* Header */}
-      <div className="flex items-center gap-3 border-b border-gray-200 pb-4 mb-4">
-        <Link href="/chat" className="text-gray-500 hover:text-gray-700">
+      <div className="flex items-center gap-3 border-b border-gray-200 dark:border-slate-700 pb-4 mb-4">
+        <Link href="/chat" className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300">
           &larr;
         </Link>
-        <div className="h-8 w-8 rounded-full bg-gray-300 flex items-center justify-center text-sm font-medium text-gray-700">
+        <div className="h-8 w-8 rounded-full bg-gray-300 dark:bg-slate-600 flex items-center justify-center text-sm font-medium text-gray-700 dark:text-gray-300">
           {partnerUsername ? partnerUsername[0].toUpperCase() : "?"}
         </div>
         {partnerUsername ? (
           <Link
             href={`/profile/${encodeURIComponent(partnerUsername)}`}
-            className="font-medium text-gray-900 hover:text-blue-600"
+            className="font-medium text-gray-900 hover:text-blue-600 dark:text-gray-100"
           >
             {partnerUsername}
           </Link>
         ) : (
-          <span className="font-medium text-gray-400">Loading...</span>
+          <span className="font-medium text-gray-400 dark:text-gray-500">Loading...</span>
         )}
       </div>
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto space-y-3 pr-2">
         {isLoading && messages.length === 0 && (
-          <p className="text-sm text-gray-500 text-center">Loading messages...</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400 text-center">Loading messages...</p>
         )}
 
         {!isLoading && messages.length === 0 && (
-          <p className="text-sm text-gray-500 text-center">
+          <p className="text-sm text-gray-500 dark:text-gray-400 text-center">
             No messages yet. Say hello!
           </p>
         )}
@@ -109,13 +109,13 @@ export default function ChatConversationPage() {
                 className={`max-w-[70%] rounded-lg px-4 py-2 ${
                   isMe
                     ? "bg-blue-600 text-white"
-                    : "bg-gray-100 text-gray-900"
+                    : "bg-gray-100 text-gray-900 dark:bg-slate-700 dark:text-gray-100"
                 }`}
               >
                 <p className="text-sm whitespace-pre-wrap break-words">{msg.content}</p>
                 <p
                   className={`text-xs mt-1 ${
-                    isMe ? "text-blue-200" : "text-gray-500"
+                    isMe ? "text-blue-200" : "text-gray-500 dark:text-gray-400"
                   }`}
                 >
                   {new Date(msg.sent_at).toLocaleTimeString([], {
@@ -132,13 +132,13 @@ export default function ChatConversationPage() {
       </div>
 
       {/* Input */}
-      <form onSubmit={handleSend} className="mt-4 flex gap-2 border-t border-gray-200 pt-4">
+      <form onSubmit={handleSend} className="mt-4 flex gap-2 border-t border-gray-200 dark:border-slate-700 pt-4">
         <input
           value={newMessage}
           onChange={(e) => setNewMessage(e.target.value)}
           placeholder="Type a message..."
           maxLength={2000}
-          className="flex-1 rounded border border-gray-300 px-4 py-2 text-sm focus:border-blue-400 focus:outline-none"
+          className="flex-1 rounded border border-gray-300 px-4 py-2 text-sm focus:border-blue-400 focus:outline-none dark:border-slate-600 dark:bg-slate-700 dark:text-gray-100"
         />
         <button
           type="submit"

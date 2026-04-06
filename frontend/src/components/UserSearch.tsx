@@ -66,10 +66,10 @@ export default function UserSearch() {
         onChange={(e) => setQuery(e.target.value)}
         onFocus={() => results.length > 0 && setIsOpen(true)}
         placeholder="Search users..."
-        className="rounded border border-gray-300 px-3 py-1.5 text-sm w-48 focus:border-blue-400 focus:outline-none"
+        className="rounded border border-gray-300 px-3 py-1.5 text-sm w-48 focus:border-blue-400 focus:outline-none dark:border-slate-600 dark:bg-slate-700 dark:text-gray-100"
       />
       {isOpen && results.length > 0 && (
-        <div className="absolute top-full left-0 z-50 mt-1 w-64 rounded border border-gray-200 bg-white shadow-lg">
+        <div className="absolute top-full left-0 z-50 mt-1 w-64 rounded border border-gray-200 bg-white shadow-lg dark:border-slate-700 dark:bg-slate-800">
           {results.map((user) => (
             <Link
               key={user.id}
@@ -78,9 +78,9 @@ export default function UserSearch() {
                 setIsOpen(false);
                 setQuery("");
               }}
-              className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50"
+              className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-slate-700"
             >
-              <div className="h-6 w-6 rounded-full bg-gray-300 flex items-center justify-center text-xs font-medium text-gray-700">
+              <div className="h-6 w-6 rounded-full bg-gray-300 dark:bg-slate-600 flex items-center justify-center text-xs font-medium text-gray-700 dark:text-gray-300">
                 {user.username[0].toUpperCase()}
               </div>
               <span>{user.username}</span>

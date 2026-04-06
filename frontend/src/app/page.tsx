@@ -18,10 +18,15 @@ export default function HomePage() {
         </Link>
         <Link
           href="/login"
-          className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium"
+          className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium dark:border-slate-600 dark:text-gray-300 dark:hover:bg-slate-800"
         >
           Log In
         </Link>
+      </div>
+      <div className="flex gap-4 text-sm text-gray-500 dark:text-gray-400">
+        <Link href="/privacy" className="hover:underline">Privacy Policy</Link>
+        <span>·</span>
+        <Link href="/terms" className="hover:underline">Terms of Service</Link>
       </div>
     </div>
   );

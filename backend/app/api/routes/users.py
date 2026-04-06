@@ -1,5 +1,6 @@
 """User profile API routes: /api/users/*"""
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -7,6 +8,7 @@ from app.api.deps import get_db
 from app.schemas.profile import PublicProfileResponse, UpdateProfileRequest, UserSearchResult
 from app.services import auth_service
 from app.services import profile_service
+from app.services import gdpr_service
 
 router = APIRouter()
 
@@ -89,6 +91,34 @@ async def update_my_profile(
     user = await _get_current_user(request, db)
     await profile_service.update_profile(db, user.id, data)
     return await profile_service.get_public_profile(db, user.username, user.id)
+
+
+@router.get("/data-export")
+async def export_my_data(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+):
+    """Export all user data as JSON (GDPR Art. 15 / Art. 20)."""
+    user = await _get_current_user(request, db)
+    data = await gdpr_service.export_user_data(db, user)
+    return JSONResponse(
+        content=data,
+        headers={"Content-Disposition": f'attachment; filename="voxpopuli-data-export.json"'},
+    )
+
+
+@router.delete("/account")
+async def delete_my_account(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+):
+    """Delete account with pseudonymization (GDPR Art. 17)."""
+    user = await _get_current_user(request, db)
+    await gdpr_service.delete_account(db, user)
+    response = JSONResponse(content={"ok": True, "message": "Account deleted and data pseudonymized."})
+    response.delete_cookie("access_token", path="/")
+    response.delete_cookie("refresh_token", path="/api/auth/refresh")
+    return response
 
 
 @router.get("/search", response_model=list[UserSearchResult])
