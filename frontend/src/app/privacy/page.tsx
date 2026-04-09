@@ -2,9 +2,12 @@
 
 import Link from "next/link";
 import { useT } from "@/i18n";
+import { useAuthStore } from "@/store/auth";
 
 export default function PrivacyPage() {
   const t = useT();
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const homeHref = isAuthenticated ? "/dashboard" : "/";
 
   return (
     <article className="prose prose-sm max-w-3xl mx-auto dark:prose-invert">
@@ -107,7 +110,7 @@ export default function PrivacyPage() {
       <div className="mt-8 pt-6 border-t border-gray-200 dark:border-slate-700 text-sm text-gray-500 dark:text-gray-400">
         <Link href="/terms" className="text-blue-600 hover:underline dark:text-blue-400">{t("privacy.link_terms")}</Link>
         {" · "}
-        <Link href="/" className="text-blue-600 hover:underline dark:text-blue-400">{t("privacy.link_home")}</Link>
+        <Link href={homeHref} className="text-blue-600 hover:underline dark:text-blue-400">{t("privacy.link_home")}</Link>
       </div>
     </article>
   );
