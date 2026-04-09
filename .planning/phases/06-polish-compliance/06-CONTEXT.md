@@ -14,7 +14,7 @@ i18n (EN/FR/DE), OAuth 2.0 (Google/GitHub/42 PKCE), Privacy Policy + Terms of Se
 ## Implementation Decisions
 
 ### Branch Consolidation
-- **D-01:** Merge `imp/i18n` and `fix/polish` into `fix/ph6` using `git merge` (preserves full history with merge commits). Do this before any gap-closure work so the working branch reflects the full implemented state.
+- **D-01:** Merge `imp/i18n` and `fix/polish` into `fix/ph6` using `git merge` (preserves full history with merge commits). Do this before any gap-closure work so the working branch reflects the full implemented state. In case of conflicts, prioritize `fix/ph6` changes.
   - `imp/i18n` — adds useT() hook + EN/FR/DE dictionaries + 20+ wired pages
   - `fix/polish` — adds dark mode color variants for market and settings pages
 
