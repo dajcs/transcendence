@@ -201,8 +201,8 @@ export default function SettingsPage() {
         >
           {save.isPending ? t("settings.saving") : t("settings.save")}
         </button>
-        {save.isError   && <p className="text-sm text-red-600">{t("settings.save_error")}</p>}
-        {save.isSuccess && <p className="text-sm text-green-600">{t("settings.save_success")}</p>}
+        {save.isError   && <p className="text-sm text-red-600 dark:text-red-400">{t("settings.save_error")}</p>}
+        {save.isSuccess && <p className="text-sm text-green-600 dark:text-green-400">{t("settings.save_success")}</p>}
       </section>
 
       {/* GDPR Section */}

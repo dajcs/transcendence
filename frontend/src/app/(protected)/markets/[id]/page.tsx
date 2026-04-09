@@ -343,7 +343,7 @@ export default function MarketDetailPage() {
   return (
     <div className="space-y-6">
       {marketQuery.isLoading && <p className="text-sm text-gray-500 dark:text-gray-400">{t("market.loading")}</p>}
-      {marketQuery.isError && <p className="text-sm text-red-600">{t("market.load_error")}</p>}
+      {marketQuery.isError && <p className="text-sm text-red-600 dark:text-red-400">{t("market.load_error")}</p>}
 
       {market && (
         <>
@@ -371,8 +371,8 @@ export default function MarketDetailPage() {
                   <div className="h-full bg-green-500" style={{ width: `${market.yes_pct}%` }} />
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="font-semibold text-green-600">YES {market.yes_pct}% ({market.yes_count})</span>
-                  <span className="font-semibold text-red-600">NO {market.no_pct}% ({market.no_count})</span>
+                  <span className="font-semibold text-green-600 dark:text-green-400">YES {market.yes_pct}% ({market.yes_count})</span>
+                  <span className="font-semibold text-red-600 dark:text-red-400">NO {market.no_pct}% ({market.no_count})</span>
                 </div>
               </>
             )}
@@ -490,7 +490,7 @@ export default function MarketDetailPage() {
                     </div>
                   )}
                   {withdrawBet.isError && (
-                    <p className="mt-2 text-sm text-red-600">{t("market.withdraw_failed")}</p>
+                    <p className="mt-2 text-sm text-red-600 dark:text-red-400">{t("market.withdraw_failed")}</p>
                   )}
                 </>
               )}
@@ -610,7 +610,7 @@ export default function MarketDetailPage() {
                     {submitResolution.isPending ? t("market.submitting") : t("market.submit_resolution")}
                   </button>
                   {submitResolution.isError && (
-                    <p className="text-sm text-red-600">
+                    <p className="text-sm text-red-600 dark:text-red-400">
                       {(() => {
                         const d = (submitResolution.error as { response?: { data?: { detail?: unknown } } })?.response?.data?.detail;
                         if (!d) return t("market.failed_submit");
@@ -631,7 +631,7 @@ export default function MarketDetailPage() {
                     <p className="text-xs text-yellow-700 dark:text-yellow-400">{resolutionQuery.data.resolution.justification}</p>
                   )}
                   {resolutionQuery.data.resolution.overturned && (
-                    <p className="text-xs text-red-600 font-medium">{t("market.overturned")}</p>
+                    <p className="text-xs text-red-600 dark:text-red-400 font-medium">{t("market.overturned")}</p>
                   )}
                 </div>
               )}
@@ -694,7 +694,7 @@ export default function MarketDetailPage() {
                   </div>
                   <p className="text-xs text-blue-600 dark:text-blue-400">{t("market.dispute_cost")}</p>
                   {(acceptResolution.isError || openDispute.isError) && (
-                    <p className="text-sm text-red-600">
+                    <p className="text-sm text-red-600 dark:text-red-400">
                       {(((acceptResolution.error ?? openDispute.error) as { response?: { data?: { detail?: unknown } } })?.response?.data?.detail as string) ?? t("market.action_failed")}
                     </p>
                   )}
@@ -818,7 +818,7 @@ export default function MarketDetailPage() {
                       )}
                     </div>
                   )}
-                  {castVote.isError && <p className="text-sm text-red-600">{t("market.vote_failed")}</p>}
+                  {castVote.isError && <p className="text-sm text-red-600 dark:text-red-400">{t("market.vote_failed")}</p>}
                 </>
               ) : (
                 <p className="text-sm text-violet-700 dark:text-violet-400">{t("market.loading_dispute")}</p>
@@ -880,7 +880,7 @@ export default function MarketDetailPage() {
             >
               {placeBet.isPending ? t("market.placing") : t("market.place_1bp")}
             </button>
-            {placeBet.isError && <p className="mt-2 text-sm text-red-600">{t("market.bet_error")}</p>}
+            {placeBet.isError && <p className="mt-2 text-sm text-red-600 dark:text-red-400">{t("market.bet_error")}</p>}
           </section>}
 
           <section className="rounded border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
@@ -891,7 +891,7 @@ export default function MarketDetailPage() {
                 <div className="rounded bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 p-3 text-sm text-gray-800 dark:text-gray-200 space-y-1">
                   <p className="text-xs font-medium text-gray-500 dark:text-gray-400">{t("market.ai_summary")}</p>
                   <div className="prose prose-sm max-w-none"><ReactMarkdown>{summary}</ReactMarkdown></div>
-                  <button onClick={() => setSummary(null)} className="text-xs text-blue-600 hover:underline">
+                  <button onClick={() => setSummary(null)} className="text-xs text-blue-600 dark:text-blue-400 hover:underline">
                     {t("market.refresh")}
                   </button>
                 </div>

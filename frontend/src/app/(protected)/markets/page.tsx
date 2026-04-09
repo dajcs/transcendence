@@ -74,15 +74,15 @@ function MarketCard({ market }: { market: Market }) {
         <div className="shrink-0 flex flex-col items-end gap-1 text-right text-sm">
           {market.market_type === "binary" && (
             <>
-              <p className="font-semibold text-green-600">YES {market.yes_pct}%</p>
-              <p className="font-semibold text-red-600">NO {market.no_pct}%</p>
+              <p className="font-semibold text-green-600 dark:text-green-400">YES {market.yes_pct}%</p>
+              <p className="font-semibold text-red-600 dark:text-red-400">NO {market.no_pct}%</p>
             </>
           )}
           {market.market_type === "multiple_choice" && (
-            <p className="font-semibold text-blue-600">{(market.choices ?? []).length} {t("markets.choices")}</p>
+            <p className="font-semibold text-blue-600 dark:text-blue-400">{(market.choices ?? []).length} {t("markets.choices")}</p>
           )}
           {market.market_type === "numeric" && (
-            <p className="font-semibold text-purple-600">
+            <p className="font-semibold text-purple-600 dark:text-purple-400">
               {market.numeric_min} – {market.numeric_max}
             </p>
           )}
@@ -246,7 +246,7 @@ export default function MarketsPage() {
 
       {/* Results */}
       {isLoading && <p className="text-sm text-gray-500 dark:text-gray-400">{t("markets.loading")}</p>}
-      {isError && <p className="text-sm text-red-600">{t("markets.load_error")}</p>}
+      {isError && <p className="text-sm text-red-600 dark:text-red-400">{t("markets.load_error")}</p>}
 
       <div className="space-y-3">
         {data?.items.map((market) => (
