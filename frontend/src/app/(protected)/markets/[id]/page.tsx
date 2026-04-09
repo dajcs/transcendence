@@ -341,7 +341,7 @@ export default function MarketDetailPage() {
   return (
     <div className="space-y-6">
       {marketQuery.isLoading && <p className="text-sm text-gray-500 dark:text-gray-400">Loading market...</p>}
-      {marketQuery.isError && <p className="text-sm text-red-600">Failed to load market.</p>}
+      {marketQuery.isError && <p className="text-sm text-red-600 dark:text-red-400">Failed to load market.</p>}
 
       {market && (
         <>
@@ -369,8 +369,8 @@ export default function MarketDetailPage() {
                   <div className="h-full bg-green-500" style={{ width: `${market.yes_pct}%` }} />
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="font-semibold text-green-600">YES {market.yes_pct}% ({market.yes_count})</span>
-                  <span className="font-semibold text-red-600">NO {market.no_pct}% ({market.no_count})</span>
+                  <span className="font-semibold text-green-600 dark:text-green-400">YES {market.yes_pct}% ({market.yes_count})</span>
+                  <span className="font-semibold text-red-600 dark:text-red-400">NO {market.no_pct}% ({market.no_count})</span>
                 </div>
               </>
             )}
@@ -488,7 +488,7 @@ export default function MarketDetailPage() {
                     </div>
                   )}
                   {withdrawBet.isError && (
-                    <p className="mt-2 text-sm text-red-600">Withdrawal failed.</p>
+                    <p className="mt-2 text-sm text-red-600 dark:text-red-400">Withdrawal failed.</p>
                   )}
                 </>
               )}
@@ -608,7 +608,7 @@ export default function MarketDetailPage() {
                     {submitResolution.isPending ? "Submitting..." : "Submit Resolution"}
                   </button>
                   {submitResolution.isError && (
-                    <p className="text-sm text-red-600">
+                    <p className="text-sm text-red-600 dark:text-red-400">
                       {(() => {
                         const d = (submitResolution.error as { response?: { data?: { detail?: unknown } } })?.response?.data?.detail;
                         if (!d) return "Failed to submit";
@@ -629,7 +629,7 @@ export default function MarketDetailPage() {
                     <p className="text-xs text-yellow-700">{resolutionQuery.data.resolution.justification}</p>
                   )}
                   {resolutionQuery.data.resolution.overturned && (
-                    <p className="text-xs text-red-600 font-medium">Resolution was overturned by community vote</p>
+                    <p className="text-xs text-red-600 dark:text-red-400 font-medium">Resolution was overturned by community vote</p>
                   )}
                 </div>
               )}
@@ -692,7 +692,7 @@ export default function MarketDetailPage() {
                   </div>
                   <p className="text-xs text-blue-600">Dispute costs 1 BP · if &gt;{Math.round(10)}% dispute → community vote</p>
                   {(acceptResolution.isError || openDispute.isError) && (
-                    <p className="text-sm text-red-600">
+                    <p className="text-sm text-red-600 dark:text-red-400">
                       {(((acceptResolution.error ?? openDispute.error) as { response?: { data?: { detail?: unknown } } })?.response?.data?.detail as string) ?? "Action failed"}
                     </p>
                   )}
@@ -816,7 +816,7 @@ export default function MarketDetailPage() {
                       )}
                     </div>
                   )}
-                  {castVote.isError && <p className="text-sm text-red-600">Vote failed — you may have already voted.</p>}
+                  {castVote.isError && <p className="text-sm text-red-600 dark:text-red-400">Vote failed — you may have already voted.</p>}
                 </>
               ) : (
                 <p className="text-sm text-violet-700">Loading dispute info…</p>
@@ -878,7 +878,7 @@ export default function MarketDetailPage() {
             >
               {placeBet.isPending ? "Placing..." : "Place 1 BP Bet"}
             </button>
-            {placeBet.isError && <p className="mt-2 text-sm text-red-600">Unable to place bet.</p>}
+            {placeBet.isError && <p className="mt-2 text-sm text-red-600 dark:text-red-400">Unable to place bet.</p>}
           </section>}
 
           <section className="rounded border border-gray-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-800">
@@ -889,7 +889,7 @@ export default function MarketDetailPage() {
                 <div className="rounded bg-gray-50 border border-gray-200 p-3 text-sm text-gray-800 space-y-1 dark:bg-slate-700 dark:border-slate-600 dark:text-gray-200">
                   <p className="text-xs font-medium text-gray-500 dark:text-gray-400">AI Summary</p>
                   <div className="prose prose-sm max-w-none"><ReactMarkdown>{summary}</ReactMarkdown></div>
-                  <button onClick={() => setSummary(null)} className="text-xs text-blue-600 hover:underline">
+                  <button onClick={() => setSummary(null)} className="text-xs text-blue-600 dark:text-blue-400 hover:underline">
                     Refresh
                   </button>
                 </div>

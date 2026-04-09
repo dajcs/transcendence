@@ -204,8 +204,8 @@ export default function SettingsPage() {
         >
           {save.isPending ? "Saving…" : "Save settings"}
         </button>
-        {save.isError   && <p className="text-sm text-red-600">Failed to save.</p>}
-        {save.isSuccess && <p className="text-sm text-green-600">Settings saved.</p>}
+        {save.isError   && <p className="text-sm text-red-600 dark:text-red-400">Failed to save.</p>}
+        {save.isSuccess && <p className="text-sm text-green-600 dark:text-green-400">Settings saved.</p>}
       </section>
 
       {/* Privacy & Data */}
