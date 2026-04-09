@@ -277,13 +277,15 @@ export default function MarketDetailPage() {
       const resp = await api.post(`/api/bets/${marketId}/summary`);
       setSummary(resp.data.summary ?? t("market.summary_unavailable"));
     } catch (err: unknown) {
-      const status = (err as { response?: { status?: number } })?.response?.status;
+      const e = err as { response?: { status?: number; data?: { detail?: string } } };
+      const status = e?.response?.status;
+      const detail = e?.response?.data?.detail;
       if (status === 503) {
         setSummary(t("market.summary_budget_exceeded"));
       } else if (status === 429) {
         setSummary(t("market.summary_daily_limit"));
       } else {
-        setSummary(t("market.summary_unavailable"));
+        setSummary(detail ?? t("market.summary_unavailable"));
       }
     } finally {
       setSummaryLoading(false);

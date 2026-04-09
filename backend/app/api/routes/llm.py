@@ -16,6 +16,7 @@ from app.db.models.bet import Bet, Comment
 from app.db.models.user import User
 from app.services import auth_service
 from app.services.llm_service import (
+    ProviderError,
     _check_budget,
     _get_redis,
     call_custom_provider,
@@ -79,7 +80,10 @@ async def create_summary(
     if current_user.llm_mode == "custom" and current_user.llm_provider and current_user.llm_api_key:
         from app.services.llm_service import _build_summarize_messages
         msgs = _build_summarize_messages(bet.title, bet.description, bet.resolution_criteria, comment_texts)
-        summary = await call_custom_provider(msgs, current_user.llm_provider, current_user.llm_api_key, model_override=current_user.llm_model or None)
+        try:
+            summary = await call_custom_provider(msgs, current_user.llm_provider, current_user.llm_api_key, model_override=current_user.llm_model or None)
+        except ProviderError as e:
+            raise HTTPException(status_code=502, detail=f"{e.provider} {e.status}: {e.detail}")
     else:
         summary = await summarize_thread(
             bet_title=bet.title,
@@ -128,7 +132,10 @@ async def create_resolution_hint(
     if current_user.llm_mode == "custom" and current_user.llm_provider and current_user.llm_api_key:
         from app.services.llm_service import _build_hint_messages
         msgs = _build_hint_messages(bet.title, bet.description, bet.resolution_criteria, bet.deadline, body.evidence)
-        hint = await call_custom_provider(msgs, current_user.llm_provider, current_user.llm_api_key, model_override=current_user.llm_model or None)
+        try:
+            hint = await call_custom_provider(msgs, current_user.llm_provider, current_user.llm_api_key, model_override=current_user.llm_model or None)
+        except ProviderError as e:
+            raise HTTPException(status_code=502, detail=f"{e.provider} {e.status}: {e.detail}")
     else:
         hint = await get_resolution_hint(
             bet_title=bet.title,

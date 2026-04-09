@@ -108,17 +108,26 @@ _PROVIDER_MODELS = {
 }
 
 
+class ProviderError(Exception):
+    """Raised when a custom LLM provider returns an error."""
+    def __init__(self, provider: str, status: int, detail: str):
+        self.provider = provider
+        self.status = status
+        self.detail = detail
+        super().__init__(f"{provider} error {status}: {detail}")
+
+
 async def call_custom_provider(
     messages: list[dict[str, Any]],
     provider: str,
     api_key: str,
     model_override: str | None = None,
-) -> str | None:
-    """Call a user-supplied provider API. Returns text or None on failure."""
+) -> str:
+    """Call a user-supplied provider API. Returns text or raises ProviderError."""
     url = _PROVIDER_URLS.get(provider)
     model = model_override or _PROVIDER_MODELS.get(provider)
     if not url or not model:
-        return None
+        raise ProviderError(provider, 400, f"Unknown provider or model: {provider!r}")
     try:
         async with httpx.AsyncClient(timeout=30.0) as client:
             if provider == "anthropic":
@@ -128,10 +137,11 @@ async def call_custom_provider(
                     json={"model": model, "max_tokens": 512, "messages": messages},
                 )
                 if resp.status_code != 200:
-                    return None
+                    detail = resp.json().get("error", {}).get("message", resp.text)[:300]
+                    logger.warning("anthropic error %s: %s", resp.status_code, detail)
+                    raise ProviderError("anthropic", resp.status_code, detail)
                 text = resp.json()["content"][0]["text"].strip()
             elif provider == "gemini":
-                # Gemini uses a different request shape
                 gemini_contents = [{"role": ("user" if m["role"] == "user" else "model"), "parts": [{"text": m["content"]}]} for m in messages if m["role"] != "system"]
                 system_text = next((m["content"] for m in messages if m["role"] == "system"), None)
                 body: dict[str, Any] = {"contents": gemini_contents}
@@ -143,21 +153,30 @@ async def call_custom_provider(
                     json=body,
                 )
                 if resp.status_code != 200:
-                    return None
+                    detail = resp.json().get("error", {}).get("message", resp.text)[:300]
+                    logger.warning("gemini error %s: %s", resp.status_code, detail)
+                    raise ProviderError("gemini", resp.status_code, detail)
                 text = resp.json()["candidates"][0]["content"]["parts"][0]["text"].strip()
             else:
-                # OpenAI-compatible (openai, grok)
+                # OpenAI-compatible (openai, openrouter, grok)
                 resp = await client.post(
                     url,
                     headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
                     json={"model": model, "messages": messages},
                 )
                 if resp.status_code != 200:
-                    return None
+                    detail = resp.json().get("error", {}).get("message", resp.text)[:300]
+                    logger.warning("%s error %s: %s", provider, resp.status_code, detail)
+                    raise ProviderError(provider, resp.status_code, detail)
                 text = resp.json()["choices"][0]["message"]["content"].strip()
-        return text if validate_response(text) else None
-    except Exception:
-        return None
+        if not validate_response(text):
+            raise ProviderError(provider, 200, "Response failed validation (too long or contains code/HTML)")
+        return text
+    except ProviderError:
+        raise
+    except Exception as exc:
+        logger.warning("%s unexpected error: %s", provider, exc)
+        raise ProviderError(provider, 0, str(exc)) from exc
 
 
 async def call_openrouter(
