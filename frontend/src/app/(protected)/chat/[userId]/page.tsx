@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useChatStore } from "@/store/chat";
 import { useAuthStore } from "@/store/auth";
 import { useSocketStore } from "@/store/socket";
+import { useT } from "@/i18n";
 
 export default function ChatConversationPage() {
   const params = useParams<{ userId: string }>();
@@ -13,6 +14,7 @@ export default function ChatConversationPage() {
   const { user: currentUser } = useAuthStore();
   const { messages, isLoading, fetchMessages, sendMessage, markRead } = useChatStore();
   const socket = useSocketStore((s) => s.socket);
+  const t = useT();
   const [newMessage, setNewMessage] = useState("");
   const [sending, setSending] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -67,34 +69,34 @@ export default function ChatConversationPage() {
   return (
     <div className="flex flex-col h-[calc(100vh-12rem)]">
       {/* Header */}
-      <div className="flex items-center gap-3 border-b border-gray-200 dark:border-slate-700 pb-4 mb-4">
-        <Link href="/chat" className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300">
+      <div className="flex items-center gap-3 border-b border-gray-200 dark:border-gray-700 pb-4 mb-4">
+        <Link href="/chat" className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300">
           &larr;
         </Link>
-        <div className="h-8 w-8 rounded-full bg-gray-300 dark:bg-slate-600 flex items-center justify-center text-sm font-medium text-gray-700 dark:text-gray-300">
+        <div className="h-8 w-8 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center text-sm font-medium text-gray-700 dark:text-gray-300">
           {partnerUsername ? partnerUsername[0].toUpperCase() : "?"}
         </div>
         {partnerUsername ? (
           <Link
             href={`/profile/${encodeURIComponent(partnerUsername)}`}
-            className="font-medium text-gray-900 hover:text-blue-600 dark:text-gray-100"
+            className="font-medium text-gray-900 dark:text-gray-100 hover:text-blue-600"
           >
             {partnerUsername}
           </Link>
         ) : (
-          <span className="font-medium text-gray-400 dark:text-gray-500">Loading...</span>
+          <span className="font-medium text-gray-400 dark:text-gray-500">{t("common.loading")}</span>
         )}
       </div>
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto space-y-3 pr-2">
         {isLoading && messages.length === 0 && (
-          <p className="text-sm text-gray-500 dark:text-gray-400 text-center">Loading messages...</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400 text-center">{t("chat.loading")}</p>
         )}
 
         {!isLoading && messages.length === 0 && (
           <p className="text-sm text-gray-500 dark:text-gray-400 text-center">
-            No messages yet. Say hello!
+            {t("chat.say_hello")}
           </p>
         )}
 
@@ -109,7 +111,7 @@ export default function ChatConversationPage() {
                 className={`max-w-[70%] rounded-lg px-4 py-2 ${
                   isMe
                     ? "bg-blue-600 text-white"
-                    : "bg-gray-100 text-gray-900 dark:bg-slate-700 dark:text-gray-100"
+                    : "bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                 }`}
               >
                 <p className="text-sm whitespace-pre-wrap break-words">{msg.content}</p>
@@ -122,7 +124,7 @@ export default function ChatConversationPage() {
                     hour: "2-digit",
                     minute: "2-digit",
                   })}
-                  {isMe && msg.read_at && " · Read"}
+                  {isMe && msg.read_at && ` · ${t("chat.read")}`}
                 </p>
               </div>
             </div>
@@ -132,20 +134,20 @@ export default function ChatConversationPage() {
       </div>
 
       {/* Input */}
-      <form onSubmit={handleSend} className="mt-4 flex gap-2 border-t border-gray-200 dark:border-slate-700 pt-4">
+      <form onSubmit={handleSend} className="mt-4 flex gap-2 border-t border-gray-200 dark:border-gray-700 pt-4">
         <input
           value={newMessage}
           onChange={(e) => setNewMessage(e.target.value)}
-          placeholder="Type a message..."
+          placeholder={t("chat.type_message")}
           maxLength={2000}
-          className="flex-1 rounded border border-gray-300 px-4 py-2 text-sm focus:border-blue-400 focus:outline-none dark:border-slate-600 dark:bg-slate-700 dark:text-gray-100"
+          className="flex-1 rounded border border-gray-300 dark:border-gray-600 px-4 py-2 text-sm focus:border-blue-400 focus:outline-none bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
         />
         <button
           type="submit"
           disabled={!newMessage.trim() || sending}
           className="rounded bg-blue-600 px-4 py-2 text-sm text-white hover:bg-blue-700 disabled:opacity-50"
         >
-          {sending ? "..." : "Send"}
+          {sending ? "..." : t("chat.send")}
         </button>
       </form>
     </div>
