@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useNotificationStore } from "@/store/notifications";
 import { useSocketStore } from "@/store/socket";
+import { useT } from "@/i18n";
 
 function parsePayload(payload: string | null): { message?: string; bet_id?: string; market_id?: string } {
   if (!payload) return {};
@@ -27,17 +28,18 @@ function getNotificationLink(type: string, data: { bet_id?: string; market_id?: 
   return null;
 }
 
-const TYPE_LABELS: Record<string, string> = {
-  friend_request: "Friend Request",
-  friend_accepted: "Friend Accepted",
-  friend_removed: "Friendship Ended",
-  new_message: "New Message",
-  bet_resolved: "Bet Resolved",
-  bet_disputed: "Bet Disputed",
-  resolution_due: "Resolution Required",
+const TYPE_LABEL_KEYS: Record<string, string> = {
+  friend_request: "notif.friend_request",
+  friend_accepted: "notif.friend_accepted",
+  friend_removed: "notif.friend_removed",
+  new_message: "notif.new_message",
+  bet_resolved: "notif.bet_resolved",
+  bet_disputed: "notif.bet_disputed",
+  resolution_due: "notif.resolution_due",
 };
 
 export default function NotificationBell() {
+  const t = useT();
   const {
     notifications,
     unreadCount,
@@ -99,11 +101,11 @@ export default function NotificationBell() {
 
     const handleResolutionDue = (data: { payload?: string }) => {
       fetchUnreadCount();
-      let title = "Resolution required";
+      let title = t("notif.resolution_required");
       let url: string | undefined = "/dashboard?tab=my_markets";
       try {
         const payload = JSON.parse(data?.payload ?? "{}");
-        if (payload.market_title) title = `Resolve: ${payload.market_title}`;
+        if (payload.market_title) title = t("notif.resolve_market", { title: payload.market_title });
         if (payload.market_id) url = `/markets/${payload.market_id}`;
       } catch { /* ignore */ }
       showBrowserNotification(title, url);
@@ -113,8 +115,8 @@ export default function NotificationBell() {
     socket.on("notification:friend_accepted", handler);
     socket.on("notification:friend_removed", handler);
     socket.on("notification:new_message", handler);
-    const handleBetResolved = (d: { payload?: string }) => handleWithMarketLink(d, "Your bet was resolved");
-    const handleBetDisputed = (d: { payload?: string }) => handleWithMarketLink(d, "A dispute was opened");
+    const handleBetResolved = (d: { payload?: string }) => handleWithMarketLink(d, t("notif.bet_resolved_body"));
+    const handleBetDisputed = (d: { payload?: string }) => handleWithMarketLink(d, t("notif.dispute_opened_body"));
     socket.on("notification:bet_resolved", handleBetResolved);
     socket.on("notification:bet_disputed", handleBetDisputed);
     socket.on("notification:resolution_due", handleResolutionDue);
@@ -150,7 +152,7 @@ export default function NotificationBell() {
     <div ref={dropdownRef} className="relative">
       <button
         onClick={toggle}
-        className="relative p-1 text-gray-600 hover:text-gray-900 transition-colors dark:text-gray-400 dark:hover:text-gray-100"
+        className="relative p-1 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors"
         aria-label="Notifications"
       >
         {/* Bell icon (SVG) */}
@@ -176,16 +178,16 @@ export default function NotificationBell() {
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 top-full mt-2 w-80 rounded-lg border border-gray-200 bg-white shadow-xl z-50 dark:border-slate-700 dark:bg-slate-800">
+        <div className="absolute right-0 top-full mt-2 w-80 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-xl z-50">
           {/* Header */}
-          <div className="flex items-center justify-between border-b border-gray-100 dark:border-slate-700 px-4 py-3">
-            <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Notifications</h3>
+          <div className="flex items-center justify-between border-b border-gray-100 dark:border-gray-700 px-4 py-3">
+            <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">{t("notif.title")}</h3>
             {unreadCount > 0 && (
               <button
                 onClick={() => markAllAsRead()}
                 className="text-xs text-blue-600 hover:underline"
               >
-                Mark all as read
+                {t("notif.mark_all_read")}
               </button>
             )}
           </div>
@@ -194,7 +196,7 @@ export default function NotificationBell() {
           <div className="max-h-80 overflow-y-auto">
             {notifications.length === 0 && (
               <p className="px-4 py-6 text-center text-sm text-gray-500 dark:text-gray-400">
-                No notifications
+                {t("notif.no_notifications")}
               </p>
             )}
             {notifications.map((notif) => {
@@ -202,8 +204,8 @@ export default function NotificationBell() {
               return (
                 <button
                   key={notif.id}
-                  className={`w-full text-left flex items-start gap-3 px-4 py-3 border-b border-gray-50 hover:bg-gray-50 transition-colors dark:border-slate-700 dark:hover:bg-slate-700 ${
-                    !notif.is_read ? "bg-blue-50 dark:bg-blue-950" : ""
+                  className={`w-full text-left flex items-start gap-3 px-4 py-3 border-b border-gray-50 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${
+                    !notif.is_read ? "bg-blue-50 dark:bg-blue-900/20" : ""
                   }`}
                   onClick={() => {
                     if (!notif.is_read) markAsRead([notif.id]);
@@ -219,10 +221,10 @@ export default function NotificationBell() {
                 >
                   <div className="flex-1 min-w-0">
                     <p className="text-xs font-medium text-gray-500 dark:text-gray-400">
-                      {TYPE_LABELS[notif.type] || notif.type}
+                      {TYPE_LABEL_KEYS[notif.type] ? t(TYPE_LABEL_KEYS[notif.type] as any) : notif.type}
                     </p>
                     <p className="text-sm text-gray-800 dark:text-gray-200 truncate">
-                      {data.message || "New notification"}
+                      {data.message || t("notif.new")}
                     </p>
                     <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
                       {new Date(notif.created_at).toLocaleString()}
