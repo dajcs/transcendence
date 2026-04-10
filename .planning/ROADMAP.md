@@ -187,9 +187,9 @@ Plans:
 **Plans:** 3 plans
 
 Plans:
-- [ ] 06-01-PLAN.md — Merge imp/i18n + fix/polish; OAuth env gap; locale switcher in nav; GDPR+dark mode verify
-- [ ] 06-02-PLAN.md — Privacy Policy + Terms of Service i18n (EN/FR/DE translations + client components)
-- [ ] 06-03-PLAN.md — Chrome audit fixes (dark mode gaps, hydration, nav i18n) + human verification checkpoint
+- [x] 06-01-PLAN.md — Merge imp/i18n + fix/polish; OAuth env gap; locale switcher in nav; GDPR+dark mode verify
+- [x] 06-02-PLAN.md — Privacy Policy + Terms of Service i18n (EN/FR/DE translations + client components)
+- [x] 06-03-PLAN.md — Chrome audit fixes (dark mode gaps, hydration, nav i18n) + human verification checkpoint
 
 ---
 
