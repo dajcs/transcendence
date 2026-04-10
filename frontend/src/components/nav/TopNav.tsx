@@ -21,7 +21,7 @@ function ThemeToggle() {
     <button
       onClick={toggle}
       className="p-1 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors"
-      aria-label="Toggle dark mode"
+      aria-label={mounted ? (isDark ? t("nav.theme_light") : t("nav.theme_dark")) : t("nav.theme_dark")}
       title={mounted ? (isDark ? t("nav.theme_light") : t("nav.theme_dark")) : ""}
       suppressHydrationWarning
     >
@@ -41,12 +41,13 @@ function ThemeToggle() {
 function LanguageSelector() {
   const locale = useLocaleStore((s) => s.locale);
   const setLocale = useLocaleStore((s) => s.setLocale);
+  const t = useT();
   return (
     <select
       value={locale}
       onChange={(e) => setLocale(e.target.value as Locale)}
       className="rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-xs px-1.5 py-1 focus:outline-none"
-      aria-label="Language"
+      aria-label={t("nav.language")}
     >
       <option value="en">EN</option>
       <option value="fr">FR</option>

@@ -47,6 +47,7 @@ export default function SettingsPage() {
   const [model, setModel] = useState("");
   const [keySet, setKeySet] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
   const [deleting, setDeleting] = useState(false);
@@ -217,6 +218,7 @@ export default function SettingsPage() {
           <button
             onClick={async () => {
               setExporting(true);
+              setExportError(null);
               try {
                 const { data } = await api.get("/api/users/data-export");
                 const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
@@ -226,6 +228,8 @@ export default function SettingsPage() {
                 a.download = "vox-populi-data.json";
                 a.click();
                 URL.revokeObjectURL(url);
+              } catch {
+                setExportError(t("settings.export_error"));
               } finally {
                 setExporting(false);
               }
@@ -235,6 +239,9 @@ export default function SettingsPage() {
           >
             {exporting ? t("settings.exporting") : t("settings.export_data")}
           </button>
+          {exportError && (
+            <p className="text-sm text-red-600 dark:text-red-400">{exportError}</p>
+          )}
 
           <button
             onClick={() => setShowDeleteConfirm(true)}
@@ -265,7 +272,7 @@ export default function SettingsPage() {
                     await api.delete("/api/users/account");
                     window.location.href = "/";
                   } catch {
-                    setDeleteError(t("settings.save_error"));
+                    setDeleteError(t("settings.delete_error"));
                   } finally {
                     setDeleting(false);
                   }

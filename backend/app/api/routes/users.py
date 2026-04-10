@@ -130,27 +130,6 @@ async def search_users(
     return await profile_service.search_users(db, q)
 
 
-@router.get("/data-export")
-async def export_my_data(request: Request, db: AsyncSession = Depends(get_db)):
-    """GDPR: export all user data as JSON."""
-    user = await _get_current_user(request, db)
-    from app.services.gdpr_service import export_user_data
-    return await export_user_data(db, str(user.id))
-
-
-@router.delete("/account")
-async def delete_my_account(request: Request, db: AsyncSession = Depends(get_db)):
-    """GDPR: pseudonymise and deactivate account."""
-    user = await _get_current_user(request, db)
-    from app.services.gdpr_service import delete_account
-    await delete_account(db, str(user.id))
-    from fastapi.responses import JSONResponse
-    response = JSONResponse(content={"ok": True, "message": "Account deleted"})
-    response.delete_cookie("access_token")
-    response.delete_cookie("refresh_token")
-    return response
-
-
 @router.get("/{username}", response_model=PublicProfileResponse)
 async def get_profile(
     username: str,

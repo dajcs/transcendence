@@ -376,9 +376,16 @@ const de = {
   // Nav extra (audit fixes)
   "nav.theme_light": "Zum hellen Modus wechseln",
   "nav.theme_dark": "Zum dunklen Modus wechseln",
+  "nav.language": "Sprache",
+
+  // Footer
+  "footer.privacy": "Datenschutzrichtlinie",
+  "footer.terms": "Nutzungsbedingungen",
 
   // Settings extra (audit fixes)
   "settings.delete_confirm_word": "LÖSCHEN",
+  "settings.delete_error": "Konto konnte nicht gelöscht werden.",
+  "settings.export_error": "Daten konnten nicht exportiert werden.",
 
   // Auth validation (audit fixes)
   "auth.validation_invalid_email": "Ungültige E-Mail",

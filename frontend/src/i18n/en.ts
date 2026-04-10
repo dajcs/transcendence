@@ -376,9 +376,16 @@ const en = {
   // Nav extra (audit fixes)
   "nav.theme_light": "Switch to light mode",
   "nav.theme_dark": "Switch to dark mode",
+  "nav.language": "Language",
+
+  // Footer
+  "footer.privacy": "Privacy Policy",
+  "footer.terms": "Terms of Service",
 
   // Settings extra (audit fixes)
   "settings.delete_confirm_word": "DELETE",
+  "settings.delete_error": "Failed to delete account.",
+  "settings.export_error": "Failed to export data.",
 
   // Auth validation (audit fixes)
   "auth.validation_invalid_email": "Invalid email",
