@@ -1,4 +1,5 @@
 import { useLocaleStore } from "@/store/locale";
+import { useState, useEffect } from "react";
 import type { TranslationKey } from "./en";
 import en from "./en";
 import fr from "./fr";
@@ -8,7 +9,11 @@ const dictionaries: Record<string, Record<string, string>> = { en, fr, de };
 
 export function useT() {
   const locale = useLocaleStore((s) => s.locale);
-  const dict = dictionaries[locale] ?? en;
+  // Defer to "en" until mounted — prevents SSR/client hydration mismatch
+  // when user has a non-English locale stored in localStorage
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  const dict = dictionaries[mounted ? locale : "en"] ?? en;
 
   function t(key: TranslationKey, replacements?: Record<string, string | number>): string {
     let text = dict[key] ?? en[key] ?? key;
