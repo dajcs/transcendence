@@ -50,6 +50,7 @@ export default function SettingsPage() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
   const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!data) return;
@@ -259,14 +260,17 @@ export default function SettingsPage() {
               <button
                 onClick={async () => {
                   setDeleting(true);
+                  setDeleteError(null);
                   try {
                     await api.delete("/api/users/account");
                     window.location.href = "/";
+                  } catch {
+                    setDeleteError(t("settings.save_error"));
                   } finally {
                     setDeleting(false);
                   }
                 }}
-                disabled={deleteConfirmText !== t("settings.delete_confirm_word") || deleting}
+                disabled={deleteConfirmText !== "DELETE" || deleting}
                 className="rounded bg-red-600 px-4 py-2 text-sm text-white hover:bg-red-700 disabled:opacity-50"
               >
                 {deleting ? t("settings.deleting") : t("settings.delete_account")}
@@ -278,6 +282,9 @@ export default function SettingsPage() {
                 {t("common.cancel")}
               </button>
             </div>
+            {deleteError && (
+              <p className="text-sm text-red-600 dark:text-red-400">{deleteError}</p>
+            )}
           </div>
         )}
       </section>
