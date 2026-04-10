@@ -328,7 +328,7 @@ const fr = {
   "settings.export_data": "Exporter mes données",
   "settings.exporting": "Exportation...",
   "settings.delete_account": "Supprimer mon compte",
-  "settings.delete_confirm": "Tapez SUPPRIMER pour confirmer",
+  "settings.delete_confirm": "Tapez DELETE pour confirmer",
   "settings.deleting": "Suppression...",
   "settings.delete_warning": "Cette action est irréversible. Votre compte sera pseudonymisé et toutes les données personnelles effacées.",
 

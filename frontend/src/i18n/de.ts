@@ -328,7 +328,7 @@ const de = {
   "settings.export_data": "Meine Daten exportieren",
   "settings.exporting": "Wird exportiert...",
   "settings.delete_account": "Mein Konto löschen",
-  "settings.delete_confirm": "Geben Sie LÖSCHEN zur Bestätigung ein",
+  "settings.delete_confirm": "Geben Sie DELETE zur Bestätigung ein",
   "settings.deleting": "Wird gelöscht...",
   "settings.delete_warning": "Diese Aktion ist unwiderruflich. Ihr Konto wird pseudonymisiert und alle persönlichen Daten gelöscht.",
 
