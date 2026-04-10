@@ -6,6 +6,9 @@ import QueryProvider from "@/components/QueryProvider";
 import ThemeProvider from "@/components/ThemeProvider";
 import Link from "next/link";
 
+// Runs before React hydrates — sets dark class to avoid FOUC
+const themeScript = `(function(){try{var t=localStorage.getItem('theme');if(t==='dark'||(t!=='light'&&window.matchMedia('(prefers-color-scheme:dark)').matches)){document.documentElement.classList.add('dark')}}catch(e){}})();`;
+
 export const metadata: Metadata = {
   title: "Vox Populi",
   description: "Reputation-based prediction markets",
@@ -14,6 +17,9 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+      </head>
       <body className="min-h-screen bg-gray-50 text-gray-900 dark:bg-gray-900 dark:text-gray-100" suppressHydrationWarning>
         <QueryProvider>
           <ThemeProvider>

@@ -4,22 +4,22 @@ import Link from "next/link";
 import { useAuthStore } from "@/store/auth";
 import { useFriendsStore } from "@/store/friends";
 import { useRouter } from "next/navigation";
-import { useTheme } from "next-themes";
-import { useEffect, useState } from "react";
+import { useThemeStore } from "@/store/theme";
+import { useState, useEffect } from "react";
 import NotificationBell from "@/components/NotificationBell";
 import UserSearch from "@/components/UserSearch";
 import { useT } from "@/i18n";
 import { useLocaleStore, type Locale } from "@/store/locale";
 
 function ThemeToggle() {
-  const { theme, setTheme } = useTheme();
+  const { toggle, theme } = useThemeStore();
   const t = useT();
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
   const isDark = mounted && theme === "dark";
   return (
     <button
-      onClick={() => setTheme(isDark ? "light" : "dark")}
+      onClick={toggle}
       className="p-1 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors"
       aria-label="Toggle dark mode"
       title={mounted ? (isDark ? t("nav.theme_light") : t("nav.theme_dark")) : ""}
