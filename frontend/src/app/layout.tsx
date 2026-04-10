@@ -4,6 +4,10 @@ import TopNav from "@/components/nav/TopNav";
 import AuthBootstrap from "@/components/AuthBootstrap";
 import QueryProvider from "@/components/QueryProvider";
 import ThemeProvider from "@/components/ThemeProvider";
+import Footer from "@/components/Footer";
+
+// Runs before React hydrates — sets dark class to avoid FOUC
+const themeScript = `(function(){try{var t=localStorage.getItem('theme');if(t==='dark'||(t!=='light'&&window.matchMedia('(prefers-color-scheme:dark)').matches)){document.documentElement.classList.add('dark')}}catch(e){}})();`;
 
 export const metadata: Metadata = {
   title: "Vox Populi",
@@ -13,14 +17,18 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className="min-h-screen bg-gray-50 text-gray-900 dark:bg-slate-900 dark:text-gray-100" suppressHydrationWarning>
-        <ThemeProvider>
-          <QueryProvider>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+      </head>
+      <body className="min-h-screen bg-gray-50 text-gray-900 dark:bg-gray-900 dark:text-gray-100" suppressHydrationWarning>
+        <QueryProvider>
+          <ThemeProvider>
             <AuthBootstrap />
             <TopNav />
             <main className="max-w-4xl mx-auto px-4 py-8">{children}</main>
-          </QueryProvider>
-        </ThemeProvider>
+            <Footer />
+          </ThemeProvider>
+        </QueryProvider>
       </body>
     </html>
   );

@@ -4,6 +4,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
+import { useT } from "@/i18n";
 
 const schema = z.object({
   email: z.string().email("Invalid email"),
@@ -17,7 +18,16 @@ const schema = z.object({
 
 type FormData = z.infer<typeof schema>;
 
-function normalizeRegisterError(err: unknown): string {
+const VALIDATION_MAP: Record<string, { key: string; params?: Record<string, string | number> }> = {
+  "Invalid email": { key: "auth.validation_invalid_email" },
+  "Min 3 chars": { key: "auth.validation_min_chars", params: { n: 3 } },
+  "Max 32 chars": { key: "auth.validation_max_chars", params: { n: 32 } },
+  "Min 8 chars": { key: "auth.validation_min_chars", params: { n: 8 } },
+  "Must contain uppercase": { key: "auth.validation_need_uppercase" },
+  "Must contain a digit": { key: "auth.validation_need_digit" },
+};
+
+function normalizeRegisterError(err: unknown): string | null {
   const detail = (err as { response?: { data?: { detail?: unknown } } })?.response?.data?.detail;
 
   if (typeof detail === "string") {
@@ -29,7 +39,7 @@ function normalizeRegisterError(err: unknown): string {
     if (first && typeof first.msg === "string") {
       return first.msg;
     }
-    return "Registration failed";
+    return null; // will use t() fallback
   }
 
   if (detail && typeof detail === "object") {
@@ -39,11 +49,18 @@ function normalizeRegisterError(err: unknown): string {
     }
   }
 
-  return "Registration failed";
+  return null;
+}
+
+function translateValidation(msg: string | undefined, t: ReturnType<typeof useT>): string {
+  if (!msg) return "";
+  const entry = VALIDATION_MAP[msg];
+  return entry ? t(entry.key as any, entry.params) : msg;
 }
 
 export default function RegisterForm() {
   const router = useRouter();
+  const t = useT();
   const {
     register,
     handleSubmit,
@@ -70,7 +87,7 @@ export default function RegisterForm() {
       await api.post("/api/auth/register", data);
       router.push("/login?registered=1");
     } catch (err: unknown) {
-      const msg = normalizeRegisterError(err);
+      const msg = normalizeRegisterError(err) ?? t("auth.registration_failed");
       setError("root", { message: msg });
     }
   };
@@ -78,34 +95,34 @@ export default function RegisterForm() {
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4 w-full max-w-sm">
       <div>
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Email</label>
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">{t("auth.email")}</label>
         <input
           {...register("email")}
           type="email"
-          className="mt-1 block w-full border border-gray-300 rounded px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-700 dark:text-gray-100"
+          className="mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded px-3 py-2 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
         />
-        {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email.message}</p>}
+        {errors.email && <p className="text-red-500 text-xs mt-1">{translateValidation(errors.email.message, t)}</p>}
       </div>
       <div>
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Username</label>
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">{t("auth.username")}</label>
         <input
           {...register("username")}
           type="text"
-          className="mt-1 block w-full border border-gray-300 rounded px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-700 dark:text-gray-100"
+          className="mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded px-3 py-2 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
         />
         {errors.username && (
-          <p className="text-red-500 text-xs mt-1">{errors.username.message}</p>
+          <p className="text-red-500 text-xs mt-1">{translateValidation(errors.username.message, t)}</p>
         )}
       </div>
       <div>
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Password</label>
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">{t("auth.password")}</label>
         <input
           {...register("password")}
           type="password"
-          className="mt-1 block w-full border border-gray-300 rounded px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-700 dark:text-gray-100"
+          className="mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded px-3 py-2 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
         />
         {errors.password && (
-          <p className="text-red-500 text-xs mt-1">{errors.password.message}</p>
+          <p className="text-red-500 text-xs mt-1">{translateValidation(errors.password.message, t)}</p>
         )}
       </div>
       {errors.root && <p className="text-red-500 text-sm">{errors.root.message}</p>}
@@ -114,7 +131,7 @@ export default function RegisterForm() {
         disabled={isSubmitting}
         className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
       >
-        {isSubmitting ? "Registering..." : "Create Account"}
+        {isSubmitting ? t("auth.registering") : t("auth.register")}
       </button>
     </form>
   );

@@ -4,7 +4,6 @@ POST /api/bets/{bet_id}/summary          — LLM-01, LLM-03
 POST /api/bets/{bet_id}/resolution-hint  — LLM-02, LLM-03
 """
 import uuid
-from datetime import date
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field
@@ -16,6 +15,7 @@ from app.db.models.bet import Bet, Comment
 from app.db.models.user import User
 from app.services import auth_service
 from app.services.llm_service import (
+    ProviderError,
     _check_budget,
     _get_redis,
     call_custom_provider,
@@ -66,20 +66,16 @@ async def create_summary(
 
     r = await _get_redis()
 
-    # Pre-check rate limit (5/day) for early 429 before incrementing
-    today = date.today().isoformat()
-    key = f"llm_usage:summary:{current_user.id}:{today}"
-    current_count = await r.get(key)
-    if current_count and int(current_count) >= 5:
-        raise HTTPException(status_code=429, detail="Daily summary limit (5) exceeded")
-
     if not await _check_budget(r):
         raise HTTPException(status_code=503, detail="LLM service temporarily unavailable")
 
     if current_user.llm_mode == "custom" and current_user.llm_provider and current_user.llm_api_key:
         from app.services.llm_service import _build_summarize_messages
         msgs = _build_summarize_messages(bet.title, bet.description, bet.resolution_criteria, comment_texts)
-        summary = await call_custom_provider(msgs, current_user.llm_provider, current_user.llm_api_key, model_override=current_user.llm_model or None)
+        try:
+            summary = await call_custom_provider(msgs, current_user.llm_provider, current_user.llm_api_key, model_override=current_user.llm_model or None)
+        except ProviderError as e:
+            raise HTTPException(status_code=502, detail=f"{e.provider} error: {e.detail[:200]}")
     else:
         summary = await summarize_thread(
             bet_title=bet.title,
@@ -115,20 +111,16 @@ async def create_resolution_hint(
 
     r = await _get_redis()
 
-    # Pre-check rate limit (3/day) for early 429 before incrementing
-    today = date.today().isoformat()
-    key = f"llm_usage:hint:{current_user.id}:{today}"
-    current_count = await r.get(key)
-    if current_count and int(current_count) >= 3:
-        raise HTTPException(status_code=429, detail="Daily hint limit (3) exceeded")
-
     if not await _check_budget(r):
         raise HTTPException(status_code=503, detail="LLM service temporarily unavailable")
 
     if current_user.llm_mode == "custom" and current_user.llm_provider and current_user.llm_api_key:
         from app.services.llm_service import _build_hint_messages
         msgs = _build_hint_messages(bet.title, bet.description, bet.resolution_criteria, bet.deadline, body.evidence)
-        hint = await call_custom_provider(msgs, current_user.llm_provider, current_user.llm_api_key, model_override=current_user.llm_model or None)
+        try:
+            hint = await call_custom_provider(msgs, current_user.llm_provider, current_user.llm_api_key, model_override=current_user.llm_model or None)
+        except ProviderError as e:
+            raise HTTPException(status_code=502, detail=f"{e.provider} error: {e.detail[:200]}")
     else:
         hint = await get_resolution_hint(
             bet_title=bet.title,

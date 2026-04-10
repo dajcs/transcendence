@@ -43,10 +43,8 @@ def _sanitize(text: str, max_len: int) -> str:
     return cleaned[:max_len]
 
 
-def validate_response(text: str, max_len: int = 500) -> bool:
-    """Reject code blocks, HTML, or responses exceeding max_len chars."""
-    if len(text) > max_len:
-        return False
+def validate_response(text: str) -> bool:
+    """Reject responses containing code blocks or HTML tags."""
     if "```" in text or "<" in text:
         return False
     return True
@@ -108,17 +106,26 @@ _PROVIDER_MODELS = {
 }
 
 
+class ProviderError(Exception):
+    """Raised when a custom LLM provider returns an error."""
+    def __init__(self, provider: str, status: int, detail: str):
+        self.provider = provider
+        self.status = status
+        self.detail = detail
+        super().__init__(f"{provider} error {status}: {detail}")
+
+
 async def call_custom_provider(
     messages: list[dict[str, Any]],
     provider: str,
     api_key: str,
     model_override: str | None = None,
-) -> str | None:
-    """Call a user-supplied provider API. Returns text or None on failure."""
+) -> str:
+    """Call a user-supplied provider API. Returns text or raises ProviderError."""
     url = _PROVIDER_URLS.get(provider)
     model = model_override or _PROVIDER_MODELS.get(provider)
     if not url or not model:
-        return None
+        raise ProviderError(provider, 400, f"Unknown provider or model: {provider!r}")
     try:
         async with httpx.AsyncClient(timeout=30.0) as client:
             if provider == "anthropic":
@@ -128,10 +135,11 @@ async def call_custom_provider(
                     json={"model": model, "max_tokens": 512, "messages": messages},
                 )
                 if resp.status_code != 200:
-                    return None
+                    detail = resp.json().get("error", {}).get("message", resp.text)[:300]
+                    logger.warning("anthropic error %s: %s", resp.status_code, detail)
+                    raise ProviderError("anthropic", resp.status_code, detail)
                 text = resp.json()["content"][0]["text"].strip()
             elif provider == "gemini":
-                # Gemini uses a different request shape
                 gemini_contents = [{"role": ("user" if m["role"] == "user" else "model"), "parts": [{"text": m["content"]}]} for m in messages if m["role"] != "system"]
                 system_text = next((m["content"] for m in messages if m["role"] == "system"), None)
                 body: dict[str, Any] = {"contents": gemini_contents}
@@ -143,28 +151,36 @@ async def call_custom_provider(
                     json=body,
                 )
                 if resp.status_code != 200:
-                    return None
+                    detail = resp.json().get("error", {}).get("message", resp.text)[:300]
+                    logger.warning("gemini error %s: %s", resp.status_code, detail)
+                    raise ProviderError("gemini", resp.status_code, detail)
                 text = resp.json()["candidates"][0]["content"]["parts"][0]["text"].strip()
             else:
-                # OpenAI-compatible (openai, grok)
+                # OpenAI-compatible (openai, openrouter, grok)
                 resp = await client.post(
                     url,
                     headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
                     json={"model": model, "messages": messages},
                 )
                 if resp.status_code != 200:
-                    return None
+                    detail = resp.json().get("error", {}).get("message", resp.text)[:300]
+                    logger.warning("%s error %s: %s", provider, resp.status_code, detail)
+                    raise ProviderError(provider, resp.status_code, detail)
                 text = resp.json()["choices"][0]["message"]["content"].strip()
-        return text if validate_response(text) else None
-    except Exception:
-        return None
+        # No length/content validation for user-supplied keys — user pays their own costs
+        return text
+    except ProviderError:
+        raise
+    except Exception as exc:
+        logger.warning("%s unexpected error: %s", provider, exc)
+        safe_msg = str(exc).replace(api_key, "[REDACTED]")
+        raise ProviderError(provider, 0, safe_msg) from exc
 
 
 async def call_openrouter(
     messages: list[dict[str, Any]],
     redis: aioredis.Redis | None = None,
     model: str = _DEFAULT_MODEL,
-    max_response_len: int = 500,
 ) -> str | None:
     """Call OpenRouter API. Returns text or None on any failure.
     Checks budget before calling. Tracks spend after success.
@@ -192,11 +208,11 @@ async def call_openrouter(
         if resp.status_code != 200:
             # Retry with fallback model once
             if model != _FALLBACK_MODEL:
-                return await call_openrouter(messages, r, model=_FALLBACK_MODEL, max_response_len=max_response_len)
+                return await call_openrouter(messages, r, model=_FALLBACK_MODEL)
             return None
         data = resp.json()
         text = data["choices"][0]["message"]["content"].strip()
-        if not validate_response(text, max_len=max_response_len):
+        if not validate_response(text):
             return None
         await _track_spend(r, data.get("usage", {}))
         return text
@@ -254,7 +270,7 @@ async def summarize_thread(
             ),
         },
     ]
-    return await call_openrouter(messages, r, model=settings.openrouter_model, max_response_len=2200)
+    return await call_openrouter(messages, r, model=settings.openrouter_model, )
 
 
 def _build_summarize_messages(
@@ -326,4 +342,4 @@ async def get_resolution_hint(
             ),
         },
     ]
-    return await call_openrouter(messages, r, model=settings.openrouter_model, max_response_len=2200)
+    return await call_openrouter(messages, r, model=settings.openrouter_model, )
