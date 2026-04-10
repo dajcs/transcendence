@@ -173,7 +173,8 @@ async def call_custom_provider(
         raise
     except Exception as exc:
         logger.warning("%s unexpected error: %s", provider, exc)
-        raise ProviderError(provider, 0, str(exc)) from exc
+        safe_msg = str(exc).replace(api_key, "[REDACTED]")
+        raise ProviderError(provider, 0, safe_msg) from exc
 
 
 async def call_openrouter(

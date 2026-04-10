@@ -83,7 +83,7 @@ async def create_summary(
         try:
             summary = await call_custom_provider(msgs, current_user.llm_provider, current_user.llm_api_key, model_override=current_user.llm_model or None)
         except ProviderError as e:
-            raise HTTPException(status_code=502, detail=f"{e.provider} {e.status}: {e.detail}")
+            raise HTTPException(status_code=502, detail=f"{e.provider} error: {e.detail[:200]}")
     else:
         summary = await summarize_thread(
             bet_title=bet.title,
@@ -135,7 +135,7 @@ async def create_resolution_hint(
         try:
             hint = await call_custom_provider(msgs, current_user.llm_provider, current_user.llm_api_key, model_override=current_user.llm_model or None)
         except ProviderError as e:
-            raise HTTPException(status_code=502, detail=f"{e.provider} {e.status}: {e.detail}")
+            raise HTTPException(status_code=502, detail=f"{e.provider} error: {e.detail[:200]}")
     else:
         hint = await get_resolution_hint(
             bet_title=bet.title,
