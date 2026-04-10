@@ -4,7 +4,6 @@ POST /api/bets/{bet_id}/summary          — LLM-01, LLM-03
 POST /api/bets/{bet_id}/resolution-hint  — LLM-02, LLM-03
 """
 import uuid
-from datetime import date
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field
@@ -67,13 +66,6 @@ async def create_summary(
 
     r = await _get_redis()
 
-    # Pre-check rate limit (5/day) for early 429 before incrementing
-    today = date.today().isoformat()
-    key = f"llm_usage:summary:{current_user.id}:{today}"
-    current_count = await r.get(key)
-    if current_count and int(current_count) >= 5:
-        raise HTTPException(status_code=429, detail="Daily summary limit (5) exceeded")
-
     if not await _check_budget(r):
         raise HTTPException(status_code=503, detail="LLM service temporarily unavailable")
 
@@ -118,13 +110,6 @@ async def create_resolution_hint(
         raise HTTPException(status_code=403, detail="Only the proposer can request a resolution hint")
 
     r = await _get_redis()
-
-    # Pre-check rate limit (3/day) for early 429 before incrementing
-    today = date.today().isoformat()
-    key = f"llm_usage:hint:{current_user.id}:{today}"
-    current_count = await r.get(key)
-    if current_count and int(current_count) >= 3:
-        raise HTTPException(status_code=429, detail="Daily hint limit (3) exceeded")
 
     if not await _check_budget(r):
         raise HTTPException(status_code=503, detail="LLM service temporarily unavailable")
