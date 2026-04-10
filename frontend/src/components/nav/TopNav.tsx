@@ -5,6 +5,7 @@ import { useAuthStore } from "@/store/auth";
 import { useFriendsStore } from "@/store/friends";
 import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
+import { useEffect, useState } from "react";
 import NotificationBell from "@/components/NotificationBell";
 import UserSearch from "@/components/UserSearch";
 import { useT } from "@/i18n";
@@ -13,13 +14,16 @@ import { useLocaleStore, type Locale } from "@/store/locale";
 function ThemeToggle() {
   const { theme, setTheme } = useTheme();
   const t = useT();
-  const isDark = theme === "dark";
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  const isDark = mounted && theme === "dark";
   return (
     <button
       onClick={() => setTheme(isDark ? "light" : "dark")}
       className="p-1 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors"
       aria-label="Toggle dark mode"
-      title={isDark ? t("nav.theme_light") : t("nav.theme_dark")}
+      title={mounted ? (isDark ? t("nav.theme_light") : t("nav.theme_dark")) : ""}
+      suppressHydrationWarning
     >
       {isDark ? (
         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
