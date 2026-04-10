@@ -169,8 +169,7 @@ async def call_custom_provider(
                     logger.warning("%s error %s: %s", provider, resp.status_code, detail)
                     raise ProviderError(provider, resp.status_code, detail)
                 text = resp.json()["choices"][0]["message"]["content"].strip()
-        if not validate_response(text):
-            raise ProviderError(provider, 200, "Response failed validation (too long or contains code/HTML)")
+        # No length/content validation for user-supplied keys — user pays their own costs
         return text
     except ProviderError:
         raise
