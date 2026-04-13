@@ -44,6 +44,40 @@ function marketStatusBadge(status: string, isOwnMarket = false, t?: (key: any) =
   return null;
 }
 
+type Tab = "my_bets" | "my_markets";
+
+function timeLeft(deadline: string): string {
+  const ms = new Date(deadline).getTime() - Date.now();
+  if (ms <= 0) return "closed";
+  const totalMins = Math.floor(ms / 60000);
+  if (totalMins < 60) return `${totalMins}m`;
+  const hours = Math.floor(totalMins / 60);
+  if (hours < 24) return `${hours}h ${totalMins % 60}m`;
+  return `${Math.ceil(ms / 86400000)}d`;
+}
+
+const CLOSED_STATUSES = new Set(["closed"]);
+
+function marketCardBg(status: string, isOwnMarket = false): string {
+  if (status === "pending_resolution")
+    return isOwnMarket ? "border-red-300 bg-red-50" : "border-yellow-300 bg-yellow-50";
+  if (status === "proposer_resolved") return "border-blue-300 bg-blue-50";
+  if (status === "disputed") return "border-violet-300 bg-violet-50";
+  if (status === "closed") return "border-green-300 bg-green-50";
+  return "border-gray-200 bg-white";
+}
+
+function marketStatusBadge(status: string, isOwnMarket = false): { text: string; cls: string } | null {
+  if (status === "pending_resolution")
+    return isOwnMarket
+      ? { text: "Make Resolution", cls: "bg-red-200 text-red-800" }
+      : { text: "Pending Resolution", cls: "bg-yellow-200 text-yellow-800" };
+  if (status === "proposer_resolved") return { text: "Resolution Proposed", cls: "bg-blue-200 text-blue-800" };
+  if (status === "disputed") return { text: "Dispute Ongoing", cls: "bg-violet-200 text-violet-800" };
+  if (status === "closed") return { text: "Resolved", cls: "bg-green-200 text-green-800" };
+  return null;
+}
+
 export default function DashboardPage() {
   const { user } = useAuthStore();
   const t = useT();

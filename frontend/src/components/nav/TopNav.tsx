@@ -102,6 +102,9 @@ export default function TopNav() {
             <Link href="/settings" className="text-sm text-blue-600 hover:underline">
               {t("nav.settings")}
             </Link>
+            <Link href="/settings" className="text-sm text-blue-600 hover:underline">
+              Settings
+            </Link>
             <NotificationBell />
             <ThemeToggle />
             <LanguageSelector />
