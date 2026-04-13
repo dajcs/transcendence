@@ -2,14 +2,16 @@
 
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
+import { useT } from "@/i18n";
 
-const PROVIDER_INFO: Record<string, { label: string; bg: string; hover: string }> = {
-  google: { label: "Login with Google", bg: "bg-white border border-gray-300 text-gray-700", hover: "hover:bg-gray-50" },
-  github: { label: "Login with GitHub", bg: "bg-gray-900 text-white", hover: "hover:bg-gray-800" },
-  "42": { label: "Login with 42", bg: "bg-teal-600 text-white", hover: "hover:bg-teal-700" },
+const PROVIDER_BG: Record<string, { bg: string; hover: string }> = {
+  google: { bg: "bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300", hover: "hover:bg-gray-50 dark:hover:bg-gray-700" },
+  github: { bg: "bg-gray-900 text-white", hover: "hover:bg-gray-800" },
+  "42": { bg: "bg-teal-600 text-white", hover: "hover:bg-teal-700" },
 };
 
 export default function OAuthButtons() {
+  const t = useT();
   const [providers, setProviders] = useState<string[]>([]);
 
   useEffect(() => {
@@ -27,20 +29,25 @@ export default function OAuthButtons() {
     <div className="flex flex-col gap-2 w-full max-w-sm">
       <div className="relative my-2">
         <div className="absolute inset-0 flex items-center">
-          <div className="w-full border-t-2 border-gray-500" />
+          <div className="w-full border-t-2 border-gray-500 dark:border-gray-600" />
         </div>
         <div className="relative flex justify-center text-xs">
-          <span className="bg-white px-2 text-black font-extrabold uppercase tracking-wide">or</span>
+          <span className="bg-white dark:bg-gray-900 px-2 text-black dark:text-white font-extrabold uppercase tracking-wide">{t("common.or")}</span>
         </div>
       </div>
       {providers.map((provider) => {
-        const info = PROVIDER_INFO[provider];
-        if (!info) return null;
+        const style = PROVIDER_BG[provider];
+        if (!style) return null;
+        const labelMap: Record<string, string> = {
+          google: t("auth.continue_google"),
+          github: t("auth.continue_github"),
+          "42": t("auth.continue_42"),
+        };
         return (
           <a
             key={provider}
             href={`${apiBase}/api/auth/oauth/${provider}`}
-            className={`flex items-center justify-center gap-2 rounded px-4 py-2 text-sm font-medium transition-colors ${info.bg} ${info.hover}`}
+            className={`flex items-center justify-center gap-2 rounded px-4 py-2 text-sm font-medium transition-colors ${style.bg} ${style.hover}`}
           >
             {provider === "google" && (
               <svg className="h-4 w-4" viewBox="0 0 24 24">
@@ -58,7 +65,7 @@ export default function OAuthButtons() {
             {provider === "42" && (
               <span className="font-bold text-sm">42</span>
             )}
-            {info.label}
+            {labelMap[provider] ?? provider}
           </a>
         );
       })}

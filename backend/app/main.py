@@ -16,11 +16,27 @@ from app.api.routes.markets import router as markets_router
 from app.api.routes.notifications import router as notifications_router
 from app.api.routes.users import router as users_router
 from app.config import settings
-from app.db.session import engine
+from sqlalchemy import text
+
+from app.db.session import AsyncSessionLocal, engine
+
+_NIL_UUID = "00000000-0000-0000-0000-000000000000"
+
+
+async def _seed_deleted_user() -> None:
+    """Ensure the sentinel [deleted] user exists (GDPR pseudonymization target)."""
+    async with AsyncSessionLocal() as db:
+        await db.execute(text("""
+            INSERT INTO users (id, email, username, is_active, llm_mode)
+            VALUES (:id, 'deleted@deleted.local', '[deleted]', false, 'disabled')
+            ON CONFLICT (id) DO NOTHING
+        """), {"id": _NIL_UUID})
+        await db.commit()
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    await _seed_deleted_user()
     yield
     await engine.dispose()
 
