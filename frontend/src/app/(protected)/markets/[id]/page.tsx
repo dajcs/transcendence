@@ -414,7 +414,7 @@ export default function MarketDetailPage() {
                 if (idx >= 0) bins[idx].count += count;
               });
               const peak = Math.max(...bins.map((b) => b.count), 1);
-              const W = 320, H = 80, pad = 4;
+              const W = 320, H = 60, pad = 4;
               const barW = (W - pad * (BINS + 1)) / BINS;
               return (
                 <div>
@@ -733,7 +733,7 @@ export default function MarketDetailPage() {
                       if (idx >= 0) bins[idx].weight += w;
                     });
                     const peak = Math.max(...bins.map((b) => b.weight), 1);
-                    const W = 320, H = 80, pad = 4;
+                    const W = 320, H = 60, pad = 4;
                     const barW = (W - pad * (BINS + 1)) / BINS;
                     return (
                       <div className="space-y-2">

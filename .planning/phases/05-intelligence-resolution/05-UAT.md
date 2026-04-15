@@ -8,12 +8,12 @@ updated: 2026-04-14T14:44:55Z
 
 ## Current Test
 
-number: 11
-name: Community Vote — Numeric Market
+number: 13
+name: LLM Rate Limit
 expected: |
-  On a disputed numeric market, the community vote section shows a value input (not YES/NO
-  buttons). After votes are cast, a bar chart displays distribution of voted values sorted
-  numerically. Your own vote and weight are shown.
+  After 5 "Summarize discussion" calls (same user, same day), the 6th call returns an error
+  or disabled state — not a raw 429. UI shows a specific message like "daily limit reached"
+  rather than a generic error.
 awaiting: user response
 
 ## Tests
@@ -60,11 +60,12 @@ result: pass
 
 ### 11. Community Vote — Numeric Market
 expected: On a disputed numeric market, the community vote section shows a value input (not YES/NO buttons). After votes are cast, a bar chart displays distribution of voted values sorted numerically. Your own vote and weight are shown.
-result: [pending]
+result: pass
+notes: "Updated to 20-bin histogram (matches Live Odds), H reduced to 60px to prevent label overlap."
 
 ### 12. LLM Thread Summary — Markdown Rendered
 expected: On any market detail page with 2+ comments, a "Summarize discussion" button appears below the Comments heading. Clicking it calls the LLM and displays a text summary rendered as formatted markdown (bold, lists, line breaks) — not raw asterisks.
-result: [pending]
+result: pass
 
 ### 13. LLM Rate Limit
 expected: After 5 "Summarize discussion" calls (same user, same day), the 6th call returns an error or disabled state — not a raw 429. UI shows a specific message like "daily limit reached" rather than a generic error.
