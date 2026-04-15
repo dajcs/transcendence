@@ -20,59 +20,64 @@ Vox Populi uses four point currencies. No real money involved.
 - +1 kp per upvote received on a market (`source_type = market_upvote`)
 - Resets **daily at 00:00 UTC**
 
+### Type
+- **kp** is an **integer** (stored as a sum of integer KpEvent amounts).
+
 ### Edge Cases
-- `kp = 0` after daily reset until first upvote
-- Upvotes received before reset count toward that day's kp; no carryover
+- `kp = 0` after conversion reset until first upvote
+- Upvotes received before reset count toward accumulated kp; no carryover after reset
 - Upvoting your own content: **not allowed** (backend enforces unique voter constraint)
 
 ### Purpose
-- Determines daily bp allocation (see below)
+- Determines bp allocation on next login (see KP → BP Conversion below)
 - Measures contribution quality — does not directly buy anything
 
 ---
 
 ## Betting Points (bp)
 
+### Types
+- **bp** is a **float** (stored as `Numeric(10, 2)`). All calculations preserve fractional values.
+
 ### Earning
 | Event | Amount |
 |---|---|
-| Sign-up bonus | +10 bp |
-| Daily login | +1 bp |
-| Daily allocation | +floor(log2(kp + 1)) bp |
-| Winning a bet | +1 bp |
-| Voting on your own market | +1 bp (rebate — net cost is 0) |
-| Successful dispute of a bet | +2 bp |
+| Sign-up bonus | +10.0 bp |
+| Daily login | +1.0 bp |
+| KP conversion on login | +log2(kp + 1) bp (float) |
+| Winning a bet | proportional share of total pool (float) |
+| Voting on your own market | +1.0 bp (rebate — net cost is 0) |
+| Successful dispute of a bet | +2.0 bp |
 
-## Daily bp Allocation Task
+## KP → BP Conversion (at login)
 
-- Runs at 00:00 UTC daily
+Triggered on every user login (password or OAuth). Idempotent — if KP is 0, nothing happens.
 
-- For each user:
-  - Calculate `karma_bp = floor(log2(kp + 1))`
-  - Insert a bp transaction of `+karma_bp` into `bp_transactions`
-  - Reset kp to 0 for the new day
+- Calculate `karma_bp = log2(kp + 1)` — **full float, no floor**
+- Insert a bp transaction of `+karma_bp` into `bp_transactions`
+- Reset kp to 0 (insert negative KpEvent)
+- Notify user: "X KP converted to Y.y BP"
 
 ```
-karma_bp = floor(log2(kp + 1))
+karma_bp = log2(kp + 1)
 ```
 
-- Base: log2 (base 2) — chosen for faster growth at low kp counts (early-stage user base)
-- `+1` offset ensures log never goes negative or undefined (handles `kp = 0`)
-- `floor()` truncates to integer — no fractional bp
-- Calculated and credited at **00:00 UTC** using kp from the **previous day**
-- Processed by a Celery scheduled task
+- Base: log2 (base 2) — faster growth at low kp counts
+- `+1` offset ensures result is never negative or undefined at `kp = 0`
+- Full float preserved — fractional bp credited
 
 **Examples:**
 
 | kp | karma_bp |
 |---|---|
-| 0 | 0 |
-| 1 | 1 |
-| 3 | 2 |
-| 7 | 3 |
-| 15 | 4 |
-| 31 | 5 |
-| 63 | 6 |
+| 0 | 0.0 |
+| 1 | 1.0 |
+| 3 | 2.0 |
+| 7 | 3.0 |
+| 15 | 4.0 |
+| 31 | 5.0 |
+| 63 | 6.0 |
+| 123 | 6.9425... |
 
 - Prevents whales from dominating markets regardless of bp balance
 
@@ -130,8 +135,8 @@ Where:
   - Example: bet is open for t_bet = 3600s, user puts YES at t1 = 3000s remaining time, withdraws bet and puts a new NO bet at t2 = 2400s remaining time, NO wins → `t_win = t2 = 2400`, `tp = 2400/3600 = 0.67`
   - Position change history logged per user per bet for accurate calculation
 
-### Display
-- tp is displayed as a float rounded to 2 decimal places
+### Type
+- **tp** is a **float** (stored as `Numeric(10, 4)`). Displayed with 1 decimal in the nav header.
 - Leaderboard sorts by cumulative tp
 
 ---
@@ -178,11 +183,13 @@ Community dispute votes are weighted to penalize self-serving voting:
   - Current balance = `SUM(amount) WHERE user_id = ?`
 - tp is similarly tracked in `tp_transactions`
 - All balance-modifying operations wrapped in DB transactions with `SELECT FOR UPDATE` on user row
+- **bp and tp are floats** — no floor/truncation in payout or allocation calculations
+- **kp is an integer** — displayed without decimals
 - Celery handles:
-  - Daily bp allocation (00:00 UTC)
-  - Daily kp reset (00:00 UTC)
   - Bet resolution scheduling
+  - Dispute deadline checks
+- KP → BP conversion and KP reset happen at **user login** (password or OAuth), not via scheduled task
 
 ---
 
-*Last updated: 2026-03-26*
+*Last updated: 2026-04-15*

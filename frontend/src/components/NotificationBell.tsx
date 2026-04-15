@@ -36,6 +36,7 @@ const TYPE_LABEL_KEYS: Record<string, string> = {
   bet_resolved: "notif.bet_resolved",
   bet_disputed: "notif.bet_disputed",
   resolution_due: "notif.resolution_due",
+  kp_converted: "notif.kp_converted",
 };
 
 export default function NotificationBell() {
@@ -141,6 +142,7 @@ export default function NotificationBell() {
     socket.on("notification:bet_resolved", handleBetResolved);
     socket.on("notification:bet_disputed", handleBetDisputed);
     socket.on("notification:resolution_due", handleResolutionDue);
+    socket.on("notification:kp_converted", handler);
 
     return () => {
       socket.off("notification:friend_request", handler);
@@ -150,6 +152,7 @@ export default function NotificationBell() {
       socket.off("notification:bet_resolved", handleBetResolved);
       socket.off("notification:bet_disputed", handleBetDisputed);
       socket.off("notification:resolution_due", handleResolutionDue);
+      socket.off("notification:kp_converted", handler);
     };
   }, [socket, fetchUnreadCount, t]);
 

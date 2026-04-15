@@ -109,6 +109,24 @@ async def deduct_bp(
     await db.flush()
 
 
+async def convert_kp_to_bp(db: AsyncSession, user_id: uuid.UUID) -> tuple[int, float]:
+    """Convert accumulated KP to BP using log2(kp+1) (full float, no floor).
+    Resets KP to 0. Returns (kp_converted, bp_earned) — both 0 if no KP."""
+    kp_total = (
+        await db.execute(select(func.sum(KpEvent.amount)).where(KpEvent.user_id == user_id))
+    ).scalar_one()
+    kp_value = int(kp_total or 0)
+    if kp_value <= 0:
+        return 0, 0.0
+
+    karma_bp = math.log2(kp_value + 1)
+    today = datetime.now(timezone.utc).date()
+    db.add(BpTransaction(user_id=user_id, amount=karma_bp, reason="daily_allocation", bet_id=None))
+    db.add(KpEvent(user_id=user_id, amount=-kp_value, source_type="daily_reset", source_id=user_id, day_date=today))
+    await db.flush()
+    return kp_value, karma_bp
+
+
 async def get_bet_odds(db: AsyncSession, bet_id: uuid.UUID) -> dict:
     """D-12: Compute yes_pct, no_pct, and vote counts from active positions (withdrawn_at IS NULL).
     Returns {"yes_pct", "no_pct", "yes_pool", "no_pool", "yes_count", "no_count"}."""

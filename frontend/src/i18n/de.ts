@@ -221,6 +221,7 @@ const de = {
   "notif.bet_resolved": "Wette aufgelöst",
   "notif.bet_disputed": "Wette angefochten",
   "notif.resolution_due": "Auflösung erforderlich",
+  "notif.kp_converted": "KP Umgewandelt",
   "notif.new": "Neue Benachrichtigung",
 
   // Markets page extra

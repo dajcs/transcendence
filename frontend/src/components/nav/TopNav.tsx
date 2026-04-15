@@ -84,12 +84,12 @@ export default function TopNav() {
               <UserSearch />
               <Link
                 href={`/profile/${encodeURIComponent(user?.username ?? "")}`}
-                className="text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600 hover:underline shrink-0"
+                className="text-sm text-blue-600 hover:underline shrink-0"
               >
                 {user?.username}
               </Link>
               <span className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap shrink-0">
-                KP&nbsp;{user?.kp ?? 0}{"\u00a0"}BP&nbsp;{user?.bp ?? 0}{"\u00a0"}TP&nbsp;{user?.tp ?? 0}
+                BP&nbsp;{(user?.bp ?? 0).toFixed(1)}{" · "}KP&nbsp;{user?.kp ?? 0}{" · "}TP&nbsp;{(user?.tp ?? 0).toFixed(1)}
               </span>
               <Link href="/dashboard" className="text-sm text-blue-600 hover:underline shrink-0">
                 {t("nav.dashboard")}
@@ -166,7 +166,7 @@ export default function TopNav() {
                 {user?.username}
               </Link>
               <span className="text-xs text-gray-500 dark:text-gray-400">
-                KP&nbsp;{user?.kp ?? 0}{"\u00a0"}BP&nbsp;{user?.bp ?? 0}{"\u00a0"}TP&nbsp;{user?.tp ?? 0}
+                BP&nbsp;{(user?.bp ?? 0).toFixed(1)}{" · "}KP&nbsp;{user?.kp ?? 0}{" · "}TP&nbsp;{(user?.tp ?? 0).toFixed(1)}
               </span>
               <Link href="/dashboard" onClick={() => setMobileOpen(false)} className="text-sm text-blue-600 hover:underline">
                 {t("nav.dashboard")}

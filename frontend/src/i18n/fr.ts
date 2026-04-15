@@ -221,6 +221,7 @@ const fr = {
   "notif.bet_resolved": "Pari résolu",
   "notif.bet_disputed": "Pari contesté",
   "notif.resolution_due": "Résolution requise",
+  "notif.kp_converted": "KP Converti",
   "notif.new": "Nouvelle notification",
 
   // Markets page extra
