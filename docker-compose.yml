@@ -58,6 +58,7 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+    user: celeryuser
     command: ["uv", "run", "celery", "-A", "app.workers.celery_app", "worker", "--loglevel=info"]
 
   celery-beat:
@@ -73,6 +74,7 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+    user: celeryuser
     command: ["uv", "run", "celery", "-A", "app.workers.celery_app", "beat", "--loglevel=info"]
 
   frontend:
