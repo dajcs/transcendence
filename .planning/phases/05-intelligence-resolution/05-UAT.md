@@ -1,5 +1,5 @@
 ---
-status: testing
+status: complete
 phase: 05-intelligence-resolution
 source: 05-01-SUMMARY.md, 05-02-SUMMARY.md, 05-03-SUMMARY.md, 05-04-SUMMARY.md, 05-05-SUMMARY.md, 05-06-SUMMARY.md, 05-07-SUMMARY.md, 05-08-SUMMARY.md, 05-09-SUMMARY.md, 05-10-SUMMARY.md, 05-11-SUMMARY.md, 05-12-SUMMARY.md, 05-13-SUMMARY.md
 started: 2026-04-14T14:44:55Z
@@ -8,12 +8,12 @@ updated: 2026-04-14T14:44:55Z
 
 ## Current Test
 
-number: 13
-name: LLM Rate Limit
+number: 20
+name: Live Socket Updates — Resolution Events
 expected: |
-  After 5 "Summarize discussion" calls (same user, same day), the 6th call returns an error
-  or disabled state — not a raw 429. UI shows a specific message like "daily limit reached"
-  rather than a generic error.
+  Open a market detail page in two browser tabs. In one tab, submit a resolution (or trigger
+  a dispute/vote action). The OTHER tab shows the status change without a page refresh —
+  validated by Redis pub/sub cross-process delivery.
 awaiting: user response
 
 ## Tests
@@ -69,42 +69,42 @@ result: pass
 
 ### 13. LLM Rate Limit
 expected: After 5 "Summarize discussion" calls (same user, same day), the 6th call returns an error or disabled state — not a raw 429. UI shows a specific message like "daily limit reached" rather than a generic error.
-result: [pending]
+result: pass
 
 ### 14. Settings Link in TopNav
 expected: In the top navigation bar, a "Settings" link is visible (may be in a dropdown or directly). Clicking it navigates to /settings.
-result: [pending]
+result: pass
 
 ### 15. LLM Settings — Platform Default Conditional
 expected: Navigate to /settings. If OPENROUTER_API_KEY is set in .env, a "Platform Default" radio option appears alongside "Disabled" and "My own API key". If the platform key is NOT set, "Platform Default" does NOT appear (only "Disabled" and "My own API key").
-result: [pending]
+result: pass
 
 ### 16. LLM Settings — Custom API Key Form
 expected: On /settings, selecting "My own API key" reveals a form with three fields: Provider, API key, and Model. Filling and saving these calls PATCH /api/users/me. Re-visiting /settings shows the saved provider and model (API key field is blank for security).
-result: [pending]
+result: pass
 
 ### 17. Profile Page — Settings Cogwheel
 expected: On your own profile page (/profile/{your-username}), a cogwheel or settings icon/button is visible. Clicking it navigates to /settings. The cogwheel does NOT appear when viewing another user's profile.
-result: [pending]
+result: pass
 
 ### 18. Payout on Market Close — Proportional BP Split
 expected: When a market closes (status=closed), the total staked BP pool is divided proportionally among winners by winning stake size — not a flat +1 per winner. The balance shown on dashboard/profile increases correctly for winning betters. (Test with a closed market or create+close one.)
-result: [pending]
+result: pass
 
 ### 19. Resolution Due Notification in Bell
 expected: When a market you created reaches its deadline without auto-resolution, a notification appears in the bell dropdown. Clicking the notification navigates to /dashboard?tab=my_markets. (Requires a market past its deadline — skip if none available.)
-result: [pending]
+result: pass
 
 ### 20. Live Socket Updates — Resolution Events
 expected: Open a market detail page in two browser tabs. In one tab, submit a resolution (or trigger a dispute/vote action). The OTHER tab shows the status change (pending_resolution → proposer_resolved, or disputed) without a page refresh — validated by Redis pub/sub cross-process delivery.
-result: [pending]
+result: pass
 
 ## Summary
 
 total: 20
-passed: 0
+passed: 20
 issues: 0
-pending: 20
+pending: 0
 skipped: 0
 blocked: 0
 
