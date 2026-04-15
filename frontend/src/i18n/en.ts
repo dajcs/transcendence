@@ -357,6 +357,7 @@ const en = {
   "market.ai_daily_limit": "AI suggestion unavailable — daily limit (3) reached.",
   "market.ai_unavailable": "AI suggestion unavailable.",
   "market.summary_unavailable": "Summary unavailable.",
+  "market.summary_timeout": "AI service timed out — try again in a moment.",
   "market.summary_budget_exceeded": "Summary unavailable — monthly AI budget exceeded.",
   "market.summary_daily_limit": "Summary unavailable — daily limit (5) reached.",
   "market.estimate_label": "Estimate:",

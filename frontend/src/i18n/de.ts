@@ -357,6 +357,7 @@ const de = {
   "market.ai_daily_limit": "KI-Vorschlag nicht verfügbar — Tageslimit (3) erreicht.",
   "market.ai_unavailable": "KI-Vorschlag nicht verfügbar.",
   "market.summary_unavailable": "Zusammenfassung nicht verfügbar.",
+  "market.summary_timeout": "KI-Dienst hat das Zeitlimit überschritten — versuchen Sie es gleich erneut.",
   "market.summary_budget_exceeded": "Zusammenfassung nicht verfügbar — monatliches KI-Budget aufgebraucht.",
   "market.summary_daily_limit": "Zusammenfassung nicht verfügbar — Tageslimit (5) erreicht.",
   "market.estimate_label": "Schätzung:",

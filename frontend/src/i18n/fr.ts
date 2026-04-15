@@ -357,6 +357,7 @@ const fr = {
   "market.ai_daily_limit": "Suggestion IA indisponible — limite quotidienne (3) atteinte.",
   "market.ai_unavailable": "Suggestion IA indisponible.",
   "market.summary_unavailable": "Résumé indisponible.",
+  "market.summary_timeout": "Le service IA a expiré — réessayez dans un moment.",
   "market.summary_budget_exceeded": "Résumé indisponible — budget IA mensuel épuisé.",
   "market.summary_daily_limit": "Résumé indisponible — limite quotidienne (5) atteinte.",
   "market.estimate_label": "Estimation :",

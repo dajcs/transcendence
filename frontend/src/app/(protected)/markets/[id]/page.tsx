@@ -285,6 +285,8 @@ export default function MarketDetailPage() {
         setSummary(t("market.summary_budget_exceeded"));
       } else if (status === 429) {
         setSummary(t("market.summary_daily_limit"));
+      } else if (status === 504 || !status) {
+        setSummary(t("market.summary_timeout"));
       } else {
         setSummary(detail ?? t("market.summary_unavailable"));
       }
