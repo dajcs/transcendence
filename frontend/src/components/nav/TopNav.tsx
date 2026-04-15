@@ -72,7 +72,7 @@ export default function TopNav() {
   return (
     <nav className="border-b border-gray-200 dark:border-gray-700">
       {/* Main bar — always visible */}
-      <div className="flex items-center justify-between px-4 sm:px-6 py-3 gap-2">
+      <div className="flex items-start justify-between px-4 sm:px-6 py-3 gap-2">
         <Link href="/" className="font-bold text-xl text-gray-900 dark:text-gray-100 shrink-0">
           {t("app.name")}
         </Link>
