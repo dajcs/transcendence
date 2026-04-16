@@ -26,6 +26,7 @@ router = APIRouter()
 
 _REVIEW_WINDOW_HOURS = 48
 _DISPUTE_THRESHOLD = 0.10  # >10% of participants → Tier 3
+_ACCEPT_THRESHOLD = 0.90   # >90% of participants accept → immediate payout
 
 
 async def _get_current_user(request: Request, db: AsyncSession) -> User:
@@ -178,13 +179,24 @@ async def accept_resolution(
 
     counts = await _get_review_counts(db, bet_id)
 
+    # Auto-accept: >90% of participants accepted → immediate payout, skip 48h window
+    auto_closed = False
+    if counts["total_participants"] > 0 and counts["accept_count"] / counts["total_participants"] > _ACCEPT_THRESHOLD:
+        from app.services.resolution_service import trigger_payout
+        await trigger_payout(db, bet_id, resolution.outcome, overturned=False)
+        auto_closed = True
+
     try:
         from app.socket.server import sio
         await sio.emit("resolution:review_updated", {"bet_id": str(bet_id), **counts}, room=f"bet:{bet_id}")
+        if auto_closed:
+            status_data = {"bet_id": str(bet_id), "status": "closed"}
+            await sio.emit("bet:status_changed", status_data, room=f"bet:{bet_id}")
+            await sio.emit("bet:status_changed", status_data, room="global")
     except Exception:
         pass
 
-    return {"vote": "accept", **counts}
+    return {"vote": "accept", **counts, "auto_closed": auto_closed}
 
 
 @router.post("/bets/{bet_id}/dispute")
