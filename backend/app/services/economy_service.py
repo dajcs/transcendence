@@ -121,8 +121,8 @@ async def convert_kp_to_bp(db: AsyncSession, user_id: uuid.UUID) -> tuple[int, f
 
     karma_bp = math.log2(kp_value + 1)
     today = datetime.now(timezone.utc).date()
-    db.add(BpTransaction(user_id=user_id, amount=karma_bp, reason="daily_allocation", bet_id=None))
-    db.add(KpEvent(user_id=user_id, amount=-kp_value, source_type="daily_reset", source_id=user_id, day_date=today))
+    db.add(BpTransaction(user_id=user_id, amount=karma_bp, reason="kp_conversion", bet_id=None))
+    db.add(KpEvent(user_id=user_id, amount=-kp_value, source_type="kp_reset_login", source_id=user_id, day_date=today))
     await db.flush()
     return kp_value, karma_bp
 

@@ -341,6 +341,9 @@ const fr = {
   "notif.resolve_market": "Résoudre : {title}",
   "notif.bet_resolved_body": "Votre pari a été résolu",
   "notif.dispute_opened_body": "Un litige a été ouvert",
+  "notif.enable_browser_prompt": "Activer les notifications du navigateur ?",
+  "notif.enable_browser_btn": "Activer",
+  "notif.browser_blocked": "Notifications du navigateur bloquées — autorisez-les dans les paramètres.",
 
   // Market payout banner
   "market.payout_overturned": "Résolution annulée ! Résultat : {outcome}. {winners} gagnant(s) payé(s).",

@@ -341,6 +341,9 @@ const de = {
   "notif.resolve_market": "Auflösen: {title}",
   "notif.bet_resolved_body": "Ihre Wette wurde aufgelöst",
   "notif.dispute_opened_body": "Ein Streitfall wurde eröffnet",
+  "notif.enable_browser_prompt": "Browser-Benachrichtigungen aktivieren?",
+  "notif.enable_browser_btn": "Aktivieren",
+  "notif.browser_blocked": "Browser-Benachrichtigungen blockiert — in den Browsereinstellungen erlauben.",
 
   // Market payout banner
   "market.payout_overturned": "Auflösung aufgehoben! Ergebnis: {outcome}. {winners} Gewinner ausgezahlt.",

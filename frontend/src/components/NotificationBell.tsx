@@ -222,18 +222,18 @@ export default function NotificationBell() {
           {/* Browser notification permission prompt */}
           {notifPermission === "default" && (
             <div className="flex items-center justify-between gap-2 border-b border-gray-100 dark:border-gray-700 px-4 py-2 bg-yellow-50 dark:bg-yellow-900/20">
-              <p className="text-xs text-yellow-800 dark:text-yellow-200">Enable browser notifications?</p>
+              <p className="text-xs text-yellow-800 dark:text-yellow-200">{t("notif.enable_browser_prompt")}</p>
               <button
                 onClick={requestNotifPermission}
                 className="text-xs px-2 py-1 bg-yellow-500 text-white rounded hover:bg-yellow-600 shrink-0"
               >
-                Enable
+                {t("notif.enable_browser_btn")}
               </button>
             </div>
           )}
           {notifPermission === "denied" && (
             <div className="border-b border-gray-100 dark:border-gray-700 px-4 py-2 bg-red-50 dark:bg-red-900/20">
-              <p className="text-xs text-red-700 dark:text-red-300">Browser notifications blocked — allow in browser settings.</p>
+              <p className="text-xs text-red-700 dark:text-red-300">{t("notif.browser_blocked")}</p>
             </div>
           )}
 
@@ -284,9 +284,9 @@ export default function NotificationBell() {
                 );
               }
               return (
-                <div key={notif.id} role="button" tabIndex={0} onClick={handleClick} className={itemClass}>
+                <button key={notif.id} type="button" onClick={handleClick} className={itemClass}>
                   {content}
-                </div>
+                </button>
               );
             })}
           </div>

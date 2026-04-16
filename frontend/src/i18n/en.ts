@@ -341,6 +341,9 @@ const en = {
   "notif.resolve_market": "Resolve: {title}",
   "notif.bet_resolved_body": "Your bet was resolved",
   "notif.dispute_opened_body": "A dispute was opened",
+  "notif.enable_browser_prompt": "Enable browser notifications?",
+  "notif.enable_browser_btn": "Enable",
+  "notif.browser_blocked": "Browser notifications blocked — allow in browser settings.",
 
   // Market payout banner
   "market.payout_overturned": "Resolution overturned! Outcome: {outcome}. {winners} winner(s) paid.",

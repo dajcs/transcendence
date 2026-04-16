@@ -6,6 +6,7 @@ POST /api/bets/{bet_id}/dispute           — Vote to dispute proposed resolutio
 POST /api/bets/{bet_id}/vote              — Cast vote in active Tier 3 community dispute
 GET  /api/bets/{bet_id}/resolution        — Fetch resolution + review + dispute state
 """
+import logging
 import uuid
 from datetime import datetime, timedelta, timezone
 
@@ -18,12 +19,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.deps import get_db
 from app.db.models.bet import Bet, BetPosition, Dispute, DisputeVote, Resolution, ResolutionReview
 from app.db.models.user import User
-from app.db.session import make_task_session
 from app.services import auth_service
 from app.services.economy_service import deduct_bp
 from app.services.resolution_service import compute_vote_weight, trigger_payout
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 _REVIEW_WINDOW_HOURS = 48
 _DISPUTE_THRESHOLD = 0.10  # >10% of participants → Tier 3
@@ -54,7 +55,7 @@ async def _get_review_counts(db: AsyncSession, bet_id: uuid.UUID) -> dict:
     )).scalar_one()
 
     total_participants = (await db.execute(
-        select(func.count(BetPosition.id)).where(
+        select(func.count(func.distinct(BetPosition.user_id))).where(
             BetPosition.bet_id == bet_id,
             BetPosition.withdrawn_at.is_(None),
         )
@@ -134,7 +135,7 @@ async def proposer_resolve(
         for participant_id in participant_ids:
             await notify_resolution_proposed(db, participant_id, bet.title, str(bet_id))
     except Exception:
-        pass
+        logger.exception("Failed to send resolution notifications for bet %s", bet_id)
 
     try:
         from app.socket.server import sio
@@ -207,9 +208,7 @@ async def accept_resolution(
 
     auto_closed = False
     if eligible_voters > 0 and counts["accept_count"] / eligible_voters > _ACCEPT_THRESHOLD:
-        TaskSession = make_task_session()
-        async with TaskSession() as payout_db:
-            await trigger_payout(payout_db, bet_id, resolution.outcome, overturned=False)
+        await trigger_payout(db, bet_id, resolution.outcome, overturned=False)
         auto_closed = True
 
     try:
