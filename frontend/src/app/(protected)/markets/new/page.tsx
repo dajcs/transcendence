@@ -24,6 +24,9 @@ export default function NewMarketPage() {
   const [numericMax, setNumericMax] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [autoResolution, setAutoResolution] = useState(false);
+  const [autoCity, setAutoCity] = useState("");
+  const [autoCondition, setAutoCondition] = useState<"rain" | "temperature">("rain");
 
   const updateChoice = (index: number, value: string) => {
     setChoices((prev) => prev.map((c, i) => (i === index ? value : c)));
@@ -55,6 +58,14 @@ export default function NewMarketPage() {
       if (marketType === "numeric") {
         payload.numeric_min = parseFloat(numericMin);
         payload.numeric_max = parseFloat(numericMax);
+      }
+      if (autoResolution && marketType === "binary") {
+        payload.resolution_source = {
+          provider: "open-meteo",
+          location: autoCity,
+          condition: autoCondition,
+          date: deadline.split("T")[0],
+        };
       }
       const response = await api.post("/api/markets", payload);
       await bootstrap();
@@ -143,6 +154,52 @@ export default function NewMarketPage() {
           })()}
         </div>
 
+        {/* Auto-resolution toggle panel — per D-02, binary markets only */}
+        <div className="space-y-1">
+          <label className="text-sm font-medium">{t("create.auto_resolution")}</label>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              role="switch"
+              aria-checked={autoResolution}
+              onClick={() => setAutoResolution((v) => !v)}
+              className={`rounded px-3 py-1 text-sm ${autoResolution ? "bg-blue-600 text-white" : "bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300"}`}
+            >
+              {t("create.auto_resolution_toggle")}
+            </button>
+            <span className="text-xs text-gray-500 dark:text-gray-400">{t("create.auto_resolution_note")}</span>
+          </div>
+
+          {autoResolution && (
+            <div className="rounded border border-sky-200 dark:border-sky-800 bg-sky-50 dark:bg-sky-900/20 p-2 space-y-2 mt-2">
+              <div className="space-y-1">
+                <label className="text-sm font-medium">{t("create.city")}</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Paris"
+                  value={autoCity}
+                  onChange={(e) => setAutoCity(e.target.value)}
+                  className="w-full rounded border border-gray-300 dark:border-gray-600 px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                />
+                <p className="text-xs text-gray-500 dark:text-gray-400">{t("create.city_hint")}</p>
+              </div>
+              <div className="space-y-1">
+                <label className="text-sm font-medium">{t("create.condition")}</label>
+                <select
+                  value={autoCondition}
+                  onChange={(e) => setAutoCondition(e.target.value as "rain" | "temperature")}
+                  className="w-full rounded border border-gray-300 dark:border-gray-600 px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                >
+                  <option value="rain">{t("create.condition_rain")}</option>
+                  <option value="temperature">{t("create.condition_temperature")}</option>
+                </select>
+              </div>
+              <p className="text-xs text-sky-700 dark:text-sky-400">{t("create.auto_resolution_info")}</p>
+            </div>
+          )}
+        </div>
+
         <div className="space-y-1">
           <label className="text-sm font-medium">{t("create.market_type")}</label>
           <div className="flex gap-2">
@@ -150,7 +207,10 @@ export default function NewMarketPage() {
               <button
                 key={mt}
                 type="button"
-                onClick={() => setMarketType(mt)}
+                onClick={() => {
+                  setMarketType(mt);
+                  if (mt !== "binary") setAutoResolution(false);
+                }}
                 className={`rounded px-3 py-1 text-sm ${marketType === mt ? "bg-blue-600 text-white" : "bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300"}`}
               >
                 {mt === "binary" ? t("create.yes_no") : mt === "multiple_choice" ? t("create.multiple_choice") : t("create.numeric")}
