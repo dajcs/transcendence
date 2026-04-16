@@ -164,6 +164,14 @@ Plans:
 
 ---
 
+## Phase 5.1 — Autoresolution, Profile Bet Logs, Market Bet Details (INSERTED)
+
+**Goal:** Add autoresolution, profile bet logs, market bet details.
+
+**Status:** Not planned
+
+---
+
 ## Phase 6 — Polish & Compliance
 
 **Goal:** i18n, OAuth, legal pages, dark mode. 42 compliance complete.
