@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v21.0
 milestone_name: milestone
 current_plan: 1
-status: Ready to execute
-last_updated: "2026-04-16T16:48:20.484Z"
+status: Executing Phase 05.1
+last_updated: "2026-04-16T20:17:26.839Z"
 progress:
   total_phases: 7
   completed_phases: 5
   total_plans: 38
-  completed_plans: 34
-  percent: 89
+  completed_plans: 35
+  percent: 92
 ---
 
 # Project State
@@ -20,14 +20,14 @@ progress:
 See: `.planning/PROJECT.md` (updated 2026-03-24)
 
 **Core value:** Users can bet on real-world outcomes, argue their position, and earn a verifiable reputation score — without real money.
-**Current focus:** Phase 06 — polish-compliance
+**Current focus:** Phase 05.1 — autoresolution-profile-bet-logs-market-bet-details
 
 ## Current Status
 
 **Phase:** 05
 **Current Plan:** 1
-**Last session:** 2026-04-16T16:15:22.128Z
-**Resume file:** .planning/phases/5.1-autoresolution-profile-bet-logs-market-bet-details/05.1-UI-SPEC.md
+**Last session:** 2026-04-16T20:17:26.766Z
+**Resume file:** None
 
 ## Decisions
 
@@ -91,6 +91,7 @@ See: `.planning/PROJECT.md` (updated 2026-03-24)
 - [fix/logic]: Browser Notification requireInteraction:true — stays until clicked/dismissed; onclick calls markAllAsRead() to clear bell badge
 - [fix/logic]: Dashboard "closes in closed" fixed — conditional render shows "closed" when timeLeft()="closed", toLocaleDateString→toLocaleString for deadline time display
 - [fix/logic]: Dispute/Accept buttons hidden from non-participants — myPosition guard added; proposers see "Awaiting…", non-participants see info text, only betters see action buttons
+- [Phase 05.1]: validate_resolution_source runs as second model_validator — Pydantic runs both in order; json.dumps() to Text column; resolution_source not exposed in MarketResponse (internal Celery task only)
 
 ## Accumulated Context
 
@@ -126,6 +127,7 @@ See: `.planning/PROJECT.md` (updated 2026-03-24)
 | Phase 05 P11 | 5min | 2 tasks | 3 files |
 | Phase 05 P12 | 5min | 2 tasks | 2 files |
 | Phase 05 P13 | 4min | 2 tasks | 3 files |
+| Phase 05.1 P01 | 6min | 2 tasks | 3 files |
 
 ## Session History
 
