@@ -120,6 +120,8 @@ async def list_markets(
             .scalar_subquery()
         )
         query = query.where(Bet.status == "closed", has_res == 0)
+    elif status == "disputed":
+        query = query.where(Bet.status == "disputed")
     elif status == "resolved":
         has_res = (
             select(func.count(Resolution.id))

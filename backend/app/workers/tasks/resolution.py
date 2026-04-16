@@ -133,8 +133,13 @@ async def _process_auto_resolution(db: AsyncSession) -> None:
             await db.flush()
             logger.info("Bet %s auto-resolved: %s", bet.id, outcome)
         else:
-            # Tier 1 failed or no source — stay pending_resolution for proposer
+            # Tier 1 failed or no source — stay pending_resolution for proposer; notify them
             logger.info("Bet %s escalated to Tier 2 (proposer resolution)", bet.id)
+            from app.services.notification_service import notify_resolution_due
+            try:
+                await notify_resolution_due(db, bet.proposer_id, bet.title, str(bet.id))
+            except Exception as exc:
+                logger.warning("Failed to notify proposer for bet %s: %s", bet.id, exc)
 
     await db.commit()
 

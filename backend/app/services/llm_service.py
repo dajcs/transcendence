@@ -196,7 +196,7 @@ async def call_openrouter(
         return None
 
     try:
-        async with httpx.AsyncClient(timeout=30.0) as client:
+        async with httpx.AsyncClient(timeout=60.0) as client:
             resp = await client.post(
                 _OPENROUTER_URL,
                 headers={

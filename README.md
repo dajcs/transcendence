@@ -1,6 +1,6 @@
 # Transcendence
 
-A 42 school [project](.subject/transcendence_v21.0.md).
+A 42 school [project](.subject/transcendence_v21.1.md).
 
 ---
 

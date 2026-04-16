@@ -17,10 +17,6 @@ celery_app.conf.update(
     timezone="UTC",
     enable_utc=True,
     beat_schedule={
-        "daily-allocation-midnight-utc": {
-            "task": "app.workers.tasks.daily.daily_allocation",
-            "schedule": crontab(minute=0, hour=0),
-        },
         "check-dispute-deadlines-every-15min": {
             "task": "app.workers.tasks.resolution.check_dispute_deadlines",
             "schedule": crontab(minute="*/15"),
@@ -34,7 +30,6 @@ celery_app.conf.update(
 
 celery_app.autodiscover_tasks(["app.workers.tasks"])
 
-import app.workers.tasks.daily  # noqa: E402,F401
 import app.workers.tasks.resolution  # noqa: E402,F401
 
 

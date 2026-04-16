@@ -223,9 +223,9 @@ export default function MarketsPage() {
         <div className="flex flex-col gap-1">
           <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">{t("markets.filter")}</span>
           <div className="flex flex-wrap gap-1.5">
-            {(["all", "my_bets", "open", "closed", "resolved"] as const).map((f) => {
+            {(["all", "my_bets", "open", "disputed", "resolved"] as const).map((f) => {
               const isActive = filter === f;
-              const filterLabels: Record<string, string> = { all: t("markets.filter_all"), my_bets: t("markets.filter_my_bets"), open: t("markets.filter_open"), closed: t("markets.filter_closed"), resolved: t("markets.filter_resolved") };
+              const filterLabels: Record<string, string> = { all: t("markets.filter_all"), my_bets: t("markets.filter_my_bets"), open: t("markets.filter_open"), disputed: t("markets.filter_disputed"), resolved: t("markets.filter_resolved") };
               return (
                 <button
                   key={f}

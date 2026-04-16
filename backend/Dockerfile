@@ -19,6 +19,10 @@ RUN uv sync --frozen --no-dev
 # Copy application code
 COPY . .
 
+# Create non-root user for Celery workers
+RUN adduser --disabled-password --gecos '' celeryuser \
+    && chown -R celeryuser:celeryuser /app
+
 # Expose port
 EXPOSE 8000
 
