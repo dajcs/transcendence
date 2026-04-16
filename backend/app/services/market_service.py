@@ -1,4 +1,5 @@
 """Market (Bet) service — create, list, get."""
+import json
 import uuid
 from datetime import timedelta
 
@@ -31,6 +32,7 @@ async def create_market(
         numeric_min=data.numeric_min,
         numeric_max=data.numeric_max,
         status="open",
+        resolution_source=json.dumps(data.resolution_source) if data.resolution_source else None,
     )
     db.add(bet)
     await db.commit()
