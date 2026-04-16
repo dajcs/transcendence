@@ -166,9 +166,23 @@ Plans:
 
 ## Phase 5.1 — Autoresolution, Profile Bet Logs, Market Bet Details (INSERTED)
 
-**Goal:** Add autoresolution, profile bet logs, market bet details.
+**Goal:** Wire Open-Meteo auto-resolution through market creation UI, add public point transaction ledger to user profiles, and add participant lists + payout breakdowns to market detail pages.
 
-**Status:** Not planned
+**Delivers:**
+- Market creation form: auto-resolution toggle with city/condition fields; resolution_source JSON persisted to Bet
+- Profile pages: full sortable point transaction ledger (BP/TP/KP UNION query, all flows)
+- Market detail pages: participant list + aggregate stats; payout breakdown for closed markets
+- Three new public GET endpoints: positions, payouts, transactions
+
+**Requirements:** D-01–D-10
+
+**Plans:** 4 plans
+
+Plans:
+- [ ] 05.1-01-PLAN.md — Backend: resolution_source schema field + MarketCreate validator + market_service persistence
+- [ ] 05.1-02-PLAN.md — Backend: ledger_service (UNION query) + TransactionListResponse schema + GET /users/{username}/transactions
+- [ ] 05.1-03-PLAN.md — Backend: ParticipantListResponse + PayoutListResponse schemas + GET /markets/{id}/positions + GET /markets/{id}/payouts
+- [ ] 05.1-04-PLAN.md — Frontend: auto-resolution toggle (new/page.tsx) + participants/payouts sections ([id]/page.tsx) + transaction ledger (profile/page.tsx) + all i18n keys
 
 ---
 
