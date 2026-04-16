@@ -4,13 +4,13 @@ milestone: v21.0
 milestone_name: milestone
 current_plan: 1
 status: Executing Phase 05.1
-last_updated: "2026-04-16T20:21:15.709Z"
+last_updated: "2026-04-16T20:26:14.858Z"
 progress:
   total_phases: 7
   completed_phases: 5
   total_plans: 38
-  completed_plans: 36
-  percent: 95
+  completed_plans: 37
+  percent: 97
 ---
 
 # Project State
@@ -26,7 +26,7 @@ See: `.planning/PROJECT.md` (updated 2026-03-24)
 
 **Phase:** 05
 **Current Plan:** 1
-**Last session:** 2026-04-16T20:21:15.680Z
+**Last session:** 2026-04-16T20:26:14.812Z
 **Resume file:** None
 
 ## Decisions
@@ -95,6 +95,8 @@ See: `.planning/PROJECT.md` (updated 2026-03-24)
 - [Phase 05.1]: signup_bonus BpTransaction at registration — empty user test asserts structure not empty list
 - [Phase 05.1]: cast(None, Uuid) from sqlalchemy.types for KpEvent bet_id NULL — PG_UUID breaks SQLite
 - [Phase 05.1]: Route /{username}/transactions placed before /{username} catch-all in users.py
+- [Phase 05.1]: Active positions only (withdrawn_at IS NULL) in participant list — withdrawn positions excluded per spec
+- [Phase 05.1]: TP lookup uses separate query + dict merge rather than complex JOIN — simpler, avoids nullable TP bet_id issues
 
 ## Accumulated Context
 
@@ -132,6 +134,7 @@ See: `.planning/PROJECT.md` (updated 2026-03-24)
 | Phase 05 P13 | 4min | 2 tasks | 3 files |
 | Phase 05.1 P01 | 6min | 2 tasks | 3 files |
 | Phase 05.1 P02 | 2min | 2 tasks | 4 files |
+| Phase 05.1 P03 | 6min | 2 tasks | 3 files |
 
 ## Session History
 
