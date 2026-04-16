@@ -1,7 +1,7 @@
 """Pydantic schemas for market (Bet) endpoints."""
 import uuid
 from datetime import datetime, timezone
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel, field_validator, model_validator
 
@@ -15,6 +15,7 @@ class MarketCreate(BaseModel):
     choices: list[str] | None = None
     numeric_min: float | None = None
     numeric_max: float | None = None
+    resolution_source: dict[str, Any] | None = None
 
     @field_validator("title")
     @classmethod
@@ -53,6 +54,20 @@ class MarketCreate(BaseModel):
                 raise ValueError("Numeric markets require min and max values")
             if self.numeric_min >= self.numeric_max:
                 raise ValueError("numeric_min must be less than numeric_max")
+        return self
+
+    @model_validator(mode="after")
+    def validate_resolution_source(self) -> "MarketCreate":
+        if self.resolution_source is not None:
+            if self.market_type != "binary":
+                raise ValueError("Auto-resolution only supported for binary markets")
+            src = self.resolution_source
+            if src.get("provider") != "open-meteo":
+                raise ValueError("Only 'open-meteo' provider supported")
+            if not src.get("location"):
+                raise ValueError("resolution_source.location is required")
+            if src.get("condition") not in ("rain", "temperature"):
+                raise ValueError("condition must be 'rain' or 'temperature'")
         return self
 
 
