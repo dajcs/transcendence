@@ -16,7 +16,7 @@ function parsePayload(payload: string | null): { message?: string; bet_id?: stri
 }
 
 function getNotificationLink(type: string, data: { bet_id?: string; market_id?: string }): string | null {
-  if (type === "bet_resolved" || type === "bet_disputed") {
+  if (type === "bet_resolved" || type === "bet_disputed" || type === "resolution_proposed") {
     return data.bet_id ? `/markets/${data.bet_id}` : null;
   }
   if (type === "resolution_due") {
@@ -35,6 +35,7 @@ const TYPE_LABEL_KEYS: Record<string, string> = {
   new_message: "notif.new_message",
   bet_resolved: "notif.bet_resolved",
   bet_disputed: "notif.bet_disputed",
+  resolution_proposed: "notif.resolution_proposed",
   resolution_due: "notif.resolution_due",
   kp_converted: "notif.kp_converted",
 };
@@ -139,8 +140,10 @@ export default function NotificationBell() {
     socket.on("notification:new_message", handler);
     const handleBetResolved = (d: { payload?: string }) => handleWithMarketLink(d, t("notif.bet_resolved_body"));
     const handleBetDisputed = (d: { payload?: string }) => handleWithMarketLink(d, t("notif.dispute_opened_body"));
+    const handleResolutionProposed = (d: { payload?: string }) => handleWithMarketLink(d, t("notif.resolution_proposed"));
     socket.on("notification:bet_resolved", handleBetResolved);
     socket.on("notification:bet_disputed", handleBetDisputed);
+    socket.on("notification:resolution_proposed", handleResolutionProposed);
     socket.on("notification:resolution_due", handleResolutionDue);
     socket.on("notification:kp_converted", handler);
 
@@ -151,6 +154,7 @@ export default function NotificationBell() {
       socket.off("notification:new_message", handler);
       socket.off("notification:bet_resolved", handleBetResolved);
       socket.off("notification:bet_disputed", handleBetDisputed);
+      socket.off("notification:resolution_proposed", handleResolutionProposed);
       socket.off("notification:resolution_due", handleResolutionDue);
       socket.off("notification:kp_converted", handler);
     };

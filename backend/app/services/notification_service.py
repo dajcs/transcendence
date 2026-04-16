@@ -218,6 +218,16 @@ async def notify_kp_converted(db: AsyncSession, user_id: uuid.UUID, kp_converted
     })
 
 
+async def notify_resolution_proposed(db: AsyncSession, user_id: uuid.UUID, market_title: str, bet_id: str) -> None:
+    """Notify a participant that a proposer resolution has been submitted and needs their review."""
+    await create_notification(db, user_id, "resolution_proposed", {
+        "bet_id": bet_id,
+        "market_title": market_title,
+        "message": f"'{market_title}' has a proposed resolution — accept or dispute within 48h",
+        "link": f"/markets/{bet_id}",
+    })
+
+
 async def notify_friend_removed(db: AsyncSession, user_id: uuid.UUID, by_username: str) -> None:
     """Notify user that someone ended the friendship."""
     await create_notification(db, user_id, "friend_removed", {

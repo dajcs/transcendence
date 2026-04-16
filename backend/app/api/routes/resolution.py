@@ -121,6 +121,21 @@ async def proposer_resolve(
     db.add(resolution)
     await db.commit()
 
+    # Notify all non-proposer participants to review the proposed resolution
+    try:
+        from app.services.notification_service import notify_resolution_proposed
+        participant_ids = (await db.execute(
+            select(func.distinct(BetPosition.user_id)).where(
+                BetPosition.bet_id == bet_id,
+                BetPosition.user_id != current_user.id,
+                BetPosition.withdrawn_at.is_(None),
+            )
+        )).scalars().all()
+        for participant_id in participant_ids:
+            await notify_resolution_proposed(db, participant_id, bet.title, str(bet_id))
+    except Exception:
+        pass
+
     try:
         from app.socket.server import sio
         await sio.emit(
