@@ -58,20 +58,33 @@ After a proposer submits resolution, a **48-hour review window** opens where par
 
 ### Participants
 - **Proposer**: cannot vote — sees "Resolution Proposed" + time remaining (light blue section)
-- **Other participants**: see Accept Resolution (green) + Dispute Resolution (violet) buttons
+- **Other participants**: see Accept Resolution (green) + Dispute Resolution (1 BP) (violet) buttons
 
 ### Costs
 - Accept: free
-- Dispute: **1 BP** (upfront, requires active position)
+- Dispute: **1 BP** (upfront, requires active position). Button shows "(1 BP)" and requires a confirmation click before submitting.
 
-### Threshold
-- If **dispute votes ≥ max(1, 10% of active participants)** → escalates to Tier 3 community vote (`disputed`)
-- If window expires without reaching threshold → resolution is auto-finalized (`closed`) by Celery
+### Notifications
+- When a proposer submits resolution, **all non-proposer participants** with active positions receive a `resolution_proposed` bell notification (and browser notification if permitted), with a link to the market.
+
+### Thresholds
+
+**Accept threshold (auto-close):** If `accept_count / eligible_voters > 0.90` → market is immediately finalized (payout triggered, status `closed`), skipping the remaining 48h window.
+
+- **Eligible voters** = distinct active participants **excluding the proposer** (proposer can never vote on their own resolution, so they are excluded from the denominator to prevent the threshold from being unreachable in small markets)
+- Example: 3-participant market where proposer holds a position → eligible_voters = 2; both accepting = 2/2 = 100% → auto-closes
+
+**Dispute threshold (auto-escalate):** If `dispute_count ≥ max(1, floor(total_participants × 0.10))` → market escalates to Tier 3 community vote (`disputed`).
+
+**Timeout fallback:** If neither threshold is reached after 48h from the `proposer_resolved` timestamp → Celery auto-finalizes with payout (`closed`).
 
 ### API
-- `POST /api/bets/{id}/accept-resolution` — record accept vote
-- `POST /api/bets/{id}/dispute` — record dispute vote; triggers escalation if threshold met
+- `POST /api/bets/{id}/accept-resolution` — record accept vote; checks accept threshold after recording; returns `{ auto_closed: bool }`
+- `POST /api/bets/{id}/dispute` — record dispute vote (costs 1 BP); checks dispute threshold; returns `{ escalated: bool }`
 - `GET /api/bets/{id}/resolution` → includes `review: { accept_count, dispute_count, total_participants, threshold, user_vote, closes_at }`
+
+### Markets Listing Filter
+- The `/markets` page filter tabs are: **All, My Bets, Open, Disputed, Resolved** — there is no "Closed" filter tab. Disputed markets are browsable via the "Disputed" tab.
 
 ---
 
@@ -160,4 +173,4 @@ All payouts are atomic DB transactions.
 
 ---
 
-*Last updated: 2026-03-24*
+*Last updated: 2026-04-16*

@@ -220,7 +220,9 @@ const en = {
   "notif.new_message": "New Message",
   "notif.bet_resolved": "Bet Resolved",
   "notif.bet_disputed": "Bet Disputed",
+  "notif.resolution_proposed": "Resolution Proposed",
   "notif.resolution_due": "Resolution Required",
+  "notif.kp_converted": "KP Converted",
   "notif.new": "New notification",
 
   // Markets page extra
@@ -231,6 +233,7 @@ const en = {
   "markets.filter_my_bets": "My Bets",
   "markets.filter_open": "Open",
   "markets.filter_closed": "Closed",
+  "markets.filter_disputed": "Disputed",
   "markets.filter_resolved": "Resolved",
   "markets.sort_by": "Sort by",
   "markets.filter": "Filter",
@@ -289,8 +292,9 @@ const en = {
   "market.you_voted": "You voted:",
   "market.accept_resolution": "Accept Resolution",
   "market.accepting": "Accepting...",
-  "market.dispute_resolution": "Dispute Resolution",
+  "market.dispute_resolution": "Dispute Resolution (1 BP)",
   "market.disputing": "Disputing...",
+  "market.dispute_confirm": "Are you sure you want to dispute this resolution? This costs 1 BP.",
   "market.dispute_cost": "Dispute costs 1 BP - if >10% dispute -> community vote",
   "market.action_failed": "Action failed",
   "market.community_vote": "Community Vote",
@@ -337,6 +341,9 @@ const en = {
   "notif.resolve_market": "Resolve: {title}",
   "notif.bet_resolved_body": "Your bet was resolved",
   "notif.dispute_opened_body": "A dispute was opened",
+  "notif.enable_browser_prompt": "Enable browser notifications?",
+  "notif.enable_browser_btn": "Enable",
+  "notif.browser_blocked": "Browser notifications blocked — allow in browser settings.",
 
   // Market payout banner
   "market.payout_overturned": "Resolution overturned! Outcome: {outcome}. {winners} winner(s) paid.",
@@ -357,6 +364,7 @@ const en = {
   "market.ai_daily_limit": "AI suggestion unavailable — daily limit (3) reached.",
   "market.ai_unavailable": "AI suggestion unavailable.",
   "market.summary_unavailable": "Summary unavailable.",
+  "market.summary_timeout": "AI service timed out — try again in a moment.",
   "market.summary_budget_exceeded": "Summary unavailable — monthly AI budget exceeded.",
   "market.summary_daily_limit": "Summary unavailable — daily limit (5) reached.",
   "market.estimate_label": "Estimate:",

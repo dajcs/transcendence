@@ -45,6 +45,7 @@ export default function MarketDetailPage() {
   const [side, setSide] = useState<string>("yes");
   const [commentText, setCommentText] = useState("");
   const [showWithdrawConfirm, setShowWithdrawConfirm] = useState(false);
+  const [confirmDisputeOpen, setConfirmDisputeOpen] = useState(false);
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [replyText, setReplyText] = useState("");
   const [resolutionOutcome, setResolutionOutcome] = useState<string>("yes");
@@ -285,6 +286,8 @@ export default function MarketDetailPage() {
         setSummary(t("market.summary_budget_exceeded"));
       } else if (status === 429) {
         setSummary(t("market.summary_daily_limit"));
+      } else if (status === 504 || !status) {
+        setSummary(t("market.summary_timeout"));
       } else {
         setSummary(detail ?? t("market.summary_unavailable"));
       }
@@ -402,7 +405,7 @@ export default function MarketDetailPage() {
             {market.market_type === "numeric" && (() => {
               const min = market.numeric_min ?? 0;
               const max = market.numeric_max ?? 100;
-              const BINS = 10;
+              const BINS = 20;
               const binSize = (max - min) / BINS;
               const bins = Array.from({ length: BINS }, (_, i) => ({
                 label: `${(min + i * binSize).toFixed(1)}`,
@@ -414,7 +417,7 @@ export default function MarketDetailPage() {
                 if (idx >= 0) bins[idx].count += count;
               });
               const peak = Math.max(...bins.map((b) => b.count), 1);
-              const W = 320, H = 80, pad = 4;
+              const W = 320, H = 60, pad = 4;
               const barW = (W - pad * (BINS + 1)) / BINS;
               return (
                 <div>
@@ -687,19 +690,38 @@ export default function MarketDetailPage() {
                     >
                       {acceptResolution.isPending ? t("market.accepting") : t("market.accept_resolution")}
                     </button>
-                    <button
-                      onClick={() => openDispute.mutate()}
-                      disabled={openDispute.isPending || acceptResolution.isPending}
-                      className="rounded bg-violet-700 px-4 py-2 text-sm text-white hover:bg-violet-800 disabled:opacity-50"
-                    >
-                      {openDispute.isPending ? t("market.disputing") : t("market.dispute_resolution")}
-                    </button>
+                    {confirmDisputeOpen ? (
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-violet-700 dark:text-violet-300">{t("market.dispute_confirm")}</span>
+                        <button
+                          onClick={() => { openDispute.mutate(); setConfirmDisputeOpen(false); }}
+                          disabled={openDispute.isPending}
+                          className="rounded bg-violet-700 px-3 py-2 text-sm text-white hover:bg-violet-800 disabled:opacity-50"
+                        >
+                          {openDispute.isPending ? t("market.disputing") : t("common.yes")}
+                        </button>
+                        <button
+                          onClick={() => setConfirmDisputeOpen(false)}
+                          className="rounded bg-gray-500 px-3 py-2 text-sm text-white hover:bg-gray-600"
+                        >
+                          {t("common.cancel")}
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => setConfirmDisputeOpen(true)}
+                        disabled={openDispute.isPending || acceptResolution.isPending}
+                        className="rounded bg-violet-700 px-4 py-2 text-sm text-white hover:bg-violet-800 disabled:opacity-50"
+                      >
+                        {t("market.dispute_resolution")}
+                      </button>
+                    )}
                   </div>
-                  <p className="text-xs text-blue-600 dark:text-blue-400">{t("market.dispute_cost")}</p>
-                  {(acceptResolution.isError || openDispute.isError) && (
-                    <p className="text-sm text-red-600 dark:text-red-400">
-                      {(((acceptResolution.error ?? openDispute.error) as { response?: { data?: { detail?: unknown } } })?.response?.data?.detail as string) ?? t("market.action_failed")}
-                    </p>
+                  {acceptResolution.isError && (
+                    <p className="text-sm text-red-600 dark:text-red-400">{t("market.vote_failed")}</p>
+                  )}
+                  {openDispute.isError && (
+                    <p className="text-sm text-red-600 dark:text-red-400">{t("market.action_failed")}</p>
                   )}
                 </div>
               )}
@@ -719,8 +741,22 @@ export default function MarketDetailPage() {
                   {market.market_type === "numeric" ? (() => {
                     const dispute = resolutionQuery.data!.dispute!;
                     const weights = dispute.vote_weights;
-                    const entries = Object.entries(weights).sort((a, b) => parseFloat(a[0]) - parseFloat(b[0]));
-                    const maxW = entries.length > 0 ? Math.max(...entries.map(([, w]) => w)) : 1;
+                    const min = market.numeric_min ?? 0;
+                    const max = market.numeric_max ?? 100;
+                    const BINS = 20;
+                    const binSize = (max - min) / BINS;
+                    const bins = Array.from({ length: BINS }, (_, i) => ({
+                      label: `${(min + i * binSize).toFixed(1)}`,
+                      weight: 0,
+                    }));
+                    Object.entries(weights).forEach(([val, w]) => {
+                      const v = parseFloat(val);
+                      const idx = Math.min(Math.floor((v - min) / binSize), BINS - 1);
+                      if (idx >= 0) bins[idx].weight += w;
+                    });
+                    const peak = Math.max(...bins.map((b) => b.weight), 1);
+                    const W = 320, H = 60, pad = 4;
+                    const barW = (W - pad * (BINS + 1)) / BINS;
                     return (
                       <div className="space-y-2">
                         {dispute.user_vote !== null && (
@@ -729,21 +765,32 @@ export default function MarketDetailPage() {
                             {" "}<span className="text-violet-500">({dispute.user_weight?.toFixed(1)})</span>
                           </p>
                         )}
-                        {entries.length > 0 && (
-                          <div className="space-y-1">
-                            <p className="text-xs text-violet-600 dark:text-violet-400 font-medium">{t("market.community_label")}</p>
-                            {entries.map(([val, w]) => (
-                              <div key={val} className="flex items-center gap-2 text-xs">
-                                <span className="w-16 text-right text-violet-700 dark:text-violet-400 shrink-0">{val}</span>
-                                <div className="flex-1 bg-violet-100 dark:bg-violet-900/30 rounded-full h-3 overflow-hidden">
-                                  <div
-                                    className="h-full bg-violet-500 rounded-full"
-                                    style={{ width: `${(w / maxW) * 100}%` }}
-                                  />
-                                </div>
-                                <span className="w-10 text-violet-600 dark:text-violet-400 shrink-0">({w.toFixed(1)})</span>
-                              </div>
-                            ))}
+                        {Object.keys(weights).length > 0 && (
+                          <div>
+                            <p className="text-xs text-violet-600 dark:text-violet-400 font-medium mb-1">{t("market.community_label")}</p>
+                            <svg width={W} height={H + 16} className="overflow-visible">
+                              {bins.map((bin, i) => {
+                                const barH = Math.round((bin.weight / peak) * H);
+                                const x = pad + i * (barW + pad);
+                                return (
+                                  <g key={i}>
+                                    <rect
+                                      x={x} y={H - barH} width={barW} height={barH}
+                                      className="fill-violet-500"
+                                      rx={2}
+                                    />
+                                    {bin.weight > 0 && (
+                                      <text x={x + barW / 2} y={H - barH - 3} textAnchor="middle" fontSize={9} className="fill-violet-600 dark:fill-violet-300">
+                                        {bin.weight.toFixed(1)}
+                                      </text>
+                                    )}
+                                    <text x={x + barW / 2} y={H + 12} textAnchor="middle" fontSize={8} className="fill-gray-400 dark:fill-gray-500">
+                                      {bin.label}
+                                    </text>
+                                  </g>
+                                );
+                              })}
+                            </svg>
                           </div>
                         )}
                       </div>

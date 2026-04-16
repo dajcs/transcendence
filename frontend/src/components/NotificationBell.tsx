@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { useNotificationStore } from "@/store/notifications";
 import { useSocketStore } from "@/store/socket";
 import { useT } from "@/i18n";
@@ -16,7 +16,7 @@ function parsePayload(payload: string | null): { message?: string; bet_id?: stri
 }
 
 function getNotificationLink(type: string, data: { bet_id?: string; market_id?: string }): string | null {
-  if (type === "bet_resolved" || type === "bet_disputed") {
+  if (type === "bet_resolved" || type === "bet_disputed" || type === "resolution_proposed") {
     return data.bet_id ? `/markets/${data.bet_id}` : null;
   }
   if (type === "resolution_due") {
@@ -35,7 +35,9 @@ const TYPE_LABEL_KEYS: Record<string, string> = {
   new_message: "notif.new_message",
   bet_resolved: "notif.bet_resolved",
   bet_disputed: "notif.bet_disputed",
+  resolution_proposed: "notif.resolution_proposed",
   resolution_due: "notif.resolution_due",
+  kp_converted: "notif.kp_converted",
 };
 
 export default function NotificationBell() {
@@ -55,23 +57,44 @@ export default function NotificationBell() {
   const markAllAsReadRef = useRef(markAllAsRead);
   markAllAsReadRef.current = markAllAsRead;
 
-  const router = useRouter();
   const socket = useSocketStore((s) => s.socket);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const [notifPermission, setNotifPermission] = useState<NotificationPermission | "unsupported">("default");
 
-  // Initial fetch on mount (REST — for already-stored notifications)
+  // Read current permission state on mount
+  useEffect(() => {
+    if (typeof window === "undefined" || !("Notification" in window)) {
+      setNotifPermission("unsupported");
+      return;
+    }
+    setNotifPermission(Notification.permission);
+  }, []);
+
+  const requestNotifPermission = async () => {
+    if (typeof window === "undefined" || !("Notification" in window)) return;
+    const result = await Notification.requestPermission();
+    setNotifPermission(result);
+    // Fire browser notifications for any unread resolution_due already in the list
+    if (result === "granted") {
+      const store = useNotificationStore.getState();
+      store.notifications
+        .filter((n) => !n.is_read && n.type === "resolution_due")
+        .forEach((n) => {
+          const p = parsePayload(n.payload);
+          const url = p.market_id ? `/markets/${p.market_id}` : "/dashboard?tab=my_markets";
+          const body = p.message ?? "A market needs your resolution";
+          const notif = new Notification("Vox Populi", { body, icon: "/favicon.ico", requireInteraction: true });
+          notif.onclick = () => { window.focus(); window.location.href = url; notif.close(); };
+        });
+    }
+  };
+
+  // Initial fetch on mount
   useEffect(() => {
     fetchUnreadCount();
   }, [fetchUnreadCount]);
 
-  // Request browser notification permission once on mount
-  useEffect(() => {
-    if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "default") {
-      Notification.requestPermission();
-    }
-  }, []);
-
-  // Socket listener for new notification events (replaces 10s poll per D-10)
+  // Socket listener for new notification events
   useEffect(() => {
     if (!socket) return;
 
@@ -81,7 +104,7 @@ export default function NotificationBell() {
       n.onclick = () => {
         window.focus();
         markAllAsReadRef.current();
-        if (url) router.push(url);
+        if (url) window.location.href = url;
         n.close();
       };
     };
@@ -117,9 +140,12 @@ export default function NotificationBell() {
     socket.on("notification:new_message", handler);
     const handleBetResolved = (d: { payload?: string }) => handleWithMarketLink(d, t("notif.bet_resolved_body"));
     const handleBetDisputed = (d: { payload?: string }) => handleWithMarketLink(d, t("notif.dispute_opened_body"));
+    const handleResolutionProposed = (d: { payload?: string }) => handleWithMarketLink(d, t("notif.resolution_proposed"));
     socket.on("notification:bet_resolved", handleBetResolved);
     socket.on("notification:bet_disputed", handleBetDisputed);
+    socket.on("notification:resolution_proposed", handleResolutionProposed);
     socket.on("notification:resolution_due", handleResolutionDue);
+    socket.on("notification:kp_converted", handler);
 
     return () => {
       socket.off("notification:friend_request", handler);
@@ -128,9 +154,11 @@ export default function NotificationBell() {
       socket.off("notification:new_message", handler);
       socket.off("notification:bet_resolved", handleBetResolved);
       socket.off("notification:bet_disputed", handleBetDisputed);
+      socket.off("notification:resolution_proposed", handleResolutionProposed);
       socket.off("notification:resolution_due", handleResolutionDue);
+      socket.off("notification:kp_converted", handler);
     };
-  }, [socket, fetchUnreadCount, router]);
+  }, [socket, fetchUnreadCount, t]);
 
   // Fetch full list when dropdown opens
   useEffect(() => {
@@ -155,7 +183,6 @@ export default function NotificationBell() {
         className="relative p-1 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors"
         aria-label="Notifications"
       >
-        {/* Bell icon (SVG) */}
         <svg
           xmlns="http://www.w3.org/2000/svg"
           className="h-5 w-5"
@@ -192,6 +219,24 @@ export default function NotificationBell() {
             )}
           </div>
 
+          {/* Browser notification permission prompt */}
+          {notifPermission === "default" && (
+            <div className="flex items-center justify-between gap-2 border-b border-gray-100 dark:border-gray-700 px-4 py-2 bg-yellow-50 dark:bg-yellow-900/20">
+              <p className="text-xs text-yellow-800 dark:text-yellow-200">{t("notif.enable_browser_prompt")}</p>
+              <button
+                onClick={requestNotifPermission}
+                className="text-xs px-2 py-1 bg-yellow-500 text-white rounded hover:bg-yellow-600 shrink-0"
+              >
+                {t("notif.enable_browser_btn")}
+              </button>
+            </div>
+          )}
+          {notifPermission === "denied" && (
+            <div className="border-b border-gray-100 dark:border-gray-700 px-4 py-2 bg-red-50 dark:bg-red-900/20">
+              <p className="text-xs text-red-700 dark:text-red-300">{t("notif.browser_blocked")}</p>
+            </div>
+          )}
+
           {/* List */}
           <div className="max-h-80 overflow-y-auto">
             {notifications.length === 0 && (
@@ -201,24 +246,19 @@ export default function NotificationBell() {
             )}
             {notifications.map((notif) => {
               const data = parsePayload(notif.payload);
-              return (
-                <button
-                  key={notif.id}
-                  className={`w-full text-left flex items-start gap-3 px-4 py-3 border-b border-gray-50 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${
-                    !notif.is_read ? "bg-blue-50 dark:bg-blue-900/20" : ""
-                  }`}
-                  onClick={() => {
-                    if (!notif.is_read) markAsRead([notif.id]);
-                    const link = getNotificationLink(notif.type, data);
-                    if (link) {
-                      close();
-                      if (notif.type === "friend_request") {
-                        window.dispatchEvent(new CustomEvent("friends:open-tab", { detail: "received" }));
-                      }
-                      router.push(link);
-                    }
-                  }}
-                >
+              const link = getNotificationLink(notif.type, data);
+              const itemClass = `w-full text-left flex items-start gap-3 px-4 py-3 border-b border-gray-50 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${
+                !notif.is_read ? "bg-blue-50 dark:bg-blue-900/20" : ""
+              }`;
+              const handleClick = () => {
+                if (!notif.is_read) markAsRead([notif.id]).catch(() => {});
+                if (notif.type === "friend_request") {
+                  window.dispatchEvent(new CustomEvent("friends:open-tab", { detail: "received" }));
+                }
+                close();
+              };
+              const content = (
+                <>
                   <div className="flex-1 min-w-0">
                     <p className="text-xs font-medium text-gray-500 dark:text-gray-400">
                       {TYPE_LABEL_KEYS[notif.type] ? t(TYPE_LABEL_KEYS[notif.type] as any) : notif.type}
@@ -233,6 +273,19 @@ export default function NotificationBell() {
                   {!notif.is_read && (
                     <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-blue-500" />
                   )}
+                </>
+              );
+
+              if (link) {
+                return (
+                  <Link key={notif.id} href={link} onClick={handleClick} className={itemClass}>
+                    {content}
+                  </Link>
+                );
+              }
+              return (
+                <button key={notif.id} type="button" onClick={handleClick} className={itemClass}>
+                  {content}
                 </button>
               );
             })}

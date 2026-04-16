@@ -19,6 +19,7 @@ from app.services.llm_service import (
     _check_budget,
     _get_redis,
     call_custom_provider,
+    check_and_increment_llm_usage,
     get_resolution_hint,
     summarize_thread,
 )
@@ -67,7 +68,7 @@ async def create_summary(
     r = await _get_redis()
 
     if not await _check_budget(r):
-        raise HTTPException(status_code=503, detail="LLM service temporarily unavailable")
+        raise HTTPException(status_code=503, detail="Monthly AI budget exceeded")
 
     if current_user.llm_mode == "custom" and current_user.llm_provider and current_user.llm_api_key:
         from app.services.llm_service import _build_summarize_messages
@@ -77,14 +78,18 @@ async def create_summary(
         except ProviderError as e:
             raise HTTPException(status_code=502, detail=f"{e.provider} error: {e.detail[:200]}")
     else:
+        if not await check_and_increment_llm_usage(r, current_user.id, "summary", limit=5):
+            raise HTTPException(status_code=429, detail="Daily summary limit (5) reached")
         summary = await summarize_thread(
             bet_title=bet.title,
             bet_description=bet.description,
             resolution_criteria=bet.resolution_criteria,
             comments=comment_texts,
             redis=r,
-            user_id=current_user.id,
+            user_id=None,
         )
+        if summary is None:
+            raise HTTPException(status_code=502, detail="AI service error — try again later")
     return {"summary": summary}
 
 
@@ -112,7 +117,7 @@ async def create_resolution_hint(
     r = await _get_redis()
 
     if not await _check_budget(r):
-        raise HTTPException(status_code=503, detail="LLM service temporarily unavailable")
+        raise HTTPException(status_code=503, detail="Monthly AI budget exceeded")
 
     if current_user.llm_mode == "custom" and current_user.llm_provider and current_user.llm_api_key:
         from app.services.llm_service import _build_hint_messages
@@ -122,6 +127,8 @@ async def create_resolution_hint(
         except ProviderError as e:
             raise HTTPException(status_code=502, detail=f"{e.provider} error: {e.detail[:200]}")
     else:
+        if not await check_and_increment_llm_usage(r, current_user.id, "hint", limit=3):
+            raise HTTPException(status_code=429, detail="Daily hint limit (3) reached")
         hint = await get_resolution_hint(
             bet_title=bet.title,
             bet_description=bet.description,
@@ -129,6 +136,8 @@ async def create_resolution_hint(
             deadline=bet.deadline,
             evidence=body.evidence,
             redis=r,
-            user_id=current_user.id,
+            user_id=None,
         )
+        if hint is None:
+            raise HTTPException(status_code=502, detail="AI service error — try again later")
     return {"hint": hint}

@@ -220,7 +220,9 @@ const de = {
   "notif.new_message": "Neue Nachricht",
   "notif.bet_resolved": "Wette aufgelöst",
   "notif.bet_disputed": "Wette angefochten",
+  "notif.resolution_proposed": "Auflösung vorgeschlagen",
   "notif.resolution_due": "Auflösung erforderlich",
+  "notif.kp_converted": "KP Umgewandelt",
   "notif.new": "Neue Benachrichtigung",
 
   // Markets page extra
@@ -231,6 +233,7 @@ const de = {
   "markets.filter_my_bets": "Meine Wetten",
   "markets.filter_open": "Offen",
   "markets.filter_closed": "Geschlossen",
+  "markets.filter_disputed": "Angefochten",
   "markets.filter_resolved": "Aufgelöst",
   "markets.sort_by": "Sortieren",
   "markets.filter": "Filtern",
@@ -289,8 +292,9 @@ const de = {
   "market.you_voted": "Sie haben gestimmt:",
   "market.accept_resolution": "Auflösung akzeptieren",
   "market.accepting": "Wird akzeptiert...",
-  "market.dispute_resolution": "Auflösung anfechten",
+  "market.dispute_resolution": "Auflösung anfechten (1 BP)",
   "market.disputing": "Wird angefochten...",
+  "market.dispute_confirm": "Möchten Sie diese Auflösung wirklich anfechten? Dies kostet 1 BP.",
   "market.dispute_cost": "Anfechtung kostet 1 BP - bei >10% Anfechtung -> Gemeinschaftsabstimmung",
   "market.action_failed": "Aktion fehlgeschlagen",
   "market.community_vote": "Gemeinschaftsabstimmung",
@@ -337,6 +341,9 @@ const de = {
   "notif.resolve_market": "Auflösen: {title}",
   "notif.bet_resolved_body": "Ihre Wette wurde aufgelöst",
   "notif.dispute_opened_body": "Ein Streitfall wurde eröffnet",
+  "notif.enable_browser_prompt": "Browser-Benachrichtigungen aktivieren?",
+  "notif.enable_browser_btn": "Aktivieren",
+  "notif.browser_blocked": "Browser-Benachrichtigungen blockiert — in den Browsereinstellungen erlauben.",
 
   // Market payout banner
   "market.payout_overturned": "Auflösung aufgehoben! Ergebnis: {outcome}. {winners} Gewinner ausgezahlt.",
@@ -357,6 +364,7 @@ const de = {
   "market.ai_daily_limit": "KI-Vorschlag nicht verfügbar — Tageslimit (3) erreicht.",
   "market.ai_unavailable": "KI-Vorschlag nicht verfügbar.",
   "market.summary_unavailable": "Zusammenfassung nicht verfügbar.",
+  "market.summary_timeout": "KI-Dienst hat das Zeitlimit überschritten — versuchen Sie es gleich erneut.",
   "market.summary_budget_exceeded": "Zusammenfassung nicht verfügbar — monatliches KI-Budget aufgebraucht.",
   "market.summary_daily_limit": "Zusammenfassung nicht verfügbar — Tageslimit (5) erreicht.",
   "market.estimate_label": "Schätzung:",

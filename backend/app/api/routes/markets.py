@@ -33,7 +33,7 @@ async def list_markets(
     request: Request,
     sort: str = Query(default="deadline", pattern="^(deadline|active|newest)$"),
     sort_dir: str = Query(default="", pattern="^(asc|desc|)$"),
-    status: str = Query(default="all", pattern="^(all|open|closed|resolved)$"),
+    status: str = Query(default="all", pattern="^(all|open|closed|disputed|resolved)$"),
     my_bets: bool = Query(default=False),
     my_markets: bool = Query(default=False),
     q: str = Query(default=""),

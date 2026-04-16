@@ -220,7 +220,9 @@ const fr = {
   "notif.new_message": "Nouveau message",
   "notif.bet_resolved": "Pari résolu",
   "notif.bet_disputed": "Pari contesté",
+  "notif.resolution_proposed": "Résolution proposée",
   "notif.resolution_due": "Résolution requise",
+  "notif.kp_converted": "KP Converti",
   "notif.new": "Nouvelle notification",
 
   // Markets page extra
@@ -231,6 +233,7 @@ const fr = {
   "markets.filter_my_bets": "Mes paris",
   "markets.filter_open": "Ouverts",
   "markets.filter_closed": "Clôturés",
+  "markets.filter_disputed": "Contestés",
   "markets.filter_resolved": "Résolus",
   "markets.sort_by": "Trier par",
   "markets.filter": "Filtrer",
@@ -289,8 +292,9 @@ const fr = {
   "market.you_voted": "Vous avez voté :",
   "market.accept_resolution": "Accepter la résolution",
   "market.accepting": "Acceptation...",
-  "market.dispute_resolution": "Contester la résolution",
+  "market.dispute_resolution": "Contester la résolution (1 BP)",
   "market.disputing": "Contestation...",
+  "market.dispute_confirm": "Voulez-vous vraiment contester cette résolution ? Cela coûte 1 BP.",
   "market.dispute_cost": "La contestation coûte 1 BP - si >10% contestent -> vote communautaire",
   "market.action_failed": "Échec de l'action",
   "market.community_vote": "Vote communautaire",
@@ -337,6 +341,9 @@ const fr = {
   "notif.resolve_market": "Résoudre : {title}",
   "notif.bet_resolved_body": "Votre pari a été résolu",
   "notif.dispute_opened_body": "Un litige a été ouvert",
+  "notif.enable_browser_prompt": "Activer les notifications du navigateur ?",
+  "notif.enable_browser_btn": "Activer",
+  "notif.browser_blocked": "Notifications du navigateur bloquées — autorisez-les dans les paramètres.",
 
   // Market payout banner
   "market.payout_overturned": "Résolution annulée ! Résultat : {outcome}. {winners} gagnant(s) payé(s).",
@@ -357,6 +364,7 @@ const fr = {
   "market.ai_daily_limit": "Suggestion IA indisponible — limite quotidienne (3) atteinte.",
   "market.ai_unavailable": "Suggestion IA indisponible.",
   "market.summary_unavailable": "Résumé indisponible.",
+  "market.summary_timeout": "Le service IA a expiré — réessayez dans un moment.",
   "market.summary_budget_exceeded": "Résumé indisponible — budget IA mensuel épuisé.",
   "market.summary_daily_limit": "Résumé indisponible — limite quotidienne (5) atteinte.",
   "market.estimate_label": "Estimation :",

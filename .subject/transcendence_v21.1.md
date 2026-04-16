@@ -9,7 +9,7 @@ This project involves undertaking tasks you have never done before.<BR>
 Remember the beginning of your journey in computer science.<BR>
 Look at you now; it’s time to shine!
 
-Version: 21.0
+Version: 21.1
 
 <BR><BR>
 </center>
@@ -187,7 +187,7 @@ This section, like the previous one, is mandatory. You will then be able to choo
 	*   At minimum: **email** and **password** authentication with proper security (hashed passwords, salted, etc.).
 	*   Additional authentication methods (OAuth, 2FA, etc.) can be implemented via modules.
 *   All forms and user inputs must be properly validated in both the frontend and backend.
-*   For the backend, **HTTPS** must be used everywhere.
+*   Any connection to the backend, from a browser, from a script, from an external API, etc., must use **HTTPS**. Connections inside the backend itself (e.g., web server and database, software inside your container(s)) can be without encryption.
 
 > **What is a Framework?** For this project, a **framework** is defined as a comprehensive tool that provides:
 > *   A structured architecture and conventions for organizing code.

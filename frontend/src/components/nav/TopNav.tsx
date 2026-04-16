@@ -61,76 +61,152 @@ export default function TopNav() {
   const pendingCount = useFriendsStore((s) => s.pendingReceived.length);
   const router = useRouter();
   const t = useT();
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   const handleLogout = async () => {
+    setMobileOpen(false);
     await logout();
     router.push("/");
   };
 
   return (
-    <nav className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-      <Link href="/" className="font-bold text-xl text-gray-900 dark:text-gray-100">
-        {t("app.name")}
-      </Link>
-      <div className="flex items-center gap-4">
-        {isAuthenticated ? (
-          <>
-            <UserSearch />
-            <Link href={`/profile/${encodeURIComponent(user?.username ?? "")}`} className="text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600 hover:underline">
-              {user?.username}
-            </Link>
-            <span className="text-xs text-gray-500 dark:text-gray-400">
-              BP {user?.bp ?? 0} · KP {user?.kp ?? 0} · TP {user?.tp ?? 0}
-            </span>
-            <Link href="/dashboard" className="text-sm text-blue-600 hover:underline">
-              {t("nav.dashboard")}
-            </Link>
-            <Link href="/markets" className="text-sm text-blue-600 hover:underline">
-              {t("nav.markets")}
-            </Link>
-            <Link href="/friends" className="relative text-sm text-blue-600 hover:underline">
-              {t("nav.friends")}
-              {pendingCount > 0 && (
-                <span className="absolute -top-2 -right-4 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">
-                  {pendingCount}
-                </span>
+    <nav className="border-b border-gray-200 dark:border-gray-700">
+      {/* Main bar — always visible */}
+      <div className="flex items-start justify-between px-4 sm:px-6 py-3 gap-2">
+        <Link href="/" className="font-bold text-xl text-gray-900 dark:text-gray-100 shrink-0">
+          {t("app.name")}
+        </Link>
+
+        {/* Desktop nav links — hidden on mobile */}
+        <div className="hidden md:flex items-center gap-3 flex-wrap justify-end flex-1 min-w-0">
+          {isAuthenticated ? (
+            <>
+              <UserSearch />
+              <Link
+                href={`/profile/${encodeURIComponent(user?.username ?? "")}`}
+                className="text-sm text-blue-600 hover:underline shrink-0"
+              >
+                {user?.username}
+              </Link>
+              <span className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap shrink-0">
+                BP&nbsp;{(user?.bp ?? 0).toFixed(1)}{" · "}KP&nbsp;{user?.kp ?? 0}{" · "}TP&nbsp;{(user?.tp ?? 0).toFixed(1)}
+              </span>
+              <Link href="/dashboard" className="text-sm text-blue-600 hover:underline shrink-0">
+                {t("nav.dashboard")}
+              </Link>
+              <Link href="/markets" className="text-sm text-blue-600 hover:underline shrink-0">
+                {t("nav.markets")}
+              </Link>
+              <Link href="/friends" className="relative text-sm text-blue-600 hover:underline shrink-0">
+                {t("nav.friends")}
+                {pendingCount > 0 && (
+                  <span className="absolute -top-2 -right-4 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">
+                    {pendingCount}
+                  </span>
+                )}
+              </Link>
+              <Link href="/chat" className="text-sm text-blue-600 hover:underline shrink-0">
+                {t("nav.chat")}
+              </Link>
+              <Link href="/settings" className="text-sm text-blue-600 hover:underline shrink-0">
+                {t("nav.settings")}
+              </Link>
+              <button
+                onClick={handleLogout}
+                className="text-sm px-3 py-1 border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-700 shrink-0"
+              >
+                {t("nav.logout")}
+              </button>
+            </>
+          ) : (
+            <>
+              <Link href="/login" className="text-sm text-blue-600 hover:underline">
+                {t("nav.login")}
+              </Link>
+              <Link href="/register" className="text-sm px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700">
+                {t("nav.signup")}
+              </Link>
+            </>
+          )}
+        </div>
+
+        {/* Always-visible controls: bell + theme + language + hamburger */}
+        <div className="flex items-center gap-2 shrink-0">
+          {isAuthenticated && <NotificationBell />}
+          <ThemeToggle />
+          <LanguageSelector />
+          {/* Hamburger — mobile only */}
+          <button
+            onClick={() => setMobileOpen((v) => !v)}
+            className="md:hidden p-1 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
+            aria-label="Toggle menu"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              {mobileOpen ? (
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              ) : (
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
               )}
-            </Link>
-            <Link href="/chat" className="text-sm text-blue-600 hover:underline">
-              {t("nav.chat")}
-            </Link>
-            <Link href="/settings" className="text-sm text-blue-600 hover:underline">
-              {t("nav.settings")}
-            </Link>
-            <Link href="/settings" className="text-sm text-blue-600 hover:underline">
-              Settings
-            </Link>
-            <NotificationBell />
-            <ThemeToggle />
-            <LanguageSelector />
-            <button
-              onClick={handleLogout}
-              className="text-sm px-3 py-1 border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-700"
-            >
-              {t("nav.logout")}
-            </button>
-          </>
-        ) : (
-          <>
-            <Link href="/login" className="text-sm text-blue-600 hover:underline">
-              {t("nav.login")}
-            </Link>
-            <ThemeToggle />
-            <LanguageSelector />
-            <Link
-              href="/register"
-              className="text-sm px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700"
-            >
-              {t("nav.signup")}
-            </Link>
-          </>
-        )}
+            </svg>
+          </button>
+        </div>
       </div>
+
+      {/* Mobile menu */}
+      {mobileOpen && (
+        <div className="md:hidden border-t border-gray-200 dark:border-gray-700 px-4 py-3 flex flex-col gap-3">
+          {isAuthenticated ? (
+            <>
+              <UserSearch />
+              <Link
+                href={`/profile/${encodeURIComponent(user?.username ?? "")}`}
+                onClick={() => setMobileOpen(false)}
+                className="text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600"
+              >
+                {user?.username}
+              </Link>
+              <span className="text-xs text-gray-500 dark:text-gray-400">
+                BP&nbsp;{(user?.bp ?? 0).toFixed(1)}{" · "}KP&nbsp;{user?.kp ?? 0}{" · "}TP&nbsp;{(user?.tp ?? 0).toFixed(1)}
+              </span>
+              <Link href="/dashboard" onClick={() => setMobileOpen(false)} className="text-sm text-blue-600 hover:underline">
+                {t("nav.dashboard")}
+              </Link>
+              <Link href="/markets" onClick={() => setMobileOpen(false)} className="text-sm text-blue-600 hover:underline">
+                {t("nav.markets")}
+              </Link>
+              <Link href="/friends" onClick={() => setMobileOpen(false)} className="relative text-sm text-blue-600 hover:underline w-fit">
+                {t("nav.friends")}
+                {pendingCount > 0 && (
+                  <span className="absolute -top-2 -right-4 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">
+                    {pendingCount}
+                  </span>
+                )}
+              </Link>
+              <Link href="/chat" onClick={() => setMobileOpen(false)} className="text-sm text-blue-600 hover:underline">
+                {t("nav.chat")}
+              </Link>
+              <Link href="/settings" onClick={() => setMobileOpen(false)} className="text-sm text-blue-600 hover:underline">
+                {t("nav.settings")}
+              </Link>
+              <button
+                onClick={handleLogout}
+                className="text-sm px-3 py-1 border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-700 w-fit"
+              >
+                {t("nav.logout")}
+              </button>
+            </>
+          ) : (
+            <>
+              <Link href="/login" onClick={() => setMobileOpen(false)} className="text-sm text-blue-600 hover:underline">
+                {t("nav.login")}
+              </Link>
+              <Link href="/register" onClick={() => setMobileOpen(false)} className="text-sm px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 w-fit">
+                {t("nav.signup")}
+              </Link>
+            </>
+          )}
+        </div>
+      )}
     </nav>
   );
 }

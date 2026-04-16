@@ -47,10 +47,8 @@ def compute_tp_earned(t_win: float, t_bet: float) -> float:
 
 
 def compute_proposer_penalty(staked: float) -> float:
-    """RES-05: Proposer loses 50% of staked bp if resolution overturned.
-    floor(staked * 0.5), minimum 0.
-    """
-    return max(0.0, math.floor(staked * 0.5))
+    """RES-05: Proposer loses 50% of staked bp if resolution overturned."""
+    return max(0.0, staked * 0.5)
 
 
 async def _compute_tp_for_user(
@@ -188,11 +186,11 @@ async def trigger_payout(
         for winner_id, user_winning_stake in winner_rows:
             # BP: proportional share of total pool (D-11)
             if total_winning_stake > 0:
-                winner_bp = math.floor(float(user_winning_stake) / total_winning_stake * total_bp_pool)
+                winner_bp = float(user_winning_stake) / total_winning_stake * total_bp_pool
             else:
-                winner_bp = 0
+                winner_bp = 0.0
             if winner_bp > 0:
-                await credit_bp(db, winner_id, float(winner_bp), "bet_win", bet_id=bet_id)
+                await credit_bp(db, winner_id, winner_bp, "bet_win", bet_id=bet_id)
 
             # TP: per-position average (D-11)
             tp = await _compute_tp_for_user(db, bet_id, winner_id, outcome, total_winning_stake)
