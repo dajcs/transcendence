@@ -4,9 +4,9 @@ milestone: v21.0
 milestone_name: milestone
 current_plan: 1
 status: Executing Phase 06
-last_updated: "2026-04-10T10:22:37.403Z"
+last_updated: "2026-04-16T14:20:40.783Z"
 progress:
-  total_phases: 6
+  total_phases: 7
   completed_phases: 5
   total_plans: 34
   completed_plans: 34
@@ -26,8 +26,8 @@ See: `.planning/PROJECT.md` (updated 2026-03-24)
 
 **Phase:** 05
 **Current Plan:** 1
-**Last session:** 2026-04-09T14:53:52.187Z
-**Resume file:** .planning/phases/06-polish-compliance/06-CONTEXT.md
+**Last session:** 2026-04-16T14:20:40.780Z
+**Resume file:** .planning/phases/5.1-autoresolution-profile-bet-logs-market-bet-details/05.1-CONTEXT.md
 
 ## Decisions
 
@@ -91,6 +91,12 @@ See: `.planning/PROJECT.md` (updated 2026-03-24)
 - [fix/logic]: Browser Notification requireInteraction:true — stays until clicked/dismissed; onclick calls markAllAsRead() to clear bell badge
 - [fix/logic]: Dashboard "closes in closed" fixed — conditional render shows "closed" when timeLeft()="closed", toLocaleDateString→toLocaleString for deadline time display
 - [fix/logic]: Dispute/Accept buttons hidden from non-participants — myPosition guard added; proposers see "Awaiting…", non-participants see info text, only betters see action buttons
+
+## Accumulated Context
+
+### Roadmap Evolution
+
+- Phase 5.1 inserted after Phase 5: add autoresolution, profile bet logs, market bet details (URGENT)
 
 ## Performance Metrics
 
