@@ -102,3 +102,40 @@ class MarketListResponse(BaseModel):
     total: int
     page: int
     pages: int
+
+
+class ParticipantEntry(BaseModel):
+    user_id: uuid.UUID
+    username: str
+    side: str
+    bp_staked: float
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class AggregateStats(BaseModel):
+    total_bp: float
+    total_participants: int
+    avg_bp: float
+    by_side: dict[str, int]
+
+
+class ParticipantListResponse(BaseModel):
+    participants: list[ParticipantEntry]
+    aggregate: AggregateStats
+    total: int
+
+
+class PayoutEntry(BaseModel):
+    user_id: uuid.UUID
+    username: str
+    bp_won: float
+    tp_won: float
+
+    model_config = {"from_attributes": True}
+
+
+class PayoutListResponse(BaseModel):
+    payouts: list[PayoutEntry]
+    total: int
