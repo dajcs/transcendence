@@ -4,13 +4,13 @@ milestone: v21.0
 milestone_name: milestone
 current_plan: 1
 status: Executing Phase 05.1
-last_updated: "2026-04-16T20:26:14.858Z"
+last_updated: "2026-04-16T20:46:14.717Z"
 progress:
   total_phases: 7
-  completed_phases: 5
+  completed_phases: 6
   total_plans: 38
-  completed_plans: 37
-  percent: 97
+  completed_plans: 38
+  percent: 100
 ---
 
 # Project State
@@ -26,7 +26,7 @@ See: `.planning/PROJECT.md` (updated 2026-03-24)
 
 **Phase:** 05
 **Current Plan:** 1
-**Last session:** 2026-04-16T20:26:14.812Z
+**Last session:** 2026-04-16T20:46:14.642Z
 **Resume file:** None
 
 ## Decisions
@@ -97,6 +97,8 @@ See: `.planning/PROJECT.md` (updated 2026-03-24)
 - [Phase 05.1]: Route /{username}/transactions placed before /{username} catch-all in users.py
 - [Phase 05.1]: Active positions only (withdrawn_at IS NULL) in participant list — withdrawn positions excluded per spec
 - [Phase 05.1]: TP lookup uses separate query + dict merge rather than complex JOIN — simpler, avoids nullable TP bet_id issues
+- [Phase 05.1]: payoutsQuery uses marketQuery.data?.status to avoid block-scoped forward reference to market variable
+- [Phase 05.1]: Test framework is Jest not Vitest — plan templates adapted to jest.fn()/jest.mock() API
 
 ## Accumulated Context
 
@@ -135,6 +137,7 @@ See: `.planning/PROJECT.md` (updated 2026-03-24)
 | Phase 05.1 P01 | 6min | 2 tasks | 3 files |
 | Phase 05.1 P02 | 2min | 2 tasks | 4 files |
 | Phase 05.1 P03 | 6min | 2 tasks | 3 files |
+| Phase 05.1 P04 | 19min | 2 tasks | 8 files |
 
 ## Session History
 

@@ -176,13 +176,13 @@ Plans:
 
 **Requirements:** D-01–D-10
 
-**Plans:** 3/4 plans executed
+**Plans:** 4/4 plans complete
 
 Plans:
 - [x] 05.1-01-PLAN.md — Backend: resolution_source schema field + MarketCreate validator + market_service persistence
 - [x] 05.1-02-PLAN.md — Backend: ledger_service (UNION query) + TransactionListResponse schema + GET /users/{username}/transactions
 - [x] 05.1-03-PLAN.md — Backend: ParticipantListResponse + PayoutListResponse schemas + GET /markets/{id}/positions + GET /markets/{id}/payouts
-- [ ] 05.1-04-PLAN.md — Frontend: auto-resolution toggle (new/page.tsx) + participants/payouts sections ([id]/page.tsx) + transaction ledger (profile/page.tsx) + all i18n keys
+- [x] 05.1-04-PLAN.md — Frontend: auto-resolution toggle (new/page.tsx) + participants/payouts sections ([id]/page.tsx) + transaction ledger (profile/page.tsx) + all i18n keys
 
 ---
 
