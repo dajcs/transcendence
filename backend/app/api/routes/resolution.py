@@ -18,9 +18,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.deps import get_db
 from app.db.models.bet import Bet, BetPosition, Dispute, DisputeVote, Resolution, ResolutionReview
 from app.db.models.user import User
+from app.db.session import make_task_session
 from app.services import auth_service
 from app.services.economy_service import deduct_bp
-from app.services.resolution_service import compute_vote_weight
+from app.services.resolution_service import compute_vote_weight, trigger_payout
 
 router = APIRouter()
 
@@ -179,11 +180,21 @@ async def accept_resolution(
 
     counts = await _get_review_counts(db, bet_id)
 
-    # Auto-accept: >90% of participants accepted → immediate payout, skip 48h window
+    # Auto-accept: >90% of *eligible* voters (non-proposer participants) accepted.
+    # Proposer is excluded because they cannot vote on their own resolution.
+    eligible_voters = (await db.execute(
+        select(func.count(func.distinct(BetPosition.user_id))).where(
+            BetPosition.bet_id == bet_id,
+            BetPosition.user_id != bet.proposer_id,
+            BetPosition.withdrawn_at.is_(None),
+        )
+    )).scalar_one()
+
     auto_closed = False
-    if counts["total_participants"] > 0 and counts["accept_count"] / counts["total_participants"] > _ACCEPT_THRESHOLD:
-        from app.services.resolution_service import trigger_payout
-        await trigger_payout(db, bet_id, resolution.outcome, overturned=False)
+    if eligible_voters > 0 and counts["accept_count"] / eligible_voters > _ACCEPT_THRESHOLD:
+        TaskSession = make_task_session()
+        async with TaskSession() as payout_db:
+            await trigger_payout(payout_db, bet_id, resolution.outcome, overturned=False)
         auto_closed = True
 
     try:

@@ -45,6 +45,7 @@ export default function MarketDetailPage() {
   const [side, setSide] = useState<string>("yes");
   const [commentText, setCommentText] = useState("");
   const [showWithdrawConfirm, setShowWithdrawConfirm] = useState(false);
+  const [confirmDisputeOpen, setConfirmDisputeOpen] = useState(false);
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [replyText, setReplyText] = useState("");
   const [resolutionOutcome, setResolutionOutcome] = useState<string>("yes");
@@ -689,19 +690,38 @@ export default function MarketDetailPage() {
                     >
                       {acceptResolution.isPending ? t("market.accepting") : t("market.accept_resolution")}
                     </button>
-                    <button
-                      onClick={() => openDispute.mutate()}
-                      disabled={openDispute.isPending || acceptResolution.isPending}
-                      className="rounded bg-violet-700 px-4 py-2 text-sm text-white hover:bg-violet-800 disabled:opacity-50"
-                    >
-                      {openDispute.isPending ? t("market.disputing") : t("market.dispute_resolution")}
-                    </button>
+                    {confirmDisputeOpen ? (
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-violet-700 dark:text-violet-300">{t("market.dispute_confirm")}</span>
+                        <button
+                          onClick={() => { openDispute.mutate(); setConfirmDisputeOpen(false); }}
+                          disabled={openDispute.isPending}
+                          className="rounded bg-violet-700 px-3 py-2 text-sm text-white hover:bg-violet-800 disabled:opacity-50"
+                        >
+                          {openDispute.isPending ? t("market.disputing") : t("common.yes")}
+                        </button>
+                        <button
+                          onClick={() => setConfirmDisputeOpen(false)}
+                          className="rounded bg-gray-500 px-3 py-2 text-sm text-white hover:bg-gray-600"
+                        >
+                          {t("common.cancel")}
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => setConfirmDisputeOpen(true)}
+                        disabled={openDispute.isPending || acceptResolution.isPending}
+                        className="rounded bg-violet-700 px-4 py-2 text-sm text-white hover:bg-violet-800 disabled:opacity-50"
+                      >
+                        {t("market.dispute_resolution")}
+                      </button>
+                    )}
                   </div>
-                  <p className="text-xs text-blue-600 dark:text-blue-400">{t("market.dispute_cost")}</p>
-                  {(acceptResolution.isError || openDispute.isError) && (
-                    <p className="text-sm text-red-600 dark:text-red-400">
-                      {(((acceptResolution.error ?? openDispute.error) as { response?: { data?: { detail?: unknown } } })?.response?.data?.detail as string) ?? t("market.action_failed")}
-                    </p>
+                  {acceptResolution.isError && (
+                    <p className="text-sm text-red-600 dark:text-red-400">{t("market.vote_failed")}</p>
+                  )}
+                  {openDispute.isError && (
+                    <p className="text-sm text-red-600 dark:text-red-400">{t("market.action_failed")}</p>
                   )}
                 </div>
               )}
