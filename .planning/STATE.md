@@ -4,13 +4,13 @@ milestone: v21.0
 milestone_name: milestone
 current_plan: 1
 status: Executing Phase 05.1
-last_updated: "2026-04-16T20:17:26.839Z"
+last_updated: "2026-04-16T20:21:15.709Z"
 progress:
   total_phases: 7
   completed_phases: 5
   total_plans: 38
-  completed_plans: 35
-  percent: 92
+  completed_plans: 36
+  percent: 95
 ---
 
 # Project State
@@ -26,7 +26,7 @@ See: `.planning/PROJECT.md` (updated 2026-03-24)
 
 **Phase:** 05
 **Current Plan:** 1
-**Last session:** 2026-04-16T20:17:26.766Z
+**Last session:** 2026-04-16T20:21:15.680Z
 **Resume file:** None
 
 ## Decisions
@@ -92,6 +92,9 @@ See: `.planning/PROJECT.md` (updated 2026-03-24)
 - [fix/logic]: Dashboard "closes in closed" fixed — conditional render shows "closed" when timeLeft()="closed", toLocaleDateString→toLocaleString for deadline time display
 - [fix/logic]: Dispute/Accept buttons hidden from non-participants — myPosition guard added; proposers see "Awaiting…", non-participants see info text, only betters see action buttons
 - [Phase 05.1]: validate_resolution_source runs as second model_validator — Pydantic runs both in order; json.dumps() to Text column; resolution_source not exposed in MarketResponse (internal Celery task only)
+- [Phase 05.1]: signup_bonus BpTransaction at registration — empty user test asserts structure not empty list
+- [Phase 05.1]: cast(None, Uuid) from sqlalchemy.types for KpEvent bet_id NULL — PG_UUID breaks SQLite
+- [Phase 05.1]: Route /{username}/transactions placed before /{username} catch-all in users.py
 
 ## Accumulated Context
 
@@ -128,6 +131,7 @@ See: `.planning/PROJECT.md` (updated 2026-03-24)
 | Phase 05 P12 | 5min | 2 tasks | 2 files |
 | Phase 05 P13 | 4min | 2 tasks | 3 files |
 | Phase 05.1 P01 | 6min | 2 tasks | 3 files |
+| Phase 05.1 P02 | 2min | 2 tasks | 4 files |
 
 ## Session History
 
