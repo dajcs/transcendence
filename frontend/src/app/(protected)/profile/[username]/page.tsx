@@ -9,6 +9,21 @@ import { api } from "@/lib/api";
 import { useAuthStore } from "@/store/auth";
 import { useT } from "@/i18n";
 
+interface TransactionEntry {
+  id: string;
+  date: string;
+  type: string;
+  description: string;
+  market_id: string | null;
+  market_title: string | null;
+  bp_delta: number;
+  tp_delta: number;
+}
+interface TransactionListResponse {
+  transactions: TransactionEntry[];
+  total: number;
+}
+
 interface Profile {
   id: string;
   username: string;
@@ -32,6 +47,10 @@ export default function ProfilePage() {
 
   const [editing, setEditing] = useState(false);
   const [bio, setBio] = useState("");
+  const [txOffset, setTxOffset] = useState(0);
+  const [sortBy, setSortBy] = useState<"date" | "bp" | "tp" | "type">("date");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+  const [allTx, setAllTx] = useState<TransactionEntry[]>([]);
 
   const profileQuery = useQuery<Profile>({
     queryKey: ["profile", params.username],
@@ -42,6 +61,49 @@ export default function ProfilePage() {
   });
 
   const profile = profileQuery.data;
+
+  const transactionsQuery = useQuery<TransactionListResponse>({
+    queryKey: ["user-transactions", params.username, txOffset, sortBy, sortDir],
+    queryFn: async () =>
+      (await api.get(
+        `/api/users/${encodeURIComponent(params.username)}/transactions?offset=${txOffset}&limit=25&sort_by=${sortBy}&sort_dir=${sortDir}`
+      )).data,
+    staleTime: 30_000,
+  });
+
+  useEffect(() => {
+    if (transactionsQuery.data?.transactions) {
+      setAllTx((prev) =>
+        txOffset === 0
+          ? transactionsQuery.data!.transactions
+          : [...prev, ...transactionsQuery.data!.transactions]
+      );
+    }
+  }, [transactionsQuery.data, txOffset]);
+
+  const handleSort = (field: "date" | "bp" | "tp" | "type") => {
+    if (sortBy === field) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortBy(field);
+      setSortDir("desc");
+    }
+    setTxOffset(0);
+    setAllTx([]);
+  };
+
+  const sortIcon = (field: string) =>
+    sortBy === field ? (sortDir === "asc" ? " ▲" : " ▼") : "";
+
+  const TYPE_COLORS: Record<string, string> = {
+    bet_placed: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
+    bet_won: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
+    bet_lost: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
+    withdrawal: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400",
+    daily_bonus: "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300",
+    kp_allocation: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400",
+    payout: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
+  };
 
   useEffect(() => {
     if (profile && !editing) {
@@ -204,6 +266,90 @@ export default function ProfilePage() {
           {sendFriendRequest.isError && (
             <p className="text-sm text-red-600">{t("profile.friend_error")}</p>
           )}
+
+          {/* Point Transaction Ledger — D-04, D-05, D-06, D-07 */}
+          <section className="rounded border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 space-y-3">
+            <h2 className="text-lg font-semibold">{t("profile.transaction_ledger")}</h2>
+            {transactionsQuery.isLoading && txOffset === 0 ? (
+              <div className="space-y-2 animate-pulse">
+                {[0, 1, 2].map((i) => (
+                  <div key={i} className="h-8 rounded bg-gray-200 dark:bg-gray-700" />
+                ))}
+              </div>
+            ) : transactionsQuery.isError ? (
+              <p className="text-sm text-red-600 dark:text-red-400">{t("ledger.error")}</p>
+            ) : allTx.length === 0 ? (
+              <p className="text-sm text-gray-500 dark:text-gray-400">{t("ledger.no_transactions")}</p>
+            ) : (
+              <>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">
+                        <th
+                          className="pb-2 text-left cursor-pointer select-none"
+                          onClick={() => handleSort("date")}
+                        >
+                          {t("ledger.date")}{sortIcon("date")}
+                        </th>
+                        <th
+                          className="pb-2 text-left cursor-pointer select-none"
+                          onClick={() => handleSort("type")}
+                        >
+                          {t("ledger.type")}{sortIcon("type")}
+                        </th>
+                        <th className="pb-2 text-left">{t("ledger.description")}</th>
+                        <th
+                          className="pb-2 text-right cursor-pointer select-none"
+                          onClick={() => handleSort("bp")}
+                        >
+                          {t("ledger.bp_delta")}{sortIcon("bp")}
+                        </th>
+                        <th className="pb-2 text-right">{t("ledger.tp_delta")}</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
+                      {allTx.map((tx) => (
+                        <tr key={tx.id}>
+                          <td className="py-2 text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                            {new Date(tx.date).toLocaleString()}
+                          </td>
+                          <td className="py-2">
+                            <span className={`rounded-full px-2 py-1 text-xs font-medium ${TYPE_COLORS[tx.type] ?? TYPE_COLORS.daily_bonus}`}>
+                              {t(`ledger.type_${tx.type}` as Parameters<typeof t>[0]) || tx.type}
+                            </span>
+                          </td>
+                          <td className="py-2 text-gray-700 dark:text-gray-300">
+                            {tx.market_title && tx.market_id ? (
+                              <a href={`/markets/${tx.market_id}`} className="hover:underline text-blue-600 dark:text-blue-400">
+                                {tx.market_title}
+                              </a>
+                            ) : (
+                              <span className="text-gray-400">—</span>
+                            )}
+                          </td>
+                          <td className={`py-2 text-right font-medium ${tx.bp_delta > 0 ? "text-green-600 dark:text-green-400" : tx.bp_delta < 0 ? "text-red-600 dark:text-red-400" : "text-gray-400"}`}>
+                            {tx.bp_delta > 0 ? `+${tx.bp_delta}` : tx.bp_delta !== 0 ? String(tx.bp_delta) : "—"}
+                          </td>
+                          <td className={`py-2 text-right font-medium ${tx.tp_delta > 0 ? "text-blue-600 dark:text-blue-400" : tx.tp_delta !== 0 ? "text-gray-500" : "text-gray-400"}`}>
+                            {tx.tp_delta !== 0 ? (tx.tp_delta > 0 ? `+${tx.tp_delta}` : String(tx.tp_delta)) : "—"}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                {transactionsQuery.data && allTx.length < transactionsQuery.data.total && (
+                  <button
+                    onClick={() => setTxOffset((o) => o + 25)}
+                    className="rounded border border-gray-300 dark:border-gray-600 px-3 py-1 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700"
+                  >
+                    {transactionsQuery.isFetching ? t("common.loading") : t("ledger.load_more")}
+                  </button>
+                )}
+              </>
+            )}
+          </section>
         </>
       )}
     </div>
