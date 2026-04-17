@@ -275,7 +275,7 @@ async def _process_dispute_deadlines(db: AsyncSession) -> None:
         await db.flush()
         await db.commit()
 
-        async with AsyncSessionLocal() as payout_db:
+        async with make_task_session()() as payout_db:
             from app.services.resolution_service import trigger_payout
             await trigger_payout(payout_db, dispute.bet_id, final_outcome, overturned=overturned)
 

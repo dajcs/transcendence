@@ -1,8 +1,12 @@
 import type { NextConfig } from "next";
 
+const allowedDevOrigins = (process.env.ALLOWED_DEV_ORIGINS ?? "")
+  .split(",")
+  .map((s) => s.trim())
+  .filter(Boolean);
+
 const nextConfig: NextConfig = {
-  // Phase 1: minimal config
-  // Allow images from external sources in future phases
+  ...(allowedDevOrigins.length > 0 && { allowedDevOrigins }),
 };
 
 export default nextConfig;
