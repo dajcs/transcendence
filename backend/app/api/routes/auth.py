@@ -175,7 +175,7 @@ async def oauth_callback(
         msg = quote(exc.detail)
         return RedirectResponse(url=f"/login?error={msg}", status_code=302)
 
-    redirect = RedirectResponse(url="/dashboard", status_code=302)
+    redirect = RedirectResponse(url="/markets", status_code=302)
     redirect.set_cookie(
         key="access_token",
         value=access_token,

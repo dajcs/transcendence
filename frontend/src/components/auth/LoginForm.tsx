@@ -62,7 +62,7 @@ export default function LoginForm() {
     try {
       await api.post("/api/auth/login", data);
       await bootstrap();
-      router.push("/dashboard");
+      router.push("/markets");
     } catch (err: unknown) {
       const msg = normalizeLoginError(err) ?? t("auth.login_failed");
       setError("root", { message: msg });

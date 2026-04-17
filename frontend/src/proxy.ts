@@ -10,14 +10,19 @@ export function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
-  // Redirect authenticated users away from auth pages
-  if (token && (pathname === "/login" || pathname === "/register")) {
-    return NextResponse.redirect(new URL("/dashboard", request.url));
+  // Redirect authenticated users away from auth pages and root
+  if (token && (pathname === "/" || pathname === "/login" || pathname === "/register")) {
+    return NextResponse.redirect(new URL("/markets", request.url));
+  }
+
+  // Redirect unauthenticated users from root to login
+  if (!token && pathname === "/") {
+    return NextResponse.redirect(new URL("/login", request.url));
   }
 
   return NextResponse.next();
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/markets/:path*", "/friends/:path*", "/chat/:path*", "/profile/:path*", "/login", "/register"],
+  matcher: ["/", "/dashboard/:path*", "/markets/:path*", "/friends/:path*", "/chat/:path*", "/profile/:path*", "/login", "/register"],
 };
