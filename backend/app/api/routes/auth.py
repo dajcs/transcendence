@@ -143,16 +143,18 @@ async def oauth_providers():
 
 
 @router.get("/oauth/{provider}")
-async def oauth_initiate(provider: str):
+async def oauth_initiate(provider: str, request: Request):
     """Redirect user to the OAuth provider's authorization page."""
     from fastapi.responses import RedirectResponse
-    url = await oauth_service.build_authorize_url(provider)
+    redirect_base = f"https://{request.headers.get('host', 'localhost:8443')}"
+    url = await oauth_service.build_authorize_url(provider, redirect_base=redirect_base)
     return RedirectResponse(url=url)
 
 
 @router.get("/oauth/{provider}/callback")
 async def oauth_callback(
     provider: str,
+    request: Request,
     code: str = "",
     state: str = "",
     error: str = "",
@@ -167,7 +169,8 @@ async def oauth_callback(
         return RedirectResponse(url=f"/login?error={msg}", status_code=302)
 
     try:
-        user, access_token, refresh_token = await oauth_service.handle_callback(provider, code, state, db)
+        redirect_base = f"https://{request.headers.get('host', 'localhost:8443')}"
+        user, access_token, refresh_token = await oauth_service.handle_callback(provider, code, state, db, redirect_base=redirect_base)
     except HTTPException as exc:
         msg = quote(exc.detail)
         return RedirectResponse(url=f"/login?error={msg}", status_code=302)

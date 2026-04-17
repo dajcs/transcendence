@@ -86,7 +86,7 @@ def _get_redis():
     return aioredis.from_url(settings.redis_url, decode_responses=True)
 
 
-async def build_authorize_url(provider_name: str) -> str:
+async def build_authorize_url(provider_name: str, redirect_base: str | None = None) -> str:
     """Generate the OAuth authorize URL with PKCE + state, store in Redis."""
     prov = _get_provider(provider_name)
     state = secrets.token_urlsafe(32)
@@ -99,7 +99,7 @@ async def build_authorize_url(provider_name: str) -> str:
         json.dumps({"provider": provider_name, "code_verifier": verifier}),
     )
 
-    callback_url = f"{settings.oauth_redirect_base}/api/auth/oauth/{provider_name}/callback"
+    callback_url = f"{redirect_base or settings.oauth_redirect_base}/api/auth/oauth/{provider_name}/callback"
 
     params: dict[str, str] = {
         "client_id": prov.client_id,
@@ -125,6 +125,7 @@ async def handle_callback(
     code: str,
     state: str,
     db: AsyncSession,
+    redirect_base: str | None = None,
 ) -> tuple[User, str, str]:
     """
     Validate state, exchange code for token, fetch profile, upsert user.
@@ -145,7 +146,7 @@ async def handle_callback(
     await redis.delete(f"oauth_state:{state}")
 
     prov = _get_provider(provider_name)
-    callback_url = f"{settings.oauth_redirect_base}/api/auth/oauth/{provider_name}/callback"
+    callback_url = f"{redirect_base or settings.oauth_redirect_base}/api/auth/oauth/{provider_name}/callback"
 
     # 2. Exchange authorization code for access token
     # Only pass code_verifier for providers that support PKCE (Google)
