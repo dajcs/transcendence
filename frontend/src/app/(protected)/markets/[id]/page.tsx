@@ -84,6 +84,8 @@ export default function MarketDetailPage() {
 
   const [participantOffset, setParticipantOffset] = useState(0);
   const [allParticipants, setAllParticipants] = useState<ParticipantEntry[]>([]);
+  const [participantSort, setParticipantSort] = useState<{ key: keyof ParticipantEntry | null; dir: "asc" | "desc" }>({ key: null, dir: "asc" });
+  const [payoutSort, setPayoutSort] = useState<{ key: keyof PayoutEntry | null; dir: "asc" | "desc" }>({ key: null, dir: "asc" });
 
   const participantsQuery = useQuery<ParticipantListResponse>({
     queryKey: ["market-positions", marketId, participantOffset],
@@ -396,6 +398,31 @@ export default function MarketDetailPage() {
     // binary: "yes" default is correct
   }, [market?.market_type]);
 
+  function toggleSort<K extends string>(
+    current: { key: K | null; dir: "asc" | "desc" },
+    set: (v: { key: K | null; dir: "asc" | "desc" }) => void,
+    col: K,
+  ) {
+    if (current.key !== col) { set({ key: col, dir: "asc" }); return; }
+    if (current.dir === "asc") { set({ key: col, dir: "desc" }); return; }
+    set({ key: null, dir: "asc" });
+  }
+
+  function sortIndicator<K extends string>(sort: { key: K | null; dir: "asc" | "desc" }, col: K) {
+    if (sort.key !== col) return <span className="ml-1 text-gray-300 dark:text-gray-600">↕</span>;
+    return <span className="ml-1">{sort.dir === "asc" ? "↑" : "↓"}</span>;
+  }
+
+  function sortedRows<T>(rows: T[], sort: { key: keyof T | null; dir: "asc" | "desc" }): T[] {
+    if (!sort.key) return rows;
+    const k = sort.key;
+    return [...rows].sort((a, b) => {
+      const av = a[k], bv = b[k];
+      const cmp = av < bv ? -1 : av > bv ? 1 : 0;
+      return sort.dir === "asc" ? cmp : -cmp;
+    });
+  }
+
   return (
     <div className="space-y-6">
       {marketQuery.isLoading && <p className="text-sm text-gray-500 dark:text-gray-400">{t("market.loading")}</p>}
@@ -516,19 +543,21 @@ export default function MarketDetailPage() {
             ) : (
               <>
                 {participantsQuery.data && (
-                  <div className="grid grid-cols-3 gap-2 text-center text-sm mb-3">
+                  <div className={`grid gap-2 text-center text-sm mb-3 ${market?.market_type === "numeric" ? "grid-cols-2" : "grid-cols-3"}`}>
                     <div>
                       <p className="text-lg font-semibold">{participantsQuery.data.aggregate.total_bp} BP</p>
                       <p className="text-xs text-gray-500 dark:text-gray-400">{t("market.total_staked")}</p>
                     </div>
-                    <div>
-                      <p className="text-lg font-semibold">
-                        {Object.entries(participantsQuery.data.aggregate.by_side)
-                          .map(([side, cnt]) => `${cnt} ${side.toUpperCase()}`)
-                          .join(" / ") || "0"}
-                      </p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">{t("market.participants_count")}</p>
-                    </div>
+                    {market?.market_type !== "numeric" && (
+                      <div>
+                        <p className="text-lg font-semibold">
+                          {Object.entries(participantsQuery.data.aggregate.by_side)
+                            .map(([side, cnt]) => `${cnt} ${side.toUpperCase()}`)
+                            .join(" / ") || "0"}
+                        </p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">{t("market.participants_count")}</p>
+                      </div>
+                    )}
                     <div>
                       <p className="text-lg font-semibold">{participantsQuery.data.aggregate.avg_bp} BP</p>
                       <p className="text-xs text-gray-500 dark:text-gray-400">{t("market.avg_stake")}</p>
@@ -538,25 +567,33 @@ export default function MarketDetailPage() {
                 {allParticipants.length === 0 ? (
                   <p className="text-sm text-gray-500 dark:text-gray-400">{t("market.no_participants")}</p>
                 ) : (
-                  <div className="overflow-x-auto">
+                  <div className="overflow-auto max-h-64 rounded border border-gray-100 dark:border-gray-700">
                     <table className="w-full text-sm">
-                      <thead>
+                      <thead className="sticky top-0 bg-white dark:bg-gray-800 z-10">
                         <tr className="border-b border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">
-                          <th className="pb-2 text-left">{t("market.participant_user")}</th>
-                          <th className="pb-2 text-left">{t("market.participant_side")}</th>
-                          <th className="pb-2 text-right">{t("market.participant_stake")}</th>
-                          <th className="pb-2 text-right">{t("market.participant_time")}</th>
+                          <th className="pb-2 pt-1 px-2 text-left cursor-pointer select-none hover:text-gray-700 dark:hover:text-gray-200" onClick={() => toggleSort(participantSort, setParticipantSort, "username")}>
+                            {t("market.participant_user")}{sortIndicator(participantSort, "username")}
+                          </th>
+                          <th className="pb-2 pt-1 px-2 text-left cursor-pointer select-none hover:text-gray-700 dark:hover:text-gray-200" onClick={() => toggleSort(participantSort, setParticipantSort, "side")}>
+                            {t("market.participant_side")}{sortIndicator(participantSort, "side")}
+                          </th>
+                          <th className="pb-2 pt-1 px-2 text-right cursor-pointer select-none hover:text-gray-700 dark:hover:text-gray-200" onClick={() => toggleSort(participantSort, setParticipantSort, "bp_staked")}>
+                            {t("market.participant_stake")}{sortIndicator(participantSort, "bp_staked")}
+                          </th>
+                          <th className="pb-2 pt-1 px-2 text-right cursor-pointer select-none hover:text-gray-700 dark:hover:text-gray-200" onClick={() => toggleSort(participantSort, setParticipantSort, "created_at")}>
+                            {t("market.participant_time")}{sortIndicator(participantSort, "created_at")}
+                          </th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
-                        {allParticipants.map((p) => (
+                        {sortedRows(allParticipants, participantSort).map((p) => (
                           <tr key={`${p.user_id}-${p.created_at}`}>
-                            <td className="py-2"><UserLink username={p.username} /></td>
-                            <td className={`py-2 font-medium ${p.side === "yes" ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
+                            <td className="py-2 px-2"><UserLink username={p.username} /></td>
+                            <td className={`py-2 px-2 font-medium ${p.side === "yes" ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
                               {p.side.toUpperCase()}
                             </td>
-                            <td className="py-2 text-right">{p.bp_staked} BP</td>
-                            <td className="py-2 text-right text-xs text-gray-500 dark:text-gray-400">
+                            <td className="py-2 px-2 text-right">{p.bp_staked} BP</td>
+                            <td className="py-2 px-2 text-right text-xs text-gray-500 dark:text-gray-400">
                               {new Date(p.created_at).toLocaleString()}
                             </td>
                           </tr>
@@ -1016,24 +1053,32 @@ export default function MarketDetailPage() {
               ) : !payoutsQuery.data?.payouts.length ? (
                 <p className="text-sm text-green-700 dark:text-green-400">{t("market.no_payouts")}</p>
               ) : (
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-green-200 dark:border-green-800 text-xs text-green-700 dark:text-green-400">
-                      <th className="pb-2 text-left">{t("market.winner_user")}</th>
-                      <th className="pb-2 text-right">{t("market.winner_bp")}</th>
-                      <th className="pb-2 text-right">{t("market.winner_tp")}</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-green-100 dark:divide-green-900">
-                    {payoutsQuery.data.payouts.map((p) => (
-                      <tr key={p.user_id}>
-                        <td className="py-2"><UserLink username={p.username} /></td>
-                        <td className="py-2 text-right font-medium text-green-600 dark:text-green-400">+{p.bp_won} BP</td>
-                        <td className="py-2 text-right font-medium text-blue-600 dark:text-blue-400">+{p.tp_won} TP</td>
+                <div className="overflow-auto max-h-64 rounded border border-green-100 dark:border-green-900">
+                  <table className="w-full text-sm">
+                    <thead className="sticky top-0 bg-green-50 dark:bg-green-900/20 z-10">
+                      <tr className="border-b border-green-200 dark:border-green-800 text-xs text-green-700 dark:text-green-400">
+                        <th className="pb-2 pt-1 px-2 text-left cursor-pointer select-none hover:text-green-900 dark:hover:text-green-200" onClick={() => toggleSort(payoutSort, setPayoutSort, "username")}>
+                          {t("market.winner_user")}{sortIndicator(payoutSort, "username")}
+                        </th>
+                        <th className="pb-2 pt-1 px-2 text-right cursor-pointer select-none hover:text-green-900 dark:hover:text-green-200" onClick={() => toggleSort(payoutSort, setPayoutSort, "bp_won")}>
+                          {t("market.winner_bp")}{sortIndicator(payoutSort, "bp_won")}
+                        </th>
+                        <th className="pb-2 pt-1 px-2 text-right cursor-pointer select-none hover:text-green-900 dark:hover:text-green-200" onClick={() => toggleSort(payoutSort, setPayoutSort, "tp_won")}>
+                          {t("market.winner_tp")}{sortIndicator(payoutSort, "tp_won")}
+                        </th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody className="divide-y divide-green-100 dark:divide-green-900">
+                      {sortedRows(payoutsQuery.data.payouts, payoutSort).map((p) => (
+                        <tr key={p.user_id}>
+                          <td className="py-2 px-2"><UserLink username={p.username} /></td>
+                          <td className="py-2 px-2 text-right font-medium text-green-600 dark:text-green-400">+{p.bp_won} BP</td>
+                          <td className="py-2 px-2 text-right font-medium text-blue-600 dark:text-blue-400">+{p.tp_won} TP</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               )}
             </section>
           )}

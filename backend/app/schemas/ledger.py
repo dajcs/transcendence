@@ -13,7 +13,9 @@ class TransactionEntry(BaseModel):
     market_id: uuid.UUID | None
     market_title: str | None
     bp_delta: float
+    bp_balance: float
     tp_delta: float
+    tp_balance: float
 
     model_config = {"from_attributes": True}
 

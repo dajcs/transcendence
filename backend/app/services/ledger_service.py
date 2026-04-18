@@ -2,7 +2,7 @@
 import uuid
 
 from fastapi import HTTPException
-from sqlalchemy import cast, func, literal, select, union_all
+from sqlalchemy import cast, literal, select, union_all
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.types import String, Uuid
 
@@ -31,13 +31,12 @@ async def get_user_transactions(
     sort_by: str = "date",
     sort_dir: str = "desc",
 ) -> TransactionListResponse:
-    """Return paginated, sorted transaction ledger for a user."""
+    """Return paginated, sorted transaction ledger with running balances."""
     user_row = (await db.execute(select(User).where(User.username == username))).scalar_one_or_none()
     if user_row is None:
         raise HTTPException(status_code=404, detail="User not found")
     user_id = user_row.id
 
-    # BpTransaction sub-query
     bp_q = select(
         BpTransaction.id.label("id"),
         BpTransaction.created_at.label("date"),
@@ -47,7 +46,6 @@ async def get_user_transactions(
         literal("0").label("tp_delta"),
     ).where(BpTransaction.user_id == user_id)
 
-    # TpTransaction sub-query (no reason field — always bet_won)
     tp_q = select(
         TpTransaction.id.label("id"),
         TpTransaction.created_at.label("date"),
@@ -57,8 +55,6 @@ async def get_user_transactions(
         cast(TpTransaction.amount, String).label("tp_delta"),
     ).where(TpTransaction.user_id == user_id)
 
-    # KpEvent sub-query (no bet_id column — use NULL; exclude resets where amount <= 0)
-    # Use cast(None, Uuid) from sqlalchemy.types — NOT PG_UUID (breaks SQLite test env)
     kp_q = select(
         KpEvent.id.label("id"),
         KpEvent.created_at.label("date"),
@@ -70,25 +66,12 @@ async def get_user_transactions(
 
     combined = union_all(bp_q, tp_q, kp_q).subquery()
 
-    # Count total
-    total = (await db.execute(select(func.count()).select_from(combined))).scalar_one()
-
-    # Sort column selection
-    sort_col = combined.c.date  # default
-    if sort_by == "bp":
-        sort_col = combined.c.bp_delta
-    elif sort_by == "tp":
-        sort_col = combined.c.tp_delta
-    elif sort_by == "type":
-        sort_col = combined.c.reason
-
-    sort_expr = sort_col.asc() if sort_dir == "asc" else sort_col.desc()
-    rows = (await db.execute(
-        select(combined).order_by(sort_expr).offset(offset).limit(limit)
+    # Fetch all rows sorted chronologically — needed for running balance computation
+    all_rows = (await db.execute(
+        select(combined).order_by(combined.c.date.asc())
     )).all()
 
-    # Fetch market titles for rows with bet_id
-    bet_ids = {row.bet_id for row in rows if row.bet_id is not None}
+    bet_ids = {row.bet_id for row in all_rows if row.bet_id is not None}
     title_map: dict[uuid.UUID, str] = {}
     if bet_ids:
         bet_rows = (await db.execute(
@@ -96,24 +79,80 @@ async def get_user_transactions(
         )).all()
         title_map = {bid: title for bid, title in bet_rows}
 
-    entries: list[TransactionEntry] = []
-    for row in rows:
+    # Build raw dicts
+    raw: list[dict] = []
+    for row in all_rows:
         reason = str(row.reason)
         tx_type = _REASON_TO_TYPE.get(
             reason,
             "kp_allocation" if reason in ("comment_upvote", "daily_allocation") else "daily_bonus",
         )
-        market_id = row.bet_id
-        market_title = title_map.get(market_id) if market_id else None
-        entries.append(TransactionEntry(
-            id=row.id,
-            date=row.date,
-            type=tx_type,
-            description=market_title or reason,
-            market_id=market_id,
-            market_title=market_title,
-            bp_delta=float(row.bp_delta),
-            tp_delta=float(row.tp_delta),
-        ))
+        raw.append({
+            "id": row.id,
+            "date": row.date,
+            "type": tx_type,
+            "bet_id": row.bet_id,
+            "bp_delta": float(row.bp_delta),
+            "tp_delta": float(row.tp_delta),
+            "market_title": title_map.get(row.bet_id) if row.bet_id else None,
+        })
 
-    return TransactionListResponse(transactions=entries, total=int(total))
+    # Merge BP + TP rows for the same bet_won event into a single row
+    bet_won_groups: dict[str, list[dict]] = {}
+    other: list[dict] = []
+    for e in raw:
+        if e["type"] == "bet_won" and e["bet_id"] is not None:
+            key = str(e["bet_id"])
+            bet_won_groups.setdefault(key, []).append(e)
+        else:
+            other.append(e)
+
+    merged: list[dict] = list(other)
+    for group in bet_won_groups.values():
+        if len(group) == 2:
+            bp_e = next((e for e in group if e["bp_delta"] != 0), group[0])
+            tp_e = next((e for e in group if e["tp_delta"] != 0), group[1])
+            merged.append({**bp_e, "tp_delta": tp_e["tp_delta"]})
+        else:
+            merged.extend(group)
+
+    # Sort chronologically to compute running balances
+    merged.sort(key=lambda e: e["date"])
+    bp_running = 0.0
+    tp_running = 0.0
+    for e in merged:
+        bp_running += e["bp_delta"]
+        tp_running += e["tp_delta"]
+        e["bp_balance"] = round(bp_running, 1)
+        e["tp_balance"] = round(tp_running, 1)
+
+    # Apply requested sort after balance computation
+    reverse = sort_dir == "desc"
+    sort_key = {
+        "date": lambda e: e["date"],
+        "bp": lambda e: e["bp_delta"],
+        "tp": lambda e: e["tp_delta"],
+        "type": lambda e: e["type"],
+    }.get(sort_by, lambda e: e["date"])
+    merged.sort(key=sort_key, reverse=reverse)
+
+    total = len(merged)
+    page = merged[offset: offset + limit]
+
+    entries = [
+        TransactionEntry(
+            id=e["id"],
+            date=e["date"],
+            type=e["type"],
+            description=e["market_title"] or "",
+            market_id=e["bet_id"],
+            market_title=e["market_title"],
+            bp_delta=round(e["bp_delta"], 1),
+            bp_balance=e["bp_balance"],
+            tp_delta=round(e["tp_delta"], 1),
+            tp_balance=e["tp_balance"],
+        )
+        for e in page
+    ]
+
+    return TransactionListResponse(transactions=entries, total=total)

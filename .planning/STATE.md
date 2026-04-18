@@ -2,9 +2,9 @@
 gsd_state_version: 1.0
 milestone: v21.0
 milestone_name: milestone
-current_plan: 1
-status: Executing Phase 05.1
-last_updated: "2026-04-16T20:46:14.717Z"
+current_plan: Not started
+status: Ready to plan
+last_updated: "2026-04-18T19:35:49.631Z"
 progress:
   total_phases: 7
   completed_phases: 6
@@ -20,12 +20,12 @@ progress:
 See: `.planning/PROJECT.md` (updated 2026-03-24)
 
 **Core value:** Users can bet on real-world outcomes, argue their position, and earn a verifiable reputation score — without real money.
-**Current focus:** Phase 05.1 — autoresolution-profile-bet-logs-market-bet-details
+**Current focus:** Phase 06 — polish-compliance
 
 ## Current Status
 
-**Phase:** 05
-**Current Plan:** 1
+**Phase:** 06
+**Current Plan:** Not started
 **Last session:** 2026-04-16T20:46:14.642Z
 **Resume file:** None
 
@@ -99,6 +99,13 @@ See: `.planning/PROJECT.md` (updated 2026-03-24)
 - [Phase 05.1]: TP lookup uses separate query + dict merge rather than complex JOIN — simpler, avoids nullable TP bet_id issues
 - [Phase 05.1]: payoutsQuery uses marketQuery.data?.status to avoid block-scoped forward reference to market variable
 - [Phase 05.1]: Test framework is Jest not Vitest — plan templates adapted to jest.fn()/jest.mock() API
+- [Phase 05.1 UAT]: Weather market is a distinct market type (not binary) supporting rain/snow (binary) and temperature/wind speed (numeric) sub-conditions; auto-resolution toggle shown only for weather type
+- [Phase 05.1 UAT]: Market detail Participants and Payout Breakdown sections redesigned as scrollable tables (max-h-64) with sticky sortable headers (↑/↓/↕); numeric markets hide by-side aggregate (too many values)
+- [Phase 05.1 UAT]: ledger_service rewritten — fetches all rows in Python, merges paired BP+TP bet_won transactions for same bet_id into one row, computes running balances (bp_balance, tp_balance); pagination applied after merge
+- [Phase 05.1 UAT]: TransactionEntry schema gained bp_balance and tp_balance fields; all amounts rendered to 1 decimal
+- [Phase 05.1 UAT]: Profile page redesigned with 3 tabs: My Points (transaction ledger), My Bets (own profile only, /api/bets/positions), My Markets (proposer_id filter on /api/markets)
+- [Phase 05.1 UAT]: /api/markets gained optional proposer_id query param (no auth required) for public profile My Markets tab
+- [Phase 05.1 UAT]: Dashboard link removed from TopNav (desktop + mobile); profile tabs replace dashboard functionality
 
 ## Accumulated Context
 
@@ -151,3 +158,4 @@ See: `.planning/PROJECT.md` (updated 2026-03-24)
 | 2026-03-26 | Phase 2 complete — markets, betting, economy, comments, dashboard |
 | 2026-03-28 | Phase 3 complete (via Claude Code) — friend system, user profiles, chat, notifications |
 | 2026-04-06 | fix/logic UAT complete — real-time market list refresh, browser push notifications, auto-resolution latency, deadline display, dispute button gating |
+| 2026-04-18 | Phase 05.1 UAT complete — all 4 tests passed; market detail sortable tables, ledger running balances + BP/TP merge, profile 3-tab redesign, Dashboard removed from nav; phase marked complete; ready for Phase 06 polish-compliance |

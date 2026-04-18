@@ -104,6 +104,7 @@ async def list_markets(
     my_bets: bool = False,
     my_markets: bool = False,
     user_id: uuid.UUID | None = None,
+    proposer_id: uuid.UUID | None = None,
     q: str = "",
     include_desc: bool = False,
     page: int = 1,
@@ -147,6 +148,10 @@ async def list_markets(
     # My markets filter (markets created by user)
     if my_markets and user_id:
         query = query.where(Bet.proposer_id == user_id)
+
+    # Public proposer filter — for profile page "My Markets" tab
+    if proposer_id:
+        query = query.where(Bet.proposer_id == proposer_id)
 
     # Search
     if q:
