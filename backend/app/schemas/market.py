@@ -59,15 +59,18 @@ class MarketCreate(BaseModel):
     @model_validator(mode="after")
     def validate_resolution_source(self) -> "MarketCreate":
         if self.resolution_source is not None:
-            if self.market_type != "binary":
-                raise ValueError("Auto-resolution only supported for binary markets")
             src = self.resolution_source
             if src.get("provider") != "open-meteo":
                 raise ValueError("Only 'open-meteo' provider supported")
             if not src.get("location"):
                 raise ValueError("resolution_source.location is required")
-            if src.get("condition") not in ("rain", "temperature"):
-                raise ValueError("condition must be 'rain' or 'temperature'")
+            condition = src.get("condition")
+            if condition not in ("rain", "snow", "temperature", "wind"):
+                raise ValueError("condition must be 'rain', 'snow', 'temperature', or 'wind'")
+            if condition in ("rain", "snow") and self.market_type != "binary":
+                raise ValueError("Rain/snow conditions require binary market type")
+            if condition in ("temperature", "wind") and self.market_type != "numeric":
+                raise ValueError("Temperature/wind conditions require numeric market type")
         return self
 
 

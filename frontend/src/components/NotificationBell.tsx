@@ -15,12 +15,15 @@ function parsePayload(payload: string | null): { message?: string; bet_id?: stri
   }
 }
 
-function getNotificationLink(type: string, data: { bet_id?: string; market_id?: string }): string | null {
+function getNotificationLink(type: string, data: { bet_id?: string; market_id?: string; username?: string }): string | null {
   if (type === "bet_resolved" || type === "bet_disputed" || type === "resolution_proposed") {
     return data.bet_id ? `/markets/${data.bet_id}` : null;
   }
   if (type === "resolution_due") {
     return data.market_id ? `/markets/${data.market_id}` : "/dashboard?tab=my_markets";
+  }
+  if (type === "bet_payout") {
+    return data.username ? `/profile/${data.username}` : null;
   }
   if (type === "friend_request") return "/friends?tab=received";
   if (type === "friend_accepted") return "/friends";
@@ -35,6 +38,7 @@ const TYPE_LABEL_KEYS: Record<string, string> = {
   new_message: "notif.new_message",
   bet_resolved: "notif.bet_resolved",
   bet_disputed: "notif.bet_disputed",
+  bet_payout: "notif.bet_payout",
   resolution_proposed: "notif.resolution_proposed",
   resolution_due: "notif.resolution_due",
   kp_converted: "notif.kp_converted",
@@ -143,8 +147,17 @@ export default function NotificationBell() {
     const handleBetResolved = (d: { id?: string; payload?: string }) => handleWithMarketLink(d, t("notif.bet_resolved_body"));
     const handleBetDisputed = (d: { id?: string; payload?: string }) => handleWithMarketLink(d, t("notif.dispute_opened_body"));
     const handleResolutionProposed = (d: { id?: string; payload?: string }) => handleWithMarketLink(d, t("notif.resolution_proposed"));
+    const handleBetPayout = (d: { id?: string; payload?: string }) => {
+      fetchUnreadCount();
+      try {
+        const p = JSON.parse(d?.payload ?? "{}");
+        const url = p.username ? `/profile/${p.username}` : undefined;
+        showBrowserNotification(p.message || t("notif.bet_payout"), url, d?.id);
+      } catch { /* ignore */ }
+    };
     socket.on("notification:bet_resolved", handleBetResolved);
     socket.on("notification:bet_disputed", handleBetDisputed);
+    socket.on("notification:bet_payout", handleBetPayout);
     socket.on("notification:resolution_proposed", handleResolutionProposed);
     socket.on("notification:resolution_due", handleResolutionDue);
     socket.on("notification:kp_converted", handler);
@@ -156,6 +169,7 @@ export default function NotificationBell() {
       socket.off("notification:new_message", handler);
       socket.off("notification:bet_resolved", handleBetResolved);
       socket.off("notification:bet_disputed", handleBetDisputed);
+      socket.off("notification:bet_payout", handleBetPayout);
       socket.off("notification:resolution_proposed", handleResolutionProposed);
       socket.off("notification:resolution_due", handleResolutionDue);
       socket.off("notification:kp_converted", handler);
