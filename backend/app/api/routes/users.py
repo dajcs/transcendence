@@ -5,8 +5,10 @@ from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_db
+from app.schemas.ledger import TransactionListResponse
 from app.schemas.profile import PublicProfileResponse, UpdateProfileRequest, UserSearchResult
 from app.services import auth_service
+from app.services import ledger_service
 from app.services import profile_service
 from app.services import gdpr_service
 
@@ -128,6 +130,21 @@ async def search_users(
 ):
     """Search users by username."""
     return await profile_service.search_users(db, q)
+
+
+@router.get("/{username}/transactions", response_model=TransactionListResponse)
+async def get_user_transactions(
+    username: str,
+    offset: int = Query(default=0, ge=0),
+    limit: int = Query(default=25, ge=1, le=100),
+    sort_by: str = Query(default="date", pattern="^(date|bp|tp|type)$"),
+    sort_dir: str = Query(default="desc", pattern="^(asc|desc)$"),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get public transaction ledger for a user. No auth required."""
+    return await ledger_service.get_user_transactions(
+        db, username=username, offset=offset, limit=limit, sort_by=sort_by, sort_dir=sort_dir
+    )
 
 
 @router.get("/{username}", response_model=PublicProfileResponse)

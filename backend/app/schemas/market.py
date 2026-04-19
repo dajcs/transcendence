@@ -1,7 +1,7 @@
 """Pydantic schemas for market (Bet) endpoints."""
 import uuid
 from datetime import datetime, timezone
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel, field_validator, model_validator
 
@@ -15,6 +15,7 @@ class MarketCreate(BaseModel):
     choices: list[str] | None = None
     numeric_min: float | None = None
     numeric_max: float | None = None
+    resolution_source: dict[str, Any] | None = None
 
     @field_validator("title")
     @classmethod
@@ -55,6 +56,23 @@ class MarketCreate(BaseModel):
                 raise ValueError("numeric_min must be less than numeric_max")
         return self
 
+    @model_validator(mode="after")
+    def validate_resolution_source(self) -> "MarketCreate":
+        if self.resolution_source is not None:
+            src = self.resolution_source
+            if src.get("provider") != "open-meteo":
+                raise ValueError("Only 'open-meteo' provider supported")
+            if not src.get("location"):
+                raise ValueError("resolution_source.location is required")
+            condition = src.get("condition")
+            if condition not in ("rain", "snow", "temperature", "wind"):
+                raise ValueError("condition must be 'rain', 'snow', 'temperature', or 'wind'")
+            if condition in ("rain", "snow") and self.market_type != "binary":
+                raise ValueError("Rain/snow conditions require binary market type")
+            if condition in ("temperature", "wind") and self.market_type != "numeric":
+                raise ValueError("Temperature/wind conditions require numeric market type")
+        return self
+
 
 class MarketResponse(BaseModel):
     id: uuid.UUID
@@ -87,3 +105,40 @@ class MarketListResponse(BaseModel):
     total: int
     page: int
     pages: int
+
+
+class ParticipantEntry(BaseModel):
+    user_id: uuid.UUID
+    username: str
+    side: str
+    bp_staked: float
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class AggregateStats(BaseModel):
+    total_bp: float
+    total_participants: int
+    avg_bp: float
+    by_side: dict[str, int]
+
+
+class ParticipantListResponse(BaseModel):
+    participants: list[ParticipantEntry]
+    aggregate: AggregateStats
+    total: int
+
+
+class PayoutEntry(BaseModel):
+    user_id: uuid.UUID
+    username: str
+    bp_won: float
+    tp_won: float
+
+    model_config = {"from_attributes": True}
+
+
+class PayoutListResponse(BaseModel):
+    payouts: list[PayoutEntry]
+    total: int

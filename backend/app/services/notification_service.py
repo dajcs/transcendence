@@ -228,6 +228,28 @@ async def notify_resolution_proposed(db: AsyncSession, user_id: uuid.UUID, marke
     })
 
 
+async def notify_payout(
+    db: AsyncSession,
+    user_id: uuid.UUID,
+    market_title: str,
+    bp_won: float,
+    outcome: str,
+    bet_id: str = "",
+) -> None:
+    """Notify winner about their payout amount."""
+    from app.db.models.user import User
+    user = (await db.execute(select(User).where(User.id == user_id))).scalar_one_or_none()
+    username = user.username if user else ""
+    await create_notification(db, user_id, "bet_payout", {
+        "bet_id": bet_id,
+        "username": username,
+        "market_title": market_title,
+        "outcome": outcome,
+        "bp_won": round(bp_won, 2),
+        "message": f"You won {round(bp_won, 2)} BP on '{market_title}'",
+    })
+
+
 async def notify_friend_removed(db: AsyncSession, user_id: uuid.UUID, by_username: str) -> None:
     """Notify user that someone ended the friendship."""
     await create_notification(db, user_id, "friend_removed", {

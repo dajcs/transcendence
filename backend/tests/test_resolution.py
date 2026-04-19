@@ -149,6 +149,6 @@ def test_beat_schedule_has_check_auto_resolution():
     """Verify check_auto_resolution is registered in the Celery beat schedule."""
     from app.workers.celery_app import celery_app
     schedule = celery_app.conf.beat_schedule
-    assert "check-auto-resolution-every-5min" in schedule
-    entry = schedule["check-auto-resolution-every-5min"]
+    assert "check-auto-resolution-every-1min" in schedule
+    entry = schedule["check-auto-resolution-every-1min"]
     assert entry["task"] == "app.workers.tasks.resolution.check_auto_resolution"

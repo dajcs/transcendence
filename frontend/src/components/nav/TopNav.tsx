@@ -91,9 +91,6 @@ export default function TopNav() {
               <span className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap shrink-0">
                 BP&nbsp;{(user?.bp ?? 0).toFixed(1)}{" · "}KP&nbsp;{user?.kp ?? 0}{" · "}TP&nbsp;{(user?.tp ?? 0).toFixed(1)}
               </span>
-              <Link href="/dashboard" className="text-sm text-blue-600 hover:underline shrink-0">
-                {t("nav.dashboard")}
-              </Link>
               <Link href="/markets" className="text-sm text-blue-600 hover:underline shrink-0">
                 {t("nav.markets")}
               </Link>
@@ -168,9 +165,6 @@ export default function TopNav() {
               <span className="text-xs text-gray-500 dark:text-gray-400">
                 BP&nbsp;{(user?.bp ?? 0).toFixed(1)}{" · "}KP&nbsp;{user?.kp ?? 0}{" · "}TP&nbsp;{(user?.tp ?? 0).toFixed(1)}
               </span>
-              <Link href="/dashboard" onClick={() => setMobileOpen(false)} className="text-sm text-blue-600 hover:underline">
-                {t("nav.dashboard")}
-              </Link>
               <Link href="/markets" onClick={() => setMobileOpen(false)} className="text-sm text-blue-600 hover:underline">
                 {t("nav.markets")}
               </Link>

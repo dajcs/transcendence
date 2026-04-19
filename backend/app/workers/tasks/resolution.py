@@ -29,66 +29,78 @@ from app.workers.celery_app import celery_app
 logger = logging.getLogger(__name__)
 
 _GEOCODING_URL = "https://geocoding-api.open-meteo.com/v1/search"
-_ARCHIVE_URL = "https://archive-api.open-meteo.com/v1/archive"
+_FORECAST_URL = "https://api.open-meteo.com/v1/forecast"
 
 
-def map_weather_to_outcome(data: dict, condition: str) -> str | None:
-    """RES-01: Map Open-Meteo response to YES/NO or None (fall through to Tier 2).
-    Condition 'rain': precipitation_sum > 0.1mm -> 'yes', <= 0.1mm -> 'no', null/missing -> None.
+def _map_weather_outcome(current: dict, condition: str) -> str | None:
+    """Map Open-Meteo current response to outcome string.
+    Binary (rain/snow): 'yes'/'no'. Numeric (temperature/wind): actual value as string.
     """
     try:
         if condition == "rain":
-            precip = data["daily"]["precipitation_sum"][0]
-            if precip is None:
-                return None
-            return "yes" if precip > 0.1 else "no"
-    except (KeyError, IndexError, TypeError):
+            return "yes" if float(current.get("rain") or 0) > 0.1 else "no"
+        if condition == "snow":
+            return "yes" if float(current.get("snowfall") or 0) > 0.1 else "no"
+        if condition == "temperature":
+            val = current.get("temperature_2m")
+            return str(round(float(val), 1)) if val is not None else None
+        if condition == "wind":
+            val = current.get("wind_speed_10m")
+            return str(round(float(val), 1)) if val is not None else None
+    except (TypeError, ValueError):
         return None
-    return None  # unknown condition
+    return None
 
 
 async def _fetch_open_meteo_outcome(source: dict) -> str | None:
-    """Geocode city + fetch historical weather. Returns 'yes'/'no'/None."""
+    """Geocode city + fetch current weather at deadline. Returns outcome string or None."""
     location = source.get("location", "")
-    date_str = source.get("date", "")
     condition = source.get("condition", "")
 
-    if not all([location, date_str, condition]):
+    if not location or not condition:
         return None
 
     try:
         async with httpx.AsyncClient(timeout=15.0) as client:
-            # Step 1: geocode city name to lat/lon
-            geo_resp = await client.get(
-                _GEOCODING_URL,
-                params={"name": location, "count": 1},
-            )
+            geo_resp = await client.get(_GEOCODING_URL, params={"name": location, "count": 1})
             if geo_resp.status_code != 200:
                 return None
-            geo_data = geo_resp.json()
-            results = geo_data.get("results")
+            results = geo_resp.json().get("results")
             if not results:
                 return None
-            lat = results[0]["latitude"]
-            lon = results[0]["longitude"]
+            lat, lon = results[0]["latitude"], results[0]["longitude"]
 
-            # Step 2: fetch historical weather
             weather_resp = await client.get(
-                _ARCHIVE_URL,
+                _FORECAST_URL,
                 params={
                     "latitude": lat,
                     "longitude": lon,
-                    "start_date": date_str,
-                    "end_date": date_str,
-                    "daily": "precipitation_sum",
+                    "current": "temperature_2m,rain,snowfall,wind_speed_10m",
                 },
             )
             if weather_resp.status_code != 200:
                 return None
-            return map_weather_to_outcome(weather_resp.json(), condition)
+            return _map_weather_outcome(weather_resp.json().get("current", {}), condition)
     except Exception as exc:
         logger.warning("Open-Meteo fetch failed: %s", exc)
         return None
+
+
+async def _find_closest_numeric_outcome(db: AsyncSession, bet_id: object, actual_value: str) -> str:
+    """For numeric weather markets: return the active position side closest to actual_value."""
+    from app.db.models.bet import BetPosition
+
+    sides = (await db.execute(
+        select(BetPosition.side).where(
+            BetPosition.bet_id == bet_id,
+            BetPosition.withdrawn_at.is_(None),
+        )
+    )).scalars().all()
+
+    if not sides:
+        return actual_value
+    actual = float(actual_value)
+    return min(sides, key=lambda s: abs(float(s) - actual))
 
 
 async def _process_auto_resolution(db: AsyncSession) -> None:
@@ -102,38 +114,44 @@ async def _process_auto_resolution(db: AsyncSession) -> None:
         )
     )).scalars().all()
 
+    weather_payouts: list[tuple[object, str]] = []  # (bet_id, outcome) for immediate payout
+
     for bet in bets:
-        # Mark as pending_resolution first (prevents duplicate processing)
         bet.status = "pending_resolution"
         await db.flush()
 
         outcome: str | None = None
+        source_config: dict = {}
 
-        # Attempt Tier 1 if resolution_source is configured
         if bet.resolution_source:
             try:
-                source = json.loads(bet.resolution_source)
-                if source.get("provider") == "open-meteo":
-                    outcome = await _fetch_open_meteo_outcome(source)
+                source_config = json.loads(bet.resolution_source)
+                if source_config.get("provider") == "open-meteo":
+                    outcome = await _fetch_open_meteo_outcome(source_config)
             except (json.JSONDecodeError, Exception) as exc:
                 logger.warning("Tier 1 parse error for bet %s: %s", bet.id, exc)
 
         if outcome is not None:
-            # Tier 1 success: create Resolution(tier=1), mark as proposer_resolved
+            is_weather = source_config.get("provider") == "open-meteo"
+            resolved_outcome = outcome
+            if is_weather and bet.market_type == "numeric":
+                resolved_outcome = await _find_closest_numeric_outcome(db, bet.id, outcome)
+
             db.add(Resolution(
                 bet_id=bet.id,
                 tier=1,
                 resolved_by=None,
-                outcome=outcome,
+                outcome=resolved_outcome,
                 justification="Automatic resolution via Open-Meteo",
                 overturned=False,
             ))
-            bet.status = "proposer_resolved"
-            bet.winning_side = outcome
+            bet.winning_side = resolved_outcome
+            bet.status = "proposer_resolved"  # trigger_payout will close it
+            if is_weather:
+                weather_payouts.append((bet.id, resolved_outcome))
             await db.flush()
-            logger.info("Bet %s auto-resolved: %s", bet.id, outcome)
+            logger.info("Bet %s auto-resolved: %s", bet.id, resolved_outcome)
         else:
-            # Tier 1 failed or no source — stay pending_resolution for proposer; notify them
             logger.info("Bet %s escalated to Tier 2 (proposer resolution)", bet.id)
             from app.services.notification_service import notify_resolution_due
             try:
@@ -142,6 +160,15 @@ async def _process_auto_resolution(db: AsyncSession) -> None:
                 logger.warning("Failed to notify proposer for bet %s: %s", bet.id, exc)
 
     await db.commit()
+
+    # Immediate payouts for weather markets (no dispute window)
+    for bet_id, resolved_outcome in weather_payouts:
+        async with make_task_session()() as payout_db:
+            from app.services.resolution_service import trigger_payout
+            try:
+                await trigger_payout(payout_db, bet_id, resolved_outcome, overturned=False)
+            except Exception as exc:
+                logger.warning("Payout failed for weather bet %s: %s", bet_id, exc)
 
     # Notify clients of status change so UIs refresh without polling
     from app.socket.server import celery_emit
@@ -275,7 +302,7 @@ async def _process_dispute_deadlines(db: AsyncSession) -> None:
         await db.flush()
         await db.commit()
 
-        async with AsyncSessionLocal() as payout_db:
+        async with make_task_session()() as payout_db:
             from app.services.resolution_service import trigger_payout
             await trigger_payout(payout_db, dispute.bet_id, final_outcome, overturned=overturned)
 
@@ -387,35 +414,48 @@ async def _resolve_single_market(bet_id_str: str) -> None:
     async with TaskSession() as db:
         bet = (await db.execute(select(Bet).where(Bet.id == bet_id))).scalar_one_or_none()
         if bet is None or bet.status != "open":
-            return  # already handled or deleted
+            return
 
         bet.status = "pending_resolution"
         await db.flush()
 
         outcome: str | None = None
+        source_config: dict = {}
         if bet.resolution_source:
             try:
-                source = json.loads(bet.resolution_source)
-                if source.get("provider") == "open-meteo":
-                    outcome = await _fetch_open_meteo_outcome(source)
+                source_config = json.loads(bet.resolution_source)
+                if source_config.get("provider") == "open-meteo":
+                    outcome = await _fetch_open_meteo_outcome(source_config)
             except Exception as exc:
                 logger.warning("Tier 1 parse error for bet %s: %s", bet.id, exc)
 
         if outcome is not None:
+            is_weather = source_config.get("provider") == "open-meteo"
+            resolved_outcome = outcome
+            if is_weather and bet.market_type == "numeric":
+                resolved_outcome = await _find_closest_numeric_outcome(db, bet.id, outcome)
+
             db.add(Resolution(
                 bet_id=bet.id,
                 tier=1,
                 resolved_by=None,
-                outcome=outcome,
+                outcome=resolved_outcome,
                 justification="Automatic resolution via Open-Meteo",
                 overturned=False,
             ))
-            bet.status = "proposer_resolved"
-            bet.winning_side = outcome
+            bet.winning_side = resolved_outcome
+            bet.status = "proposer_resolved"  # trigger_payout will close it
             await db.commit()
-            logger.info("Bet %s auto-resolved at deadline: %s", bet.id, outcome)
+            logger.info("Bet %s auto-resolved at deadline: %s", bet.id, resolved_outcome)
+
+            if is_weather:
+                async with TaskSession() as payout_db:
+                    from app.services.resolution_service import trigger_payout
+                    try:
+                        await trigger_payout(payout_db, bet_id, resolved_outcome, overturned=False)
+                    except Exception as exc:
+                        logger.warning("Payout failed for weather bet %s: %s", bet_id, exc)
         else:
-            # Tier 1 unavailable — notify proposer to resolve manually
             proposer_id = bet.proposer_id
             market_title = bet.title
             market_id = str(bet.id)
@@ -424,7 +464,6 @@ async def _resolve_single_market(bet_id_str: str) -> None:
                 await notify_resolution_due(notif_db, proposer_id, market_title, market_id)
             logger.info("Bet %s needs manual resolution — proposer notified", bet.id)
 
-    # Notify clients so UIs refresh without polling
     from app.socket.server import celery_emit
     data = {"bet_id": bet_id_str, "status": bet.status}
     await celery_emit("bet:status_changed", data, room=f"bet:{bet_id}")

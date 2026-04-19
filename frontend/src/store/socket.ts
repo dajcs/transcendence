@@ -17,7 +17,7 @@ export const useSocketStore = create<SocketStore>()((set, get) => ({
       return;
     }
     const socket = io(
-      process.env.NEXT_PUBLIC_API_URL ?? "https://localhost:8443",
+      window.location.origin,
       {
         withCredentials: true, // sends httpOnly access_token cookie (per D-04)
         reconnection: true,

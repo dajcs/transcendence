@@ -23,7 +23,7 @@ export default function OAuthButtons() {
 
   if (providers.length === 0) return null;
 
-  const apiBase = process.env.NEXT_PUBLIC_API_URL ?? "https://localhost:8443";
+  const apiBase = window.location.origin;
 
   return (
     <div className="flex flex-col gap-2 w-full max-w-sm">

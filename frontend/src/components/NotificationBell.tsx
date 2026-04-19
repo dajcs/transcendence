@@ -15,12 +15,15 @@ function parsePayload(payload: string | null): { message?: string; bet_id?: stri
   }
 }
 
-function getNotificationLink(type: string, data: { bet_id?: string; market_id?: string }): string | null {
+function getNotificationLink(type: string, data: { bet_id?: string; market_id?: string; username?: string }): string | null {
   if (type === "bet_resolved" || type === "bet_disputed" || type === "resolution_proposed") {
     return data.bet_id ? `/markets/${data.bet_id}` : null;
   }
   if (type === "resolution_due") {
     return data.market_id ? `/markets/${data.market_id}` : "/dashboard?tab=my_markets";
+  }
+  if (type === "bet_payout") {
+    return data.username ? `/profile/${data.username}` : null;
   }
   if (type === "friend_request") return "/friends?tab=received";
   if (type === "friend_accepted") return "/friends";
@@ -35,6 +38,7 @@ const TYPE_LABEL_KEYS: Record<string, string> = {
   new_message: "notif.new_message",
   bet_resolved: "notif.bet_resolved",
   bet_disputed: "notif.bet_disputed",
+  bet_payout: "notif.bet_payout",
   resolution_proposed: "notif.resolution_proposed",
   resolution_due: "notif.resolution_due",
   kp_converted: "notif.kp_converted",
@@ -84,7 +88,7 @@ export default function NotificationBell() {
           const url = p.market_id ? `/markets/${p.market_id}` : "/dashboard?tab=my_markets";
           const body = p.message ?? "A market needs your resolution";
           const notif = new Notification("Vox Populi", { body, icon: "/favicon.ico", requireInteraction: true });
-          notif.onclick = () => { window.focus(); window.location.href = url; notif.close(); };
+          notif.onclick = async () => { window.focus(); await store.markAsRead([n.id]).catch(() => {}); notif.close(); window.location.href = url; };
         });
     }
   };
@@ -98,14 +102,16 @@ export default function NotificationBell() {
   useEffect(() => {
     if (!socket) return;
 
-    const showBrowserNotification = (body: string, url?: string) => {
+    const showBrowserNotification = (body: string, url?: string, notificationId?: string) => {
       if (typeof window === "undefined" || !("Notification" in window) || Notification.permission !== "granted") return;
       const n = new Notification("Vox Populi", { body, icon: "/favicon.ico", requireInteraction: true });
-      n.onclick = () => {
+      n.onclick = async () => {
         window.focus();
-        markAllAsReadRef.current();
-        if (url) window.location.href = url;
+        if (notificationId) {
+          await useNotificationStore.getState().markAsRead([notificationId]).catch(() => {});
+        }
         n.close();
+        if (url) window.location.href = url;
       };
     };
 
@@ -113,16 +119,16 @@ export default function NotificationBell() {
       fetchUnreadCount();
     };
 
-    const handleWithMarketLink = (data: { payload?: string }, fallbackBody: string) => {
+    const handleWithMarketLink = (data: { id?: string; payload?: string }, fallbackBody: string) => {
       fetchUnreadCount();
       try {
         const payload = JSON.parse(data?.payload ?? "{}");
         const url = payload.bet_id ? `/markets/${payload.bet_id}` : payload.market_id ? `/markets/${payload.market_id}` : undefined;
-        showBrowserNotification(payload.message || fallbackBody, url);
+        showBrowserNotification(payload.message || fallbackBody, url, data?.id);
       } catch { /* ignore */ }
     };
 
-    const handleResolutionDue = (data: { payload?: string }) => {
+    const handleResolutionDue = (data: { id?: string; payload?: string }) => {
       fetchUnreadCount();
       let title = t("notif.resolution_required");
       let url: string | undefined = "/dashboard?tab=my_markets";
@@ -131,18 +137,27 @@ export default function NotificationBell() {
         if (payload.market_title) title = t("notif.resolve_market", { title: payload.market_title });
         if (payload.market_id) url = `/markets/${payload.market_id}`;
       } catch { /* ignore */ }
-      showBrowserNotification(title, url);
+      showBrowserNotification(title, url, data?.id);
     };
 
     socket.on("notification:friend_request", handler);
     socket.on("notification:friend_accepted", handler);
     socket.on("notification:friend_removed", handler);
     socket.on("notification:new_message", handler);
-    const handleBetResolved = (d: { payload?: string }) => handleWithMarketLink(d, t("notif.bet_resolved_body"));
-    const handleBetDisputed = (d: { payload?: string }) => handleWithMarketLink(d, t("notif.dispute_opened_body"));
-    const handleResolutionProposed = (d: { payload?: string }) => handleWithMarketLink(d, t("notif.resolution_proposed"));
+    const handleBetResolved = (d: { id?: string; payload?: string }) => handleWithMarketLink(d, t("notif.bet_resolved_body"));
+    const handleBetDisputed = (d: { id?: string; payload?: string }) => handleWithMarketLink(d, t("notif.dispute_opened_body"));
+    const handleResolutionProposed = (d: { id?: string; payload?: string }) => handleWithMarketLink(d, t("notif.resolution_proposed"));
+    const handleBetPayout = (d: { id?: string; payload?: string }) => {
+      fetchUnreadCount();
+      try {
+        const p = JSON.parse(d?.payload ?? "{}");
+        const url = p.username ? `/profile/${p.username}` : undefined;
+        showBrowserNotification(p.message || t("notif.bet_payout"), url, d?.id);
+      } catch { /* ignore */ }
+    };
     socket.on("notification:bet_resolved", handleBetResolved);
     socket.on("notification:bet_disputed", handleBetDisputed);
+    socket.on("notification:bet_payout", handleBetPayout);
     socket.on("notification:resolution_proposed", handleResolutionProposed);
     socket.on("notification:resolution_due", handleResolutionDue);
     socket.on("notification:kp_converted", handler);
@@ -154,6 +169,7 @@ export default function NotificationBell() {
       socket.off("notification:new_message", handler);
       socket.off("notification:bet_resolved", handleBetResolved);
       socket.off("notification:bet_disputed", handleBetDisputed);
+      socket.off("notification:bet_payout", handleBetPayout);
       socket.off("notification:resolution_proposed", handleResolutionProposed);
       socket.off("notification:resolution_due", handleResolutionDue);
       socket.off("notification:kp_converted", handler);
