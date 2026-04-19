@@ -236,13 +236,13 @@ Plans:
 
 Plans:
 - [ ] 06.1-01-PLAN.md — Wave 1: DB migration 015 (kp_events→lp_events) + LpEvent model + auth/profile schemas
-- [ ] 06.1-02-PLAN.md — Wave 1: BpFundEntry model + migration 016 (parallel with 01)
+- [ ] 06.1-02-PLAN.md — Wave 2: BpFundEntry model + migration 016 (depends on 01)
 - [ ] 06.1-03-PLAN.md — Wave 2: Backend service renames + formula fixes (economy, bet, comment, market services)
-- [ ] 06.1-04-PLAN.md — Wave 2: Unlike feature + user_has_liked (schemas, services, routes)
-- [ ] 06.1-05-PLAN.md — Wave 2: Payout rewrite — TP time-based + binary/multichoice 10x cap
-- [ ] 06.1-06-PLAN.md — Wave 3: Numeric market payout — window-expansion algorithm
-- [ ] 06.1-07-PLAN.md — Wave 2: Frontend — kp→lp rename, heart UI, unlike, bet amount selector, i18n
-- [ ] 06.1-08-PLAN.md — Wave 4: Docs — ECONOMY.md, CLAUDE.md, README, REQUIREMENTS.md
+- [ ] 06.1-04-PLAN.md — Wave 3: Unlike feature + user_has_liked (schemas, services, routes)
+- [ ] 06.1-05-PLAN.md — Wave 3: Payout rewrite — TP time-based + binary/multichoice 10x cap
+- [ ] 06.1-06-PLAN.md — Wave 4: Numeric market payout — window-expansion algorithm
+- [ ] 06.1-07-PLAN.md — Wave 4: Frontend — kp→lp rename, heart UI, unlike, bet amount selector, i18n
+- [ ] 06.1-08-PLAN.md — Wave 5: Docs — ECONOMY.md, CLAUDE.md, README, REQUIREMENTS.md
 
 ---
 
