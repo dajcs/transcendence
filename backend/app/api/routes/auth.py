@@ -18,6 +18,29 @@ from app.services.economy_service import get_balance
 router = APIRouter()
 
 
+def _resolve_oauth_redirect_base(request: Request) -> str:
+    """Return the base URL used to build OAuth redirect_uri.
+
+    Prefers settings.oauth_redirect_base (static, env-configured). Falls back to
+    Host header only when that setting is empty, validating the host against
+    settings.allowed_hosts to prevent host-header injection.
+    """
+    configured = settings.oauth_redirect_base.strip()
+    if configured:
+        return configured.rstrip("/")
+
+    host = request.headers.get("host", "localhost:8443").strip()
+    allowed_str = settings.allowed_hosts
+    if allowed_str:
+        allowed = {h.strip().lower() for h in allowed_str.split(",") if h.strip()}
+        if host.lower() not in allowed and host.split(":", 1)[0].lower() not in allowed:
+            raise HTTPException(status_code=400, detail="Invalid host header")
+
+    forwarded_proto = request.headers.get("x-forwarded-proto", "").split(",", 1)[0].strip().lower()
+    scheme = forwarded_proto if forwarded_proto in {"http", "https"} else request.url.scheme
+    return f"{scheme}://{host}"
+
+
 def _resolve_client_ip(request: Request) -> str:
     forwarded_for = request.headers.get("x-forwarded-for")
     if forwarded_for:
@@ -143,16 +166,18 @@ async def oauth_providers():
 
 
 @router.get("/oauth/{provider}")
-async def oauth_initiate(provider: str):
+async def oauth_initiate(provider: str, request: Request):
     """Redirect user to the OAuth provider's authorization page."""
     from fastapi.responses import RedirectResponse
-    url = await oauth_service.build_authorize_url(provider)
+    redirect_base = _resolve_oauth_redirect_base(request)
+    url = await oauth_service.build_authorize_url(provider, redirect_base=redirect_base)
     return RedirectResponse(url=url)
 
 
 @router.get("/oauth/{provider}/callback")
 async def oauth_callback(
     provider: str,
+    request: Request,
     code: str = "",
     state: str = "",
     error: str = "",
@@ -167,12 +192,13 @@ async def oauth_callback(
         return RedirectResponse(url=f"/login?error={msg}", status_code=302)
 
     try:
-        user, access_token, refresh_token = await oauth_service.handle_callback(provider, code, state, db)
+        redirect_base = _resolve_oauth_redirect_base(request)
+        user, access_token, refresh_token = await oauth_service.handle_callback(provider, code, state, db, redirect_base=redirect_base)
     except HTTPException as exc:
         msg = quote(exc.detail)
         return RedirectResponse(url=f"/login?error={msg}", status_code=302)
 
-    redirect = RedirectResponse(url="/dashboard", status_code=302)
+    redirect = RedirectResponse(url="/markets", status_code=302)
     redirect.set_cookie(
         key="access_token",
         value=access_token,

@@ -93,7 +93,7 @@ export default function RegisterForm() {
   };
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4 w-full max-w-sm">
+    <form method="post" onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4 w-full max-w-sm">
       <div>
         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">{t("auth.email")}</label>
         <input

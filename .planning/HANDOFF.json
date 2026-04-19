@@ -1,70 +1,50 @@
 {
   "version": "1.0",
-  "timestamp": "2026-04-05T23:34:35.135Z",
-  "phase": "fix/logic",
-  "phase_name": "real-time UAT fixes",
-  "phase_dir": "fix/logic branch — no GSD phase dir (post-milestone UAT fixes)",
-  "plan": null,
-  "task": null,
-  "total_tasks": 3,
+  "timestamp": "2026-04-17T04:41:59.234Z",
+  "phase": "05.1",
+  "phase_name": "autoresolution-profile-bet-logs-market-bet-details",
+  "phase_dir": ".planning/phases/05.1-autoresolution-profile-bet-logs-market-bet-details",
+  "plan": 4,
+  "task": 2,
+  "total_tasks": 8,
   "status": "paused",
   "completed_tasks": [
-    {
-      "id": 1,
-      "name": "Issue 1 — Market listing real-time status updates",
-      "status": "done",
-      "files": ["frontend/src/app/(protected)/markets/page.tsx"],
-      "summary": "Added bet:status_changed and bet:resolved socket listeners to MarketsPage; invalidates ['markets'] query on event so listing refreshes without a page click"
-    },
-    {
-      "id": 2,
-      "name": "Issue 2 — Deadline resolution delay (~5 min)",
-      "status": "done",
-      "files": ["backend/app/workers/celery_app.py", "backend/app/workers/tasks/resolution.py"],
-      "summary": "Changed check_auto_resolution beat from crontab(minute=*/5) to schedule=60.0 (every 60s); eliminated double-hop by calling _process_auto_resolution inline instead of re-enqueuing a task"
-    },
-    {
-      "id": 3,
-      "name": "Issue 3 — Browser notification click navigates to market",
-      "status": "done",
-      "files": ["frontend/src/components/NotificationBell.tsx"],
-      "summary": "Added onclick handler to new Notification() for resolution_due, bet_resolved, bet_disputed — calls window.focus() + router.push(/markets/{bet_id}); restructured handler order so showBrowserNotification is defined first"
-    }
+    {"id": "05.1-01-T1", "name": "Add resolution_source field to MarketCreate schema + validator", "status": "done", "commit": "ce67a57"},
+    {"id": "05.1-01-T2", "name": "Persist resolution_source in market_service.create_market", "status": "done", "commit": "022346f"},
+    {"id": "05.1-02-T1", "name": "Failing tests for ledger endpoint (TDD RED)", "status": "done", "commit": "6179a8f"},
+    {"id": "05.1-02-T2", "name": "ledger_service + GET /api/users/{username}/transactions (GREEN)", "status": "done", "commit": "3d2a236"},
+    {"id": "05.1-03-T1", "name": "Failing tests for positions/payouts (TDD RED)", "status": "done", "commit": "b5cc2a1"},
+    {"id": "05.1-03-T2", "name": "GET /markets/{id}/positions and /payouts (GREEN)", "status": "done", "commit": "298fb37"},
+    {"id": "05.1-04-T1", "name": "i18n keys + auto-resolution toggle on market creation", "status": "done", "commit": "637ce46"},
+    {"id": "05.1-04-T2", "name": "Participants, PayoutBreakdown, TransactionLedger sections", "status": "done", "commit": "52469a9"}
   ],
-  "remaining_tasks": [
-    {
-      "id": 4,
-      "name": "Human UAT test — verify all 3 fixes with docker compose up --build",
-      "status": "not_started"
-    }
-  ],
+  "remaining_tasks": [],
   "blockers": [],
   "human_actions_pending": [
     {
-      "action": "Run docker compose up --build and perform UAT for all 3 issues",
-      "context": "(1) Open /markets in two tabs, wait for deadline — listing should update without clicking through; (2) status change should appear within ~1 min of deadline; (3) allow browser notifications, click one, confirm it opens the market detail page",
-      "blocking": true
+      "action": "On /markets/new, switch to non-binary market type, verify auto-resolution toggle is hidden (not just reset)",
+      "context": "Toggle currently stays visible for all market types — HTML section is always rendered, only state resets. Plan said 'hidden for other types'.",
+      "blocking": false
+    },
+    {
+      "action": "Create binary market with auto-resolution (Paris, rain, future date), wait for Celery to fire, verify auto-resolution without proposer action",
+      "context": "Requires running stack + Celery + live Open-Meteo API.",
+      "blocking": false
+    },
+    {
+      "action": "View a closed/resolved market detail page, verify green-bordered Payout Breakdown section appears with real data",
+      "context": "Needs a resolved market in DB to confirm conditional rendering works end-to-end.",
+      "blocking": false
     }
   ],
   "decisions": [
-    {
-      "decision": "60-second polling interval for check_auto_resolution instead of 5-minute crontab",
-      "rationale": "crontab(*/5) fires at fixed clock minutes so worst case is ~5 min wait; schedule=60.0 fires every 60s from last run — max delay ~1 min",
-      "phase": "fix/logic"
-    },
-    {
-      "decision": "Inline resolution in check_auto_resolution instead of re-enqueueing resolve_market_at_deadline",
-      "rationale": "Removed double-hop (sweep enqueues task → worker picks up) which added extra queue latency. _process_auto_resolution has idempotency guard (status == open check)",
-      "phase": "fix/logic"
-    }
+    {"decision": "Renamed phase dir from 5.1-... to 05.1-... prefix", "rationale": "gsd-tools requires zero-padded numeric prefix for phase discovery", "phase": "05.1"},
+    {"decision": "Wave 1 executed sequentially (no parallel worktrees)", "rationale": "Plans 01 and 03 both modify backend/app/schemas/market.py — parallel would conflict", "phase": "05.1"}
   ],
   "uncommitted_files": [
-    "backend/app/workers/celery_app.py",
-    "backend/app/workers/tasks/resolution.py",
-    "frontend/src/app/(protected)/markets/page.tsx",
-    "frontend/src/app/page.tsx",
-    "frontend/src/components/NotificationBell.tsx"
+    ".planning/phases/05.1-autoresolution-profile-bet-logs-market-bet-details/05.1-VERIFICATION.md",
+    "staged renames: 5.1-... -> 05.1-... directory"
   ],
-  "next_action": "Run docker compose up --build; test all 3 issues; if UAT passes, commit all files and update .planning/phases/05-intelligence-resolution/05-HUMAN-UAT.md test 4 result to 'pass' and status to 'resolved'",
-  "context_notes": "Branch: fix/logic. All 5 GSD phases complete. Post-milestone UAT session for phase 05. Outstanding UAT item was test 4 (Socket events reach browser from Celery). User ran manual test and found 3 sub-issues which are now fixed in code but not yet committed. The page.tsx homepage tagline change was already present before this session."
+  "next_action": "User reviews 3 human UAT items in 05.1-HUMAN-UAT.md. On 'approved': run `node gsd-tools.cjs phase complete 05.1` and commit ROADMAP/STATE. If toggle is a bug: wrap auto-resolution section in markets/new/page.tsx with {marketType === 'binary' && ...}.",
+  "context_notes": "All 4 plans complete. 8 atomic commits. Verification human_needed (11/12 truths). Code review: 0 critical, 5 warnings (N+1 query, lexicographic sort bug, missing city validation, bare anchor tag, sort reset issue). Phase awaits human UAT sign-off to mark complete."
 }

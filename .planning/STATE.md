@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v21.0
 milestone_name: milestone
-current_plan: 1
-status: Executing Phase 06
-last_updated: "2026-04-10T10:22:37.403Z"
+current_plan: Not started
+status: Ready to plan
+last_updated: "2026-04-18T19:35:49.631Z"
 progress:
-  total_phases: 6
-  completed_phases: 5
-  total_plans: 34
-  completed_plans: 34
+  total_phases: 7
+  completed_phases: 6
+  total_plans: 38
+  completed_plans: 38
   percent: 100
 ---
 
@@ -24,10 +24,10 @@ See: `.planning/PROJECT.md` (updated 2026-03-24)
 
 ## Current Status
 
-**Phase:** 05
-**Current Plan:** 1
-**Last session:** 2026-04-09T14:53:52.187Z
-**Resume file:** .planning/phases/06-polish-compliance/06-CONTEXT.md
+**Phase:** 06
+**Current Plan:** Not started
+**Last session:** 2026-04-16T20:46:14.642Z
+**Resume file:** None
 
 ## Decisions
 
@@ -91,6 +91,27 @@ See: `.planning/PROJECT.md` (updated 2026-03-24)
 - [fix/logic]: Browser Notification requireInteraction:true — stays until clicked/dismissed; onclick calls markAllAsRead() to clear bell badge
 - [fix/logic]: Dashboard "closes in closed" fixed — conditional render shows "closed" when timeLeft()="closed", toLocaleDateString→toLocaleString for deadline time display
 - [fix/logic]: Dispute/Accept buttons hidden from non-participants — myPosition guard added; proposers see "Awaiting…", non-participants see info text, only betters see action buttons
+- [Phase 05.1]: validate_resolution_source runs as second model_validator — Pydantic runs both in order; json.dumps() to Text column; resolution_source not exposed in MarketResponse (internal Celery task only)
+- [Phase 05.1]: signup_bonus BpTransaction at registration — empty user test asserts structure not empty list
+- [Phase 05.1]: cast(None, Uuid) from sqlalchemy.types for KpEvent bet_id NULL — PG_UUID breaks SQLite
+- [Phase 05.1]: Route /{username}/transactions placed before /{username} catch-all in users.py
+- [Phase 05.1]: Active positions only (withdrawn_at IS NULL) in participant list — withdrawn positions excluded per spec
+- [Phase 05.1]: TP lookup uses separate query + dict merge rather than complex JOIN — simpler, avoids nullable TP bet_id issues
+- [Phase 05.1]: payoutsQuery uses marketQuery.data?.status to avoid block-scoped forward reference to market variable
+- [Phase 05.1]: Test framework is Jest not Vitest — plan templates adapted to jest.fn()/jest.mock() API
+- [Phase 05.1 UAT]: Weather market is a distinct market type (not binary) supporting rain/snow (binary) and temperature/wind speed (numeric) sub-conditions; auto-resolution toggle shown only for weather type
+- [Phase 05.1 UAT]: Market detail Participants and Payout Breakdown sections redesigned as scrollable tables (max-h-64) with sticky sortable headers (↑/↓/↕); numeric markets hide by-side aggregate (too many values)
+- [Phase 05.1 UAT]: ledger_service rewritten — fetches all rows in Python, merges paired BP+TP bet_won transactions for same bet_id into one row, computes running balances (bp_balance, tp_balance); pagination applied after merge
+- [Phase 05.1 UAT]: TransactionEntry schema gained bp_balance and tp_balance fields; all amounts rendered to 1 decimal
+- [Phase 05.1 UAT]: Profile page redesigned with 3 tabs: My Points (transaction ledger), My Bets (own profile only, /api/bets/positions), My Markets (proposer_id filter on /api/markets)
+- [Phase 05.1 UAT]: /api/markets gained optional proposer_id query param (no auth required) for public profile My Markets tab
+- [Phase 05.1 UAT]: Dashboard link removed from TopNav (desktop + mobile); profile tabs replace dashboard functionality
+
+## Accumulated Context
+
+### Roadmap Evolution
+
+- Phase 5.1 inserted after Phase 5: add autoresolution, profile bet logs, market bet details (URGENT)
 
 ## Performance Metrics
 
@@ -120,6 +141,10 @@ See: `.planning/PROJECT.md` (updated 2026-03-24)
 | Phase 05 P11 | 5min | 2 tasks | 3 files |
 | Phase 05 P12 | 5min | 2 tasks | 2 files |
 | Phase 05 P13 | 4min | 2 tasks | 3 files |
+| Phase 05.1 P01 | 6min | 2 tasks | 3 files |
+| Phase 05.1 P02 | 2min | 2 tasks | 4 files |
+| Phase 05.1 P03 | 6min | 2 tasks | 3 files |
+| Phase 05.1 P04 | 19min | 2 tasks | 8 files |
 
 ## Session History
 
@@ -133,3 +158,4 @@ See: `.planning/PROJECT.md` (updated 2026-03-24)
 | 2026-03-26 | Phase 2 complete — markets, betting, economy, comments, dashboard |
 | 2026-03-28 | Phase 3 complete (via Claude Code) — friend system, user profiles, chat, notifications |
 | 2026-04-06 | fix/logic UAT complete — real-time market list refresh, browser push notifications, auto-resolution latency, deadline display, dispute button gating |
+| 2026-04-18 | Phase 05.1 UAT complete — all 4 tests passed; market detail sortable tables, ledger running balances + BP/TP merge, profile 3-tab redesign, Dashboard removed from nav; phase marked complete; ready for Phase 06 polish-compliance |

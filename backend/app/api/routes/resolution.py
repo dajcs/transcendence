@@ -206,6 +206,12 @@ async def accept_resolution(
         )
     )).scalar_one()
 
+    # Close the autobegun read transaction before calling trigger_payout.
+    # After db.commit() above, SQLAlchemy autobegins a new transaction on the
+    # first subsequent query. trigger_payout uses "async with db.begin()" which
+    # raises InvalidRequestError if a transaction is already open on the session.
+    await db.commit()
+
     auto_closed = False
     if eligible_voters > 0 and counts["accept_count"] / eligible_voters > _ACCEPT_THRESHOLD:
         await trigger_payout(db, bet_id, resolution.outcome, overturned=False)

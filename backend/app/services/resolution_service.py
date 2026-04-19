@@ -183,6 +183,8 @@ async def trigger_payout(
         winner_rows = winners_result.all()  # list of (user_id, user_winning_stake)
 
         payout_count = 0
+        winner_payouts: list[tuple[uuid.UUID, float]] = []  # (user_id, bp_won) for notifications
+        bet_title = bet.title
         for winner_id, user_winning_stake in winner_rows:
             # BP: proportional share of total pool (D-11)
             if total_winning_stake > 0:
@@ -197,6 +199,7 @@ async def trigger_payout(
             if tp > 0:
                 db.add(TpTransaction(user_id=winner_id, amount=tp, bet_id=bet_id))
                 await db.flush()
+            winner_payouts.append((winner_id, winner_bp))
             payout_count += 1
 
         # Proposer penalty if overturned (RES-05) — unchanged
@@ -223,7 +226,7 @@ async def trigger_payout(
                     await db.flush()
                 penalty_applied = actual_penalty
 
-    # After commit: fire-and-forget socket emit
+    # After commit: socket emit + payout notifications (fire-and-forget)
     payout_summary = {
         "outcome": outcome,
         "winners": payout_count,
@@ -236,5 +239,13 @@ async def trigger_payout(
         {"bet_id": str(bet_id), "outcome": outcome, "payout_summary": payout_summary},
         room=f"bet:{bet_id}",
     )
+
+    from app.services.notification_service import notify_payout
+    for winner_id, winner_bp in winner_payouts:
+        if winner_bp > 0:
+            try:
+                await notify_payout(db, winner_id, bet_title, winner_bp, outcome, str(bet_id))
+            except Exception:
+                pass
 
     return payout_summary

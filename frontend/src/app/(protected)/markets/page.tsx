@@ -163,6 +163,7 @@ export default function MarketsPage() {
         <h1 className="text-2xl font-bold">{t("markets.title")}</h1>
         <Link
           href="/markets/new"
+          title={t("markets.create_cost")}
           className="rounded bg-blue-600 px-4 py-2 text-sm text-white hover:bg-blue-700"
         >
           {t("markets.create")}
