@@ -76,6 +76,7 @@ const fr = {
   // Markets
   "markets.title": "Marchés",
   "markets.create": "Créer un marché",
+  "markets.create_cost": "Coût : 1 BP",
   "markets.search_placeholder": "Rechercher des marchés...",
   "markets.all": "Tous",
   "markets.open": "Ouverts",

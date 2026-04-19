@@ -12,6 +12,19 @@ import { api } from "@/lib/api";
 
 const mockPost = api.post as jest.Mock;
 
+// Fills all required fields for a binary market so onSubmit fires.
+// Order of textboxes in the binary form (no weather section):
+//   [0] title input, [1] description textarea, [2] criteria textarea
+async function fillBinaryRequiredFields(container: HTMLElement) {
+  const textboxes = screen.getAllByRole("textbox");
+  await userEvent.type(textboxes[0], "Test market title");
+  await userEvent.type(textboxes[1], "Test description text");
+  await userEvent.type(textboxes[2], "Test resolution criteria");
+  fireEvent.change(container.querySelector('input[type="date"]')!, {
+    target: { value: "2026-12-01" },
+  });
+}
+
 describe("Auto-resolution payload contract", () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -19,57 +32,55 @@ describe("Auto-resolution payload contract", () => {
   });
 
   it("resolution_source uses 'location' key (not 'city') and 'open-meteo' provider (hyphen)", async () => {
-    render(<NewMarketPage />);
+    const { container } = render(<NewMarketPage />);
 
-    // Enable the auto-resolution toggle
-    const toggle = screen.getByRole("switch");
-    await userEvent.click(toggle);
+    // Select weather market type
+    await userEvent.click(screen.getByText("create.weather"));
 
-    // Fill city input (placeholder is "Paris")
-    const cityInput = screen.getByPlaceholderText("Paris");
-    await userEvent.type(cityInput, "London");
+    // Typing city triggers useEffect → auto-fills title/description/criteria
+    await userEvent.type(screen.getByPlaceholderText("Paris"), "London");
 
-    // Submit via button click
-    const submitBtn = screen.getByText("create.submit");
-    fireEvent.click(submitBtn);
+    // Set deadline date so the form field is non-empty (satisfies required)
+    fireEvent.change(container.querySelector('input[type="date"]')!, {
+      target: { value: "2026-12-01" },
+    });
+
+    await userEvent.click(screen.getByText("create.submit"));
 
     await waitFor(() => {
-      if (mockPost.mock.calls.length > 0) {
-        const payload = mockPost.mock.calls[0][1];
-        if (payload.resolution_source) {
-          // CRITICAL: key must be "location", NOT "city"
-          expect(payload.resolution_source).toHaveProperty("location");
-          expect(payload.resolution_source).not.toHaveProperty("city");
-          // CRITICAL: provider must be "open-meteo" (hyphen), NOT "open_meteo"
-          expect(payload.resolution_source.provider).toBe("open-meteo");
-        }
-      }
+      expect(mockPost).toHaveBeenCalled();
+      const payload = mockPost.mock.calls[0][1];
+      // CRITICAL: key must be "location", NOT "city"
+      expect(payload.resolution_source).toHaveProperty("location", "London");
+      expect(payload.resolution_source).not.toHaveProperty("city");
+      // CRITICAL: provider must be "open-meteo" (hyphen), NOT "open_meteo"
+      expect(payload.resolution_source.provider).toBe("open-meteo");
     });
   });
 
-  it("resolution_source is absent when auto-resolution toggle is off", async () => {
-    render(<NewMarketPage />);
+  it("resolution_source is absent when market type is binary", async () => {
+    const { container } = render(<NewMarketPage />);
 
-    const submitBtn = screen.getByText("create.submit");
-    fireEvent.click(submitBtn);
+    // Default is binary — fill required fields and submit
+    await fillBinaryRequiredFields(container);
+    await userEvent.click(screen.getByText("create.submit"));
 
     await waitFor(() => {
-      if (mockPost.mock.calls.length > 0) {
-        const payload = mockPost.mock.calls[0][1];
-        expect(payload).not.toHaveProperty("resolution_source");
-      }
+      expect(mockPost).toHaveBeenCalled();
+      const payload = mockPost.mock.calls[0][1];
+      expect(payload).not.toHaveProperty("resolution_source");
     });
   });
 
-  it("auto-resolution panel is hidden when toggle is off", () => {
+  it("weather city input is hidden when market type is not weather", () => {
     render(<NewMarketPage />);
+    // Default is binary — no city input visible
     expect(screen.queryByPlaceholderText("Paris")).toBeNull();
   });
 
-  it("auto-resolution panel shows city input when toggle is on", async () => {
+  it("weather city input appears when weather market type is selected", async () => {
     render(<NewMarketPage />);
-    const toggle = screen.getByRole("switch");
-    await userEvent.click(toggle);
+    await userEvent.click(screen.getByText("create.weather"));
     expect(screen.getByPlaceholderText("Paris")).toBeTruthy();
   });
 });
