@@ -50,7 +50,7 @@ async def test_get_profile_success(client: AsyncClient):
     assert data["username"] == "alice"
     assert data["total_bets"] == 0
     assert data["win_rate"] == 0.0
-    assert data["kp"] == 0
+    assert data["lp"] == 0
     assert "bio" in data
     assert "created_at" in data
 

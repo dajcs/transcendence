@@ -59,7 +59,7 @@ async def _to_user_response(db: AsyncSession, user) -> UserResponse:
         avatar_url=user.avatar_url,
         created_at=user.created_at,
         bp=float(balances["bp"]),
-        kp=int(balances["kp"]),
+        lp=int(balances["lp"]),
         tp=float(balances["tp"]),
     )
 

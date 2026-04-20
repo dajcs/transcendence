@@ -73,7 +73,7 @@ async def get_public_profile(
         avatar_url=user.avatar_url,
         bio=user.bio,
         created_at=user.created_at,
-        kp=int(balances["kp"]),
+        lp=int(balances["lp"]),
         tp=float(balances["tp"]),
         total_bets=int(total_bets),
         win_rate=round(win_rate, 1),
