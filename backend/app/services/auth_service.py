@@ -110,7 +110,7 @@ async def login(db: AsyncSession, req: LoginRequest, client_ip: str) -> tuple[Us
     if bp_earned > 0:
         await db.commit()
         from app.services.notification_service import notify_lp_converted
-        await notify_lp_converted(db, user.id, lp_converted, bp_earned)
+        await notify_lp_converted(db, user.id, lp_converted, bp_earned, user.username)
 
     access_token = create_access_token(str(user.id), user.email, user.username)
     refresh_token = create_refresh_token()

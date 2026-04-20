@@ -82,7 +82,7 @@ async def get_user_transactions(
         (merged.c.reason == "lp_conversion", "lp_allocation"),
         (merged.c.reason == "daily_login", "daily_bonus"),
         (merged.c.reason == "signup_bonus", "daily_bonus"),
-        (merged.c.reason.in_(["comment_upvote", "daily_allocation"]), "lp_allocation"),
+        (merged.c.reason.in_(["comment_upvote", "daily_allocation", "market_upvote"]), "lp_allocation"),
         else_="daily_bonus",
     ).label("tx_type")
 

@@ -164,7 +164,7 @@ async def handle_callback(
     if bp_earned > 0:
         await db.commit()
         from app.services.notification_service import notify_lp_converted
-        await notify_lp_converted(db, user.id, lp_converted, bp_earned)
+        await notify_lp_converted(db, user.id, lp_converted, bp_earned, user.username)
 
     # 6. Issue our JWT tokens
     access_token = create_access_token(str(user.id), user.email, user.username)

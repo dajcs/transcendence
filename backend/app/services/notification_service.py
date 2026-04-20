@@ -209,12 +209,13 @@ async def notify_resolution_due(db: AsyncSession, proposer_id: uuid.UUID, market
         logging.getLogger(__name__).warning("resolution_due email failed for %s: %s", proposer_id, exc)
 
 
-async def notify_lp_converted(db: AsyncSession, user_id: uuid.UUID, lp_converted: int, bp_earned: float) -> None:
+async def notify_lp_converted(db: AsyncSession, user_id: uuid.UUID, lp_converted: int, bp_earned: float, username: str = "") -> None:
     """Notify user that LP was converted to BP on login."""
     await create_notification(db, user_id, "lp_converted", {
         "lp_converted": lp_converted,
         "bp_earned": bp_earned,
-        "message": f"{lp_converted} LP converted to {bp_earned:.1f} BP",
+        "username": username,
+        "message": f"{lp_converted} ♥ converted to {bp_earned:.1f} BP",
     })
 
 
