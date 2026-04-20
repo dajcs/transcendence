@@ -321,7 +321,8 @@ const en = {
   // Market detail extra
   "market.loading": "Loading market...",
   "market.load_error": "Failed to load market.",
-  "market.place_1bp": "Place 1 BP Bet",
+  "market.bet_amount_label": "Amount:",
+  "market.place_1bp": "Place Bet",
   "market.bet_error": "Unable to place bet.",
   "market.withdraw_confirm": "Confirm",
   "market.withdraw_failed": "Withdrawal failed.",

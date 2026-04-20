@@ -321,7 +321,8 @@ const fr = {
   // Market detail extra
   "market.loading": "Chargement du marché...",
   "market.load_error": "Échec du chargement du marché.",
-  "market.place_1bp": "Parier 1 BP",
+  "market.bet_amount_label": "Montant :",
+  "market.place_1bp": "Parier",
   "market.bet_error": "Impossible de placer le pari.",
   "market.withdraw_confirm": "Confirmer",
   "market.withdraw_failed": "Échec du retrait.",

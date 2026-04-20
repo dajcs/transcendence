@@ -66,6 +66,7 @@ export default function MarketDetailPage() {
   const t = useT();
 
   const [side, setSide] = useState<string>("yes");
+  const [betAmount, setBetAmount] = useState<number>(1);
   const [commentText, setCommentText] = useState("");
   const [showWithdrawConfirm, setShowWithdrawConfirm] = useState(false);
   const [confirmDisputeOpen, setConfirmDisputeOpen] = useState(false);
@@ -224,7 +225,7 @@ export default function MarketDetailPage() {
   }, [socket, marketId, queryClient, bootstrap]);
 
   const placeBet = useMutation({
-    mutationFn: async () => (await api.post<BetPosition>("/api/bets", { bet_id: marketId, side })).data,
+    mutationFn: async () => (await api.post<BetPosition>("/api/bets", { bet_id: marketId, side, amount: betAmount })).data,
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["market", marketId] });
       await queryClient.invalidateQueries({ queryKey: ["positions"] });
@@ -255,6 +256,22 @@ export default function MarketDetailPage() {
     mutationFn: () => api.post(`/api/markets/${marketId}/upvote`),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["market", marketId] });
+      await bootstrap();
+    },
+  });
+
+  const unlikeMarket = useMutation({
+    mutationFn: () => api.delete(`/api/markets/${marketId}/upvote`),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["market", marketId] });
+      await bootstrap();
+    },
+  });
+
+  const unlikeComment = useMutation({
+    mutationFn: async (commentId: string) => api.delete(`/api/comments/${commentId}/upvote`),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["comments", marketId] });
       await bootstrap();
     },
   });
@@ -434,12 +451,14 @@ export default function MarketDetailPage() {
             <div className="flex items-start justify-between gap-4">
               <h1 className="text-2xl font-bold">{market.title}</h1>
               <button
-                onClick={() => upvoteMarket.mutate()}
-                disabled={upvoteMarket.isPending}
-                className="shrink-0 flex flex-col items-center text-gray-400 hover:text-orange-500 transition-colors disabled:opacity-50 px-2 dark:text-gray-500 dark:hover:text-orange-400"
+                onClick={() => market.user_has_liked ? unlikeMarket.mutate() : upvoteMarket.mutate()}
+                disabled={upvoteMarket.isPending || unlikeMarket.isPending}
+                className="shrink-0 flex flex-col items-center transition-colors disabled:opacity-50 px-2"
               >
-                <span className="text-2xl leading-none">▲</span>
-                <span className="text-xs font-medium">{market.upvote_count}</span>
+                <span className={`text-2xl leading-none ${market.user_has_liked ? "text-red-500" : "text-gray-400 dark:text-gray-500"}`}>
+                  {market.user_has_liked ? "♥" : "♡"}
+                </span>
+                <span className="text-xs font-medium text-gray-500 dark:text-gray-400">{market.upvote_count}</span>
               </button>
             </div>
             <p className="text-sm text-gray-600 dark:text-gray-400">{market.description}</p>
@@ -1130,6 +1149,21 @@ export default function MarketDetailPage() {
                 />
               </div>
             )}
+            <div className="mb-3 flex items-center gap-2">
+              <label className="text-sm text-gray-600 dark:text-gray-400">{t("market.bet_amount_label")}</label>
+              <select
+                value={betAmount}
+                onChange={(e) => setBetAmount(Number(e.target.value))}
+                className="rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-2 py-1 text-sm"
+              >
+                {Array.from(
+                  { length: Math.max(1, Math.min(10, Math.floor(user?.bp ?? 1))) },
+                  (_, i) => i + 1
+                ).map((n) => (
+                  <option key={n} value={n}>{n} BP</option>
+                ))}
+              </select>
+            </div>
             <button
               onClick={() => placeBet.mutate()}
               disabled={placeBet.isPending}
@@ -1192,10 +1226,13 @@ export default function MarketDetailPage() {
                     <div className="mt-2 flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
                       <span>{new Date(comment.created_at).toLocaleString()}</span>
                       <button
-                        onClick={() => upvoteComment.mutate(comment.id)}
-                        className="flex items-center gap-1 text-gray-400 hover:text-orange-500 transition-colors"
+                        onClick={() => comment.user_has_liked
+                          ? unlikeComment.mutate(comment.id)
+                          : upvoteComment.mutate(comment.id)
+                        }
+                        className={`flex items-center gap-1 transition-colors ${comment.user_has_liked ? "text-red-500" : "text-gray-400 hover:text-red-500"}`}
                       >
-                        <span className="text-sm leading-none">▲</span>
+                        <span className="text-sm leading-none">{comment.user_has_liked ? "♥" : "♡"}</span>
                         <span>{comment.upvote_count}</span>
                       </button>
                       {depth < 4 && (
