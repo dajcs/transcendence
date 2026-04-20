@@ -31,6 +31,17 @@ async def _get_current_user(request: Request, db: AsyncSession) -> object:
     return await auth_service.get_current_user(db, access_token)
 
 
+async def _get_current_user_optional(request: Request, db: AsyncSession):
+    """Returns None if not authenticated (no exception)."""
+    access_token = request.cookies.get("access_token")
+    if not access_token:
+        return None
+    try:
+        return await auth_service.get_current_user(db, access_token)
+    except HTTPException:
+        return None
+
+
 @router.post("", response_model=MarketResponse, status_code=201)
 async def create_market(
     data: MarketCreate,
@@ -81,8 +92,10 @@ async def list_markets(
 
 
 @router.get("/{market_id}", response_model=MarketResponse)
-async def get_market(market_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
-    return await market_service.get_market(db, market_id)
+async def get_market(market_id: uuid.UUID, request: Request, db: AsyncSession = Depends(get_db)):
+    user = await _get_current_user_optional(request, db)
+    current_user_id = user.id if user else None
+    return await market_service.get_market(db, market_id, current_user_id=current_user_id)
 
 
 @router.post("/{market_id}/upvote", status_code=201)
@@ -93,6 +106,17 @@ async def upvote_market(
 ):
     user = await _get_current_user(request, db)
     await market_service.upvote_market(db, user_id=user.id, market_id=market_id)
+
+
+@router.delete("/{market_id}/upvote", status_code=200)
+async def unlike_market(
+    market_id: uuid.UUID,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+):
+    user = await _get_current_user(request, db)
+    await market_service.unlike_market(db, user_id=user.id, market_id=market_id)
+    return {"ok": True}
 
 
 @router.get("/{market_id}/positions", response_model=ParticipantListResponse)
