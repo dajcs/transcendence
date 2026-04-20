@@ -112,6 +112,7 @@ See: `.planning/PROJECT.md` (updated 2026-03-24)
 ### Roadmap Evolution
 
 - Phase 5.1 inserted after Phase 5: add autoresolution, profile bet logs, market bet details (URGENT)
+- Phase 6.1 inserted after Phase 6: rename Karma Points to Like Points + fix BP/TP earn/win formulas (URGENT)
 
 ## Performance Metrics
 
