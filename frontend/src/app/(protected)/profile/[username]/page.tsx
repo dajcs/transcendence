@@ -33,7 +33,7 @@ interface Profile {
   avatar_url: string | null;
   bio: string | null;
   created_at: string;
-  kp: number;
+  lp: number;
   tp: number;
   total_bets: number;
   win_rate: number;
@@ -258,7 +258,7 @@ export default function ProfilePage() {
           {/* Stats */}
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
             <div className="rounded border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 text-center">
-              <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{profile.kp}</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{profile.lp}</p>
               <p className="text-xs text-gray-500 dark:text-gray-400">{t("profile.karma_points")}</p>
             </div>
             <div className="rounded border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 text-center">
