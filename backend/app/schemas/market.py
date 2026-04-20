@@ -96,6 +96,7 @@ class MarketResponse(BaseModel):
     comment_count: int = 0
     choice_counts: dict[str, int] = {}
     upvote_count: int = 0
+    user_has_liked: bool = False
 
     model_config = {"from_attributes": True}
 

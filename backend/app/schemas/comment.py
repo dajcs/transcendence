@@ -29,5 +29,6 @@ class CommentResponse(BaseModel):
     content: str
     created_at: datetime
     upvote_count: int = 0
+    user_has_liked: bool = False
 
     model_config = {"from_attributes": True}

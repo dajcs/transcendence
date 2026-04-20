@@ -77,7 +77,11 @@ async def create_comment(
     return response
 
 
-async def list_comments(db: AsyncSession, bet_id: uuid.UUID) -> list[CommentResponse]:
+async def list_comments(
+    db: AsyncSession,
+    bet_id: uuid.UUID,
+    current_user_id: uuid.UUID | None = None,
+) -> list[CommentResponse]:
     rows = (
         await db.execute(
             select(Comment, User.username)
@@ -86,6 +90,17 @@ async def list_comments(db: AsyncSession, bet_id: uuid.UUID) -> list[CommentResp
             .order_by(Comment.created_at.asc())
         )
     ).all()
+
+    liked_ids: set[uuid.UUID] = set()
+    if current_user_id is not None and rows:
+        comment_ids = [comment.id for comment, _ in rows]
+        liked_rows = await db.execute(
+            select(CommentUpvote.comment_id).where(
+                CommentUpvote.user_id == current_user_id,
+                CommentUpvote.comment_id.in_(comment_ids),
+            )
+        )
+        liked_ids = {row[0] for row in liked_rows}
 
     response: list[CommentResponse] = []
     for comment, author_username in rows:
@@ -104,6 +119,7 @@ async def list_comments(db: AsyncSession, bet_id: uuid.UUID) -> list[CommentResp
                 content=comment.content,
                 created_at=comment.created_at,
                 upvote_count=int(upvote_count),
+                user_has_liked=comment.id in liked_ids,
             )
         )
 
@@ -132,3 +148,34 @@ async def upvote_comment(db: AsyncSession, voter_id: uuid.UUID, comment_id: uuid
         await db.commit()
     except IntegrityError:
         await db.rollback()  # already upvoted — treat as no-op
+
+
+async def unlike_comment(db: AsyncSession, voter_id: uuid.UUID, comment_id: uuid.UUID) -> None:
+    """Remove upvote from comment; decrement LP for author by 1."""
+    comment = (await db.execute(select(Comment).where(Comment.id == comment_id))).scalar_one_or_none()
+    if comment is None:
+        raise HTTPException(status_code=404, detail="Comment not found")
+    if comment.user_id == voter_id:
+        return  # self-unlike — no-op
+    upvote = (
+        await db.execute(
+            select(CommentUpvote).where(
+                CommentUpvote.comment_id == comment_id,
+                CommentUpvote.user_id == voter_id,
+            )
+        )
+    ).scalar_one_or_none()
+    if upvote is None:
+        return  # not upvoted — no-op
+    await db.delete(upvote)
+    today = datetime.now(timezone.utc).date()
+    db.add(
+        LpEvent(
+            user_id=comment.user_id,
+            amount=-1,
+            source_type="comment_upvote",
+            source_id=comment_id,
+            day_date=today,
+        )
+    )
+    await db.commit()
