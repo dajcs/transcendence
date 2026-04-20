@@ -8,17 +8,8 @@ from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models.bet import BetPosition
-from app.db.models.transaction import BpTransaction, KpEvent, TpTransaction
+from app.db.models.transaction import BpTransaction, LpEvent, TpTransaction
 from app.db.models.user import User
-
-
-def compute_bet_cap(kp: int) -> int:
-    """BET-04: cap = digit count of kp, minimum 1.
-    Examples: kp 0..9 -> 1, 10..99 -> 2, 100..999 -> 3.
-    """
-    if kp <= 0:
-        return 1
-    return math.floor(math.log10(kp)) + 1
 
 
 def compute_refund_bp(yes_pool: float, no_pool: float, side: str) -> float:
@@ -43,24 +34,24 @@ def compute_numeric_refund_bp(estimate: float, mean_estimate: float, range_min: 
 
 
 async def get_balance(db: AsyncSession, user_id: uuid.UUID) -> dict:
-    """D-08/D-09: Compute bp, kp, tp balances from ledger tables.
+    """D-08/D-09: Compute bp, lp, tp balances from ledger tables.
     No balance columns on User — SUM aggregation is the source of truth."""
     bp_result = await db.execute(
         select(func.sum(BpTransaction.amount)).where(BpTransaction.user_id == user_id)
     )
     bp = float(bp_result.scalar_one() or 0)
 
-    kp_result = await db.execute(
-        select(func.sum(KpEvent.amount)).where(KpEvent.user_id == user_id)
+    lp_result = await db.execute(
+        select(func.sum(LpEvent.amount)).where(LpEvent.user_id == user_id)
     )
-    kp = int(kp_result.scalar_one() or 0)
+    lp = int(lp_result.scalar_one() or 0)
 
     tp_result = await db.execute(
         select(func.sum(TpTransaction.amount)).where(TpTransaction.user_id == user_id)
     )
     tp = float(tp_result.scalar_one() or 0)
 
-    return {"bp": bp, "kp": kp, "tp": tp}
+    return {"bp": bp, "lp": lp, "tp": tp}
 
 
 async def credit_bp(
@@ -109,22 +100,22 @@ async def deduct_bp(
     await db.flush()
 
 
-async def convert_kp_to_bp(db: AsyncSession, user_id: uuid.UUID) -> tuple[int, float]:
-    """Convert accumulated KP to BP using log2(kp+1) (full float, no floor).
-    Resets KP to 0. Returns (kp_converted, bp_earned) — both 0 if no KP."""
-    kp_total = (
-        await db.execute(select(func.sum(KpEvent.amount)).where(KpEvent.user_id == user_id))
+async def convert_lp_to_bp(db: AsyncSession, user_id: uuid.UUID) -> tuple[int, float]:
+    """Convert accumulated LP to BP using min(log2(lp+1), 10.0). Resets LP to 0.
+    Returns (lp_converted, bp_earned) — both 0 if no LP."""
+    lp_total = (
+        await db.execute(select(func.sum(LpEvent.amount)).where(LpEvent.user_id == user_id))
     ).scalar_one()
-    kp_value = int(kp_total or 0)
-    if kp_value <= 0:
+    lp_value = int(lp_total or 0)
+    if lp_value <= 0:
         return 0, 0.0
 
-    karma_bp = math.log2(kp_value + 1)
+    karma_bp = min(math.log2(lp_value + 1), 10.0)
     today = datetime.now(timezone.utc).date()
-    db.add(BpTransaction(user_id=user_id, amount=karma_bp, reason="kp_conversion", bet_id=None))
-    db.add(KpEvent(user_id=user_id, amount=-kp_value, source_type="kp_reset_login", source_id=user_id, day_date=today))
+    db.add(BpTransaction(user_id=user_id, amount=karma_bp, reason="lp_conversion", bet_id=None))
+    db.add(LpEvent(user_id=user_id, amount=-lp_value, source_type="lp_reset_login", source_id=user_id, day_date=today))
     await db.flush()
-    return kp_value, karma_bp
+    return lp_value, karma_bp
 
 
 async def get_bet_odds(db: AsyncSession, bet_id: uuid.UUID) -> dict:
