@@ -12,7 +12,7 @@ from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models.bet import Bet, BetPosition, PositionHistory
-from app.db.models.transaction import BpTransaction, TpTransaction
+from app.db.models.transaction import BpFundEntry, BpTransaction, TpTransaction
 from app.services.economy_service import credit_bp
 
 
@@ -35,15 +35,13 @@ def compute_vote_weight(user_position_side: str | None, user_vote: str) -> float
 
 
 def compute_tp_earned(t_win: float, t_bet: float) -> float:
-    """RES-06: tp = floor(t_win / t_bet * 100) / 100.
-    t_win = seconds winner held winning position (from PositionHistory.changed_at to deadline).
-    t_bet = total bet duration in seconds (bet.deadline - bet.created_at).
-    Returns 0.0 if t_bet <= 0.
-    """
+    """RES-06: tp = t_win / t_bet (raw float, no truncation).
+    t_win = seconds winner held winning position.
+    t_bet = total bet duration in seconds (deadline - created_at).
+    Returns 0.0 if t_bet <= 0."""
     if t_bet <= 0:
         return 0.0
-    raw = t_win / t_bet
-    return math.floor(raw * 100) / 100
+    return t_win / t_bet
 
 
 def compute_proposer_penalty(staked: float) -> float:
@@ -56,33 +54,14 @@ async def _compute_tp_for_user(
     bet_id: uuid.UUID,
     user_id: uuid.UUID,
     winning_side: str,
-    total_winning_stake: float,
+    deadline: datetime,
+    t_bet: float,
 ) -> float:
-    """D-11 TP formula: per-position tp, losers earn 0, final = average across all positions.
-
-    For each active position:
-      winning: tp_i = floor(bp_staked / total_winning_stake * 100) / 100
-      losing:  tp_i = 0
-    Returns sum(tp_i) / count(positions). Returns 0.0 if user has no positions.
-    """
-    result = await db.execute(
-        select(BetPosition.side, BetPosition.bp_staked).where(
-            BetPosition.bet_id == bet_id,
-            BetPosition.user_id == user_id,
-            BetPosition.withdrawn_at.is_(None),
-        )
-    )
-    positions = result.all()
-    if not positions:
-        return 0.0
-    tp_values = []
-    for side, bp_staked in positions:
-        if side == winning_side and total_winning_stake > 0:
-            tp_i = math.floor(float(bp_staked) / total_winning_stake * 100) / 100
-        else:
-            tp_i = 0.0
-        tp_values.append(tp_i)
-    return sum(tp_values) / len(tp_values)
+    """D-11 TP formula: time-based. tp = t_win / t_bet.
+    t_win from PositionHistory via _compute_t_win.
+    Returns 0.0 if user has no winning-side position history."""
+    t_win = await _compute_t_win(db, bet_id, user_id, winning_side, deadline)
+    return compute_tp_earned(t_win, t_bet)
 
 
 async def _get_proposer_staked(db: AsyncSession, bet_id: uuid.UUID, proposer_id: uuid.UUID) -> float:
@@ -154,7 +133,19 @@ async def trigger_payout(
         bet.closed_at = datetime.now(timezone.utc)
         await db.flush()
 
-        # D-11 BP payout: compute total pool and winning stake
+        # Compute total bet duration for TP formula (D-11)
+        if bet.deadline.tzinfo is None:
+            deadline_aware = bet.deadline.replace(tzinfo=timezone.utc)
+        else:
+            deadline_aware = bet.deadline
+        if bet.created_at.tzinfo is None:
+            created_aware = bet.created_at.replace(tzinfo=timezone.utc)
+        else:
+            created_aware = bet.created_at
+        t_bet = max(0.0, (deadline_aware - created_aware).total_seconds())
+        market_type = bet.market_type  # "binary", "multiple_choice", or "numeric"
+
+        # D-12 BP payout: compute total pool and winning stake
         total_pool_result = await db.execute(
             select(func.sum(BetPosition.bp_staked)).where(
                 BetPosition.bet_id == bet_id,
@@ -185,22 +176,46 @@ async def trigger_payout(
         payout_count = 0
         winner_payouts: list[tuple[uuid.UUID, float]] = []  # (user_id, bp_won) for notifications
         bet_title = bet.title
+        fund_inserts: list[tuple[uuid.UUID, float]] = []  # (user_id, surplus) for BpFundEntry
         for winner_id, user_winning_stake in winner_rows:
-            # BP: proportional share of total pool (D-11)
-            if total_winning_stake > 0:
-                winner_bp = float(user_winning_stake) / total_winning_stake * total_bp_pool
+            if market_type in ("binary", "multiple_choice"):
+                # D-12: 10x cap per winner; surplus → BpFundEntry
+                if total_winning_stake > 0:
+                    proportional_share = float(user_winning_stake) / total_winning_stake * total_bp_pool
+                else:
+                    proportional_share = 0.0
+                cap = float(user_winning_stake) * 10
+                winner_bp = min(cap, proportional_share)
+                surplus = max(0.0, proportional_share - winner_bp)
+                if surplus > 0:
+                    fund_inserts.append((winner_id, surplus))
             else:
-                winner_bp = 0.0
+                # numeric: placeholder until Plan 06 replaces this branch
+                if total_winning_stake > 0:
+                    winner_bp = float(user_winning_stake) / total_winning_stake * total_bp_pool
+                else:
+                    winner_bp = 0.0
+
             if winner_bp > 0:
                 await credit_bp(db, winner_id, winner_bp, "bet_win", bet_id=bet_id)
 
-            # TP: per-position average (D-11)
-            tp = await _compute_tp_for_user(db, bet_id, winner_id, outcome, total_winning_stake)
+            # TP: time-based (D-11)
+            tp = await _compute_tp_for_user(db, bet_id, winner_id, outcome, deadline_aware, t_bet)
             if tp > 0:
                 db.add(TpTransaction(user_id=winner_id, amount=tp, bet_id=bet_id))
                 await db.flush()
             winner_payouts.append((winner_id, winner_bp))
             payout_count += 1
+
+        # Insert BpFundEntry rows for cap surplus (D-18)
+        for fund_user_id, surplus_amount in fund_inserts:
+            db.add(BpFundEntry(
+                market_id=bet_id,
+                user_id=fund_user_id,
+                amount=surplus_amount,
+                reason="cap_surplus",
+            ))
+            await db.flush()
 
         # Proposer penalty if overturned (RES-05) — unchanged
         penalty_applied = 0.0
