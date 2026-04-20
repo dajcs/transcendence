@@ -8,7 +8,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models.bet import Bet, Comment, CommentUpvote
-from app.db.models.transaction import KpEvent
+from app.db.models.transaction import LpEvent
 from app.db.models.user import User
 from app.schemas.comment import CommentCreate, CommentResponse
 
@@ -121,7 +121,7 @@ async def upvote_comment(db: AsyncSession, voter_id: uuid.UUID, comment_id: uuid
     try:
         db.add(CommentUpvote(comment_id=comment_id, user_id=voter_id))
         db.add(
-            KpEvent(
+            LpEvent(
                 user_id=comment.user_id,
                 amount=1,
                 source_type="comment_upvote",

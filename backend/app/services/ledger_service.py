@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.types import Float, String, Uuid
 
 from app.db.models.bet import Bet
-from app.db.models.transaction import BpTransaction, KpEvent, TpTransaction
+from app.db.models.transaction import BpTransaction, LpEvent, TpTransaction
 from app.db.models.user import User
 from app.schemas.ledger import TransactionEntry, TransactionListResponse
 
@@ -44,16 +44,16 @@ async def get_user_transactions(
         cast(TpTransaction.amount, Float).label("tp_delta"),
     ).where(TpTransaction.user_id == user_id)
 
-    kp_q = select(
-        KpEvent.id.label("id"),
-        KpEvent.created_at.label("date"),
-        KpEvent.source_type.label("reason"),
+    lp_q = select(
+        LpEvent.id.label("id"),
+        LpEvent.created_at.label("date"),
+        LpEvent.source_type.label("reason"),
         cast(None, Uuid).label("bet_id"),
         literal(0.0).label("bp_delta"),
         literal(0.0).label("tp_delta"),
-    ).where(KpEvent.user_id == user_id, KpEvent.amount > 0)
+    ).where(LpEvent.user_id == user_id, LpEvent.amount > 0)
 
-    combined = union_all(bp_q, tp_q, kp_q).subquery()
+    combined = union_all(bp_q, tp_q, lp_q).subquery()
 
     # Merge BP + TP rows for the same bet_win event at the SQL level.
     # group_key = bet_id for bet_win rows (merges the pair), id for everything else.
@@ -79,10 +79,10 @@ async def get_user_transactions(
         (merged.c.reason == "bet_refund", "withdrawal"),
         (merged.c.reason == "bet_win", "bet_won"),
         (merged.c.reason == "proposer_penalty", "bet_lost"),
-        (merged.c.reason == "kp_conversion", "kp_allocation"),
+        (merged.c.reason == "lp_conversion", "lp_allocation"),
         (merged.c.reason == "daily_login", "daily_bonus"),
         (merged.c.reason == "signup_bonus", "daily_bonus"),
-        (merged.c.reason.in_(["comment_upvote", "daily_allocation"]), "kp_allocation"),
+        (merged.c.reason.in_(["comment_upvote", "daily_allocation"]), "lp_allocation"),
         else_="daily_bonus",
     ).label("tx_type")
 

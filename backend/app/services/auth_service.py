@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models.user import User
 from app.schemas.auth import LoginRequest, RegisterRequest, ResetConfirmBody
-from app.services.economy_service import credit_bp, convert_kp_to_bp
+from app.services.economy_service import credit_bp, convert_lp_to_bp
 from app.services.email_service import send_password_reset_email
 from app.utils.jwt import (
     create_access_token,
@@ -105,12 +105,12 @@ async def login(db: AsyncSession, req: LoginRequest, client_ip: str) -> tuple[Us
 
     await redis.delete(rate_key)
 
-    # Convert any accumulated KP to BP on login
-    kp_converted, bp_earned = await convert_kp_to_bp(db, user.id)
+    # Convert any accumulated LP to BP on login
+    lp_converted, bp_earned = await convert_lp_to_bp(db, user.id)
     if bp_earned > 0:
         await db.commit()
-        from app.services.notification_service import notify_kp_converted
-        await notify_kp_converted(db, user.id, kp_converted, bp_earned)
+        from app.services.notification_service import notify_lp_converted
+        await notify_lp_converted(db, user.id, lp_converted, bp_earned)
 
     access_token = create_access_token(str(user.id), user.email, user.username)
     refresh_token = create_refresh_token()

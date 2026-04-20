@@ -311,14 +311,14 @@ async def get_market(db: AsyncSession, market_id: uuid.UUID) -> MarketResponse:
 async def upvote_market(db: AsyncSession, user_id: uuid.UUID, market_id: uuid.UUID) -> None:
     from datetime import datetime, timezone
     from sqlalchemy.exc import IntegrityError
-    from app.db.models.transaction import KpEvent
+    from app.db.models.transaction import LpEvent
 
     market = (await db.execute(select(Bet).where(Bet.id == market_id))).scalar_one_or_none()
     if market is None:
         raise HTTPException(status_code=404, detail="Market not found")
     try:
         db.add(BetUpvote(bet_id=market_id, user_id=user_id))
-        db.add(KpEvent(
+        db.add(LpEvent(
             user_id=market.proposer_id,
             amount=1,
             source_type="market_upvote",

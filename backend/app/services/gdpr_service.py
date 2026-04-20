@@ -10,7 +10,7 @@ from app.db.models.bet import (
     Dispute, DisputeVote, PositionHistory, Resolution, ResolutionReview,
 )
 from app.db.models.social import FriendRequest, Message, Notification
-from app.db.models.transaction import BpTransaction, KpEvent, TpTransaction
+from app.db.models.transaction import BpTransaction, LpEvent, TpTransaction
 from app.db.models.user import OauthAccount, User
 
 
@@ -56,9 +56,9 @@ async def export_user_data(db: AsyncSession, user: User) -> dict:
     rows = (await db.execute(select(TpTransaction).where(TpTransaction.user_id == uid))).scalars().all()
     tp_txns = [{"amount": float(r.amount), "bet_id": str(r.bet_id), "created_at": _iso(r.created_at)} for r in rows]
 
-    # KP events
-    rows = (await db.execute(select(KpEvent).where(KpEvent.user_id == uid))).scalars().all()
-    kp_events = [{"amount": r.amount, "source_type": r.source_type, "day_date": str(r.day_date)} for r in rows]
+    # LP events
+    rows = (await db.execute(select(LpEvent).where(LpEvent.user_id == uid))).scalars().all()
+    lp_events = [{"amount": r.amount, "source_type": r.source_type, "day_date": str(r.day_date)} for r in rows]
 
     # Friends
     rows = (await db.execute(
@@ -87,7 +87,7 @@ async def export_user_data(db: AsyncSession, user: User) -> dict:
         "comments": comments,
         "bp_transactions": bp_txns,
         "tp_transactions": tp_txns,
-        "kp_events": kp_events,
+        "lp_events": lp_events,
         "friend_requests": friends,
         "messages": messages,
         "notifications": notifications,
@@ -112,8 +112,8 @@ async def delete_account(db: AsyncSession, user: User) -> None:
     uid = user.id
     anon_id = uuid.UUID("00000000-0000-0000-0000-000000000000")
 
-    # Delete KP events entirely
-    await db.execute(delete(KpEvent).where(KpEvent.user_id == uid))
+    # Delete LP events entirely
+    await db.execute(delete(LpEvent).where(LpEvent.user_id == uid))
 
     # Delete notifications
     await db.execute(delete(Notification).where(Notification.user_id == uid))
