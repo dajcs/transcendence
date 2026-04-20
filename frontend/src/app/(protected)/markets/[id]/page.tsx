@@ -1157,7 +1157,7 @@ export default function MarketDetailPage() {
                 className="rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-2 py-1 text-sm"
               >
                 {Array.from(
-                  { length: Math.max(1, Math.min(10, Math.floor(user?.bp ?? 1))) },
+                  { length: Math.max(1, Math.min(10, Math.floor(currentUser?.bp ?? 1))) },
                   (_, i) => i + 1
                 ).map((n) => (
                   <option key={n} value={n}>{n} BP</option>
