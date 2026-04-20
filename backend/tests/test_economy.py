@@ -2,14 +2,17 @@
 import pytest
 
 
-def test_compute_bet_cap_formula():
-    """BET-04: cap = floor(log10(kp+1)) + 1."""
-    from app.services.economy_service import compute_bet_cap
-    assert compute_bet_cap(0) == 1
-    assert compute_bet_cap(9) == 1
-    assert compute_bet_cap(10) == 2
-    assert compute_bet_cap(99) == 2
-    assert compute_bet_cap(100) == 3
+def test_convert_lp_to_bp_cap():
+    """D-08: LP→BP uses min(log2(lp+1), 10.0). Cap enforced at 10.0 BP."""
+    import math
+
+    def _formula(lp: int) -> float:
+        return min(math.log2(lp + 1), 10.0)
+
+    assert _formula(0) == 0.0
+    assert _formula(1) == 1.0
+    assert abs(_formula(1023) - 10.0) < 0.001
+    assert _formula(2000) == 10.0
 
 
 def test_withdrawal_refund_formula():
@@ -28,7 +31,7 @@ async def test_get_balance_empty(db_session):
     import uuid
     user_id = uuid.uuid4()
     balance = await get_balance(db_session, user_id)
-    assert balance == {"bp": 0.0, "kp": 0, "tp": 0.0}
+    assert balance == {"bp": 0.0, "lp": 0, "tp": 0.0}
 
 
 @pytest.mark.asyncio

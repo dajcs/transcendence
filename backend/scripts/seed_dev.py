@@ -25,7 +25,7 @@ from sqlalchemy import select
 
 from app.db.models.bet import Bet, BetPosition, BetUpvote, Comment, CommentUpvote
 from app.db.models.social import FriendRequest, Message
-from app.db.models.transaction import BpTransaction, KpEvent
+from app.db.models.transaction import BpTransaction, LpEvent
 from app.db.models.user import User
 from app.db.session import AsyncSessionLocal
 from app.utils.password import hash_password
@@ -380,7 +380,7 @@ async def seed():
             db.add(user)
             await db.flush()
             db.add(BpTransaction(user_id=user.id, amount=11.0, reason="seed"))
-            db.add(KpEvent(
+            db.add(LpEvent(
                 user_id=user.id, amount=100, source_type="seed",
                 source_id=user.id, day_date=TODAY,
             ))
@@ -489,7 +489,7 @@ async def seed():
                 )).scalar_one_or_none()
                 if not exists:
                     db.add(BetUpvote(bet_id=market.id, user_id=voter.id))
-                    db.add(KpEvent(
+                    db.add(LpEvent(
                         user_id=proposer.id, amount=1, source_type="market_upvote",
                         source_id=market.id, day_date=TODAY,
                     ))
@@ -540,7 +540,7 @@ async def seed():
                     )).scalar_one_or_none()
                     if not exists:
                         db.add(CommentUpvote(comment_id=comment.id, user_id=cup.id))
-                        db.add(KpEvent(
+                        db.add(LpEvent(
                             user_id=commenter.id, amount=1, source_type="comment_upvote",
                             source_id=comment.id, day_date=TODAY,
                         ))
