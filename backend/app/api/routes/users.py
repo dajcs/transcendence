@@ -6,7 +6,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_db
 from app.schemas.ledger import TransactionListResponse
-from app.schemas.profile import PublicProfileResponse, UpdateProfileRequest, UserSearchResult
+from app.schemas.profile import (
+    HallOfFameResponse,
+    PublicProfileResponse,
+    UpdateProfileRequest,
+    UserSearchResult,
+)
 from app.services import auth_service
 from app.services import ledger_service
 from app.services import profile_service
@@ -130,6 +135,15 @@ async def search_users(
 ):
     """Search users by username."""
     return await profile_service.search_users(db, q)
+
+
+@router.get("/hall-of-fame", response_model=HallOfFameResponse)
+async def get_hall_of_fame(
+    limit: int = Query(default=20, ge=1, le=100),
+    db: AsyncSession = Depends(get_db),
+):
+    """Public leaderboard of BP banked because payout caps were hit."""
+    return await profile_service.get_hall_of_fame(db, limit=limit)
 
 
 @router.get("/{username}/transactions", response_model=TransactionListResponse)

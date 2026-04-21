@@ -62,8 +62,8 @@ Merged imp/i18n (useT hook + EN/FR/DE dictionaries + 20+ pages wired) and fix/po
 - **Files modified:** No change needed — imp/i18n already correct
 - **Commit:** bf7c387 (via imp/i18n merge)
 
-**2. [Deviation] OAUTH_REDIRECT_BASE already in .env.example from prior work**
-- The .env.example had OAUTH_REDIRECT_BASE from a previous manual addition (not tracked in git at the expected base). The `git diff` showed it as a working tree change post-merge, so it was committed as Task 2.
+**2. [Deviation] OAUTH_REDIRECT_BASE behavior evolved after initial Phase 06 work**
+- The original Phase 06 artifact assumed a fixed `https://localhost:8443` callback base. The OAuth multi-computer fix on 2026-04-21 changed the intended default to `OAUTH_REDIRECT_BASE=` so the callback host is derived from the initiating request unless a canonical URL is explicitly configured.
 
 ## Known Stubs
 
@@ -81,7 +81,7 @@ None — no new network endpoints, auth paths, or schema changes introduced. GDP
 - [x] frontend/src/i18n/index.ts exports useT
 - [x] frontend/src/store/locale.ts exports useLocaleStore + document.documentElement.lang
 - [x] frontend/src/components/nav/TopNav.tsx has LanguageSelector using useLocaleStore
-- [x] .env.example has OAUTH_REDIRECT_BASE=https://localhost:8443
+- [x] .env.example has OAUTH_REDIRECT_BASE documented; current default is blank for request-host derived callbacks
 - [x] Commits: bf7c387 (imp/i18n merge), ba9430f (fix/polish merge), f17ea38 (env gap)
 
 ## Self-Check: PASSED

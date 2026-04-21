@@ -69,7 +69,7 @@ class TestBetEmits:
         from fakeredis.aioredis import FakeRedis
         from app.db.models.user import User
         from app.db.models.bet import Bet
-        from app.db.models.transaction import KpEvent, BpTransaction
+        from app.db.models.transaction import LpEvent, BpTransaction
         from app.services.bet_service import place_bet
         from app.schemas.bet import BetPlaceRequest
         from app.socket.server import sio
@@ -83,9 +83,9 @@ class TestBetEmits:
                   deadline=datetime.now(timezone.utc) + timedelta(days=1))
         # Give user enough bp balance and kp (for bet cap check)
         bp_tx = BpTransaction(user_id=user_id, amount=10.0, reason="signup")
-        kp_event = KpEvent(user_id=user_id, amount=0, source_type="signup",
+        lp_event = LpEvent(user_id=user_id, amount=0, source_type="signup",
                            source_id=user_id, day_date=date.today())
-        db_session.add_all([user, bet, bp_tx, kp_event])
+        db_session.add_all([user, bet, bp_tx, lp_event])
         await db_session.commit()
 
         fake_redis = FakeRedis(decode_responses=True)

@@ -22,7 +22,7 @@ async def test_daily_allocation_inserts_transactions(db_session):
     """BET-07: daily_allocation credits karma_bp and resets kp for each user."""
     import uuid
     from app.db.models.user import User
-    from app.db.models.transaction import BpTransaction, KpEvent
+    from app.db.models.transaction import BpTransaction, LpEvent
     from sqlalchemy import select, func
     from datetime import date, timezone
     # Setup: user with 9 kp events today → expects 1 bp allocated, then kp reset
@@ -30,7 +30,7 @@ async def test_daily_allocation_inserts_transactions(db_session):
     db_session.add(User(id=user_id, email="task@test.com", username="taskuser",
                         is_active=True))
     today = date.today()
-    db_session.add(KpEvent(user_id=user_id, amount=9, source_type="comment_upvote",
+    db_session.add(LpEvent(user_id=user_id, amount=9, source_type="comment_upvote",
                            source_id=user_id, day_date=today))
     await db_session.commit()
 

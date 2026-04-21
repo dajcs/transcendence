@@ -18,6 +18,17 @@ async def _get_current_user(request: Request, db: AsyncSession):
     return await auth_service.get_current_user(db, access_token)
 
 
+async def _get_current_user_optional(request: Request, db: AsyncSession):
+    """Returns None if not authenticated (no exception)."""
+    access_token = request.cookies.get("access_token")
+    if not access_token:
+        return None
+    try:
+        return await auth_service.get_current_user(db, access_token)
+    except HTTPException:
+        return None
+
+
 @router.post("/markets/{bet_id}/comments", response_model=CommentResponse, status_code=201)
 async def create_comment(
     bet_id: uuid.UUID,
@@ -30,8 +41,10 @@ async def create_comment(
 
 
 @router.get("/markets/{bet_id}/comments", response_model=list[CommentResponse])
-async def list_comments(bet_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
-    return await comment_service.list_comments(db, bet_id=bet_id)
+async def list_comments(bet_id: uuid.UUID, request: Request, db: AsyncSession = Depends(get_db)):
+    user = await _get_current_user_optional(request, db)
+    current_user_id = user.id if user else None
+    return await comment_service.list_comments(db, bet_id=bet_id, current_user_id=current_user_id)
 
 
 @router.post("/comments/{comment_id}/upvote", status_code=201)
@@ -42,4 +55,15 @@ async def upvote_comment(
 ):
     user = await _get_current_user(request, db)
     await comment_service.upvote_comment(db, voter_id=user.id, comment_id=comment_id)
+    return {"ok": True}
+
+
+@router.delete("/comments/{comment_id}/upvote", status_code=200)
+async def unlike_comment(
+    comment_id: uuid.UUID,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+):
+    user = await _get_current_user(request, db)
+    await comment_service.unlike_comment(db, voter_id=user.id, comment_id=comment_id)
     return {"ok": True}

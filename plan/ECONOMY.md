@@ -6,30 +6,30 @@ Vox Populi uses four point currencies. No real money involved.
 
 | Currency | Name | Role |
 |---|---|---|
-| **kp** | Karma Points | Community contribution score |
+| **lp** | Like Points | Community contribution score |
 | **bp** | Betting Points | Betting currency |
 | **tp** | Truth Points | Forecasting accuracy score |
 | **sp** | Spice Points | Phase 2 — real-money skin-in-the-game signal |
 
 ---
 
-## Karma Points (kp)
+## Like Points (lp)
 
 ### Earning
-- +1 kp per upvote received on a comment (`source_type = comment_upvote`)
-- +1 kp per upvote received on a market (`source_type = market_upvote`)
+- +1 lp per upvote received on a comment (`source_type = comment_upvote`)
+- +1 lp per upvote received on a market (`source_type = market_upvote`)
 - Resets **daily at 00:00 UTC**
 
 ### Type
-- **kp** is an **integer** (stored as a sum of integer KpEvent amounts).
+- **lp** is an **integer** (stored as a sum of integer LpEvent amounts).
 
 ### Edge Cases
-- `kp = 0` after conversion reset until first upvote
-- Upvotes received before reset count toward accumulated kp; no carryover after reset
+- `lp = 0` after conversion reset until first upvote
+- Upvotes received before reset count toward accumulated lp; no carryover after reset
 - Upvoting your own content: **not allowed** (backend enforces unique voter constraint)
 
 ### Purpose
-- Determines bp allocation on next login (see KP → BP Conversion below)
+- Determines bp allocation on next login (see LP → BP Conversion below)
 - Measures contribution quality — does not directly buy anything
 
 ---
@@ -44,31 +44,31 @@ Vox Populi uses four point currencies. No real money involved.
 |---|---|
 | Sign-up bonus | +10.0 bp |
 | Daily login | +1.0 bp |
-| KP conversion on login | +log2(kp + 1) bp (float) |
-| Winning a bet | proportional share of total pool (float) |
-| Voting on your own market | +1.0 bp (rebate — net cost is 0) |
+| LP conversion on login | +min(log2(lp + 1), 10.0) bp (float, capped at 10.0) |
+| Winning a bet | min(bet_amount × 10, proportional_share) BP; surplus to special fund |
 | Successful dispute of a bet | +2.0 bp |
 
-## KP → BP Conversion (at login)
+## LP → BP Conversion (at login)
 
-Triggered on every user login (password or OAuth). Idempotent — if KP is 0, nothing happens.
+Triggered on every user login (password or OAuth). Idempotent — if LP is 0, nothing happens.
 
-- Calculate `karma_bp = log2(kp + 1)` — **full float, no floor**
+- Calculate `karma_bp = min(log2(lp + 1), 10.0)` — **full float, capped at 10 BP**
 - Insert a bp transaction of `+karma_bp` into `bp_transactions`
-- Reset kp to 0 (insert negative KpEvent)
-- Notify user: "X KP converted to Y.y BP"
+- Reset lp to 0 (insert negative LpEvent)
+- Notify user: "X LP converted to Y.y BP"
 
 ```
-karma_bp = log2(kp + 1)
+karma_bp = min(log2(lp + 1), 10.0)
 ```
 
-- Base: log2 (base 2) — faster growth at low kp counts
-- `+1` offset ensures result is never negative or undefined at `kp = 0`
+- Base: log2 (base 2) — faster growth at low lp counts
+- `+1` offset ensures result is never negative or undefined at `lp = 0`
 - Full float preserved — fractional bp credited
+- Capped at 10.0 BP to prevent runaway accumulation
 
 **Examples:**
 
-| kp | karma_bp |
+| lp | karma_bp |
 |---|---|
 | 0 | 0.0 |
 | 1 | 1.0 |
@@ -78,13 +78,15 @@ karma_bp = log2(kp + 1)
 | 31 | 5.0 |
 | 63 | 6.0 |
 | 123 | 6.9425... |
+| 1023 | 10.0 |
+| 2000 | 10.0 (capped) |
 
 - Prevents whales from dominating markets regardless of bp balance
 
 
 
 ### Spending
-- **Placing a bet:** 1 bp per vote
+- **Placing a bet:** flat cap of 10 BP per position (or available balance, whichever is lower)
 - **Disputing a resolution:** 1 bp upfront; +1 bp penalty if dispute is lost
 
 ### Withdrawal
@@ -141,6 +143,37 @@ Where:
 
 ---
 
+## Special Fund (bp_fund_entries)
+
+Surplus BP from capped payouts is recorded in the `bp_fund_entries` table.
+
+| Column | Type | Description |
+|--------|------|-------------|
+| market_id | UUID | FK to bets.id |
+| user_id | UUID | Winner whose payout was capped |
+| amount | Numeric | Surplus BP amount |
+| reason | Text | "cap_surplus" (binary/multichoice) or "numeric_cap_surplus" |
+| created_at | DateTime | Event timestamp |
+
+Surplus use-case (lottery/distribution) is deferred to a later phase.
+
+---
+
+## Numeric Market Payout
+
+Numeric markets use span-based error bands derived from the configured numeric range:
+
+1. Parse each active prediction as a float and compute its absolute error as a percentage of the market span
+2. Select the first non-empty winner band:
+   - Band 1: error `<= 2%`
+   - Band 2: error `> 2% and <= 4%`
+   - Band 3: error `> 4% and <= 8%`
+   - Band 4: error `> 8% and <= 16%`
+3. Split the full BP pool proportionally across winners in that band
+4. Cap each winner at `10x` their own stake
+5. Surplus beyond that cap goes to the special fund (`reason = "numeric_cap_surplus"`)
+
+---
 
 ## Spice Points (sp)
 
@@ -184,12 +217,12 @@ Community dispute votes are weighted to penalize self-serving voting:
 - tp is similarly tracked in `tp_transactions`
 - All balance-modifying operations wrapped in DB transactions with `SELECT FOR UPDATE` on user row
 - **bp and tp are floats** — no floor/truncation in payout or allocation calculations
-- **kp is an integer** — displayed without decimals
+- **lp is an integer** — displayed without decimals
 - Celery handles:
   - Bet resolution scheduling
   - Dispute deadline checks
-- KP → BP conversion and KP reset happen at **user login** (password or OAuth), not via scheduled task
+- LP → BP conversion and LP reset happen at **user login** (password or OAuth), not via scheduled task
 
 ---
 
-*Last updated: 2026-04-15*
+*Last updated: 2026-04-21*

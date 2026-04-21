@@ -77,72 +77,139 @@ async def test_proposer_penalty(db_session):
     assert compute_proposer_penalty(staked=1.0) == 0.0  # floor(0.5)
 
 
-# RES-06: Payout formula: +1bp per winner + floor(t_win/t_bet * 100)/100 tp
-@pytest.mark.xfail(reason="resolution_service not yet implemented", strict=False)
+# RES-06: Payout formula: tp = t_win / t_bet (raw float, no truncation)
 def test_payout_formula():
     from app.services.resolution_service import compute_tp_earned
     t_bet = 3600.0  # 1 hour bet duration
     # Winner entered early: t_win = 3600s (full duration)
     tp = compute_tp_earned(t_win=3600.0, t_bet=t_bet)
-    assert tp == 1.0  # floor(1.0 * 100) / 100
+    assert tp == 1.0  # raw float: 3600/3600
     # Winner entered halfway: t_win = 1800s
     tp = compute_tp_earned(t_win=1800.0, t_bet=t_bet)
-    assert tp == 0.5  # floor(0.5 * 100) / 100
-    # Last-second entry: t_win = 60s
+    assert tp == 0.5  # raw float: 1800/3600
+    # Last-second entry: t_win = 60s — raw float (no floor truncation)
     tp = compute_tp_earned(t_win=60.0, t_bet=t_bet)
-    assert math.isclose(tp, 0.01, abs_tol=0.001)
-    # t_win > t_bet is impossible; t_bet > 0 asserted
+    assert math.isclose(tp, 60.0 / 3600.0)
+    # Zero t_win
     assert compute_tp_earned(t_win=0.0, t_bet=t_bet) == 0.0
+    # Zero or negative t_bet
+    assert compute_tp_earned(t_win=100.0, t_bet=0.0) == 0.0
 
 
-# D-11: _compute_tp_for_user helper — unit tests (pure logic, no DB)
-def test_d11_bp_proportional_formula():
-    """Verify D-11 BP formula arithmetic (pure math, no DB)."""
-    # 2 winners, 100 bp each, total pool=300 bp (100 bp on losing side)
+# D-12: 10x BP cap per winner — unit tests (pure math, no DB)
+def test_d12_bp_cap_formula():
+    """Verify D-12 BP payout cap: min(stake * 10, proportional_share)."""
     total_bp_pool = 300.0
     total_winning_stake = 200.0
-    user_winning_stake = 100.0
-    winner_bp = math.floor(user_winning_stake / total_winning_stake * total_bp_pool)
-    assert winner_bp == 150
 
-    # 1 winner, 50 bp stake, total pool=150 bp
-    total_bp_pool = 150.0
-    total_winning_stake = 50.0
-    user_winning_stake = 50.0
-    winner_bp = math.floor(user_winning_stake / total_winning_stake * total_bp_pool)
-    assert winner_bp == 150
+    # User with 100 bp stake: proportional = 150, cap = 1000 -> winner gets 150
+    user_stake = 100.0
+    proportional = user_stake / total_winning_stake * total_bp_pool
+    cap = user_stake * 10
+    winner_bp = min(cap, proportional)
+    surplus = max(0.0, proportional - winner_bp)
+    assert winner_bp == 150.0
+    assert surplus == 0.0  # cap (1000) >> proportional (150)
+
+    # User with 5 bp stake, pool = 200, total_winning_stake = 5 (all winners)
+    # proportional = 200, cap = 50 -> winner gets 50, surplus = 150
+    user_stake2 = 5.0
+    total_winning_stake2 = 5.0
+    total_bp_pool2 = 200.0
+    proportional2 = user_stake2 / total_winning_stake2 * total_bp_pool2
+    cap2 = user_stake2 * 10
+    winner_bp2 = min(cap2, proportional2)
+    surplus2 = max(0.0, proportional2 - winner_bp2)
+    assert winner_bp2 == 50.0
+    assert surplus2 == 150.0
 
 
-def test_d11_tp_per_position_formula():
-    """Verify D-11 TP per-position formula arithmetic (pure math, no DB)."""
-    total_winning_stake = 200.0
+def test_d11_tp_time_based_formula():
+    """Verify D-11 TP time-based formula: tp = t_win / t_bet (raw float)."""
+    from app.services.resolution_service import compute_tp_earned
 
-    # User with 2 positions (1 winning at 80 bp, 1 losing at 20 bp)
-    positions = [("yes", 80.0), ("no", 20.0)]
-    winning_side = "yes"
-    tp_values = []
-    for side, bp_staked in positions:
-        if side == winning_side and total_winning_stake > 0:
-            tp_i = math.floor(bp_staked / total_winning_stake * 100) / 100
-        else:
-            tp_i = 0.0
-        tp_values.append(tp_i)
-    user_tp = sum(tp_values) / len(tp_values)
-    assert tp_values[0] == 0.40  # floor(80/200*100)/100
-    assert tp_values[1] == 0.0   # losing position
-    assert user_tp == 0.20        # (0.40 + 0) / 2
+    t_bet = 7200.0  # 2 hour bet
+    # Held for full duration
+    assert compute_tp_earned(t_win=7200.0, t_bet=t_bet) == 1.0
+    # Held for 1 hour out of 2
+    assert compute_tp_earned(t_win=3600.0, t_bet=t_bet) == 0.5
+    # Raw float — no floor truncation
+    tp = compute_tp_earned(t_win=1.0, t_bet=3600.0)
+    assert math.isclose(tp, 1.0 / 3600.0)
 
-    # User with 1 winning position (80 bp, total_winning_stake=200)
-    positions_single = [("yes", 80.0)]
-    tp_values_single = []
-    for side, bp_staked in positions_single:
-        if side == winning_side and total_winning_stake > 0:
-            tp_i = math.floor(bp_staked / total_winning_stake * 100) / 100
-        else:
-            tp_i = 0.0
-        tp_values_single.append(tp_i)
-    user_tp_single = sum(tp_values_single) / len(tp_values_single)
-    assert user_tp_single == 0.40
+
+def test_numeric_payouts_use_closest_non_empty_band_and_full_pool():
+    from app.services.resolution_service import _compute_numeric_payouts
+
+    payouts, fund_inserts = _compute_numeric_payouts(
+        positions=[
+            (uuid.uuid4(), 3.0, "101.0"),
+            (uuid.uuid4(), 1.0, "101.5"),
+            (uuid.uuid4(), 5.0, "120.0"),
+        ],
+        resolution_value=100.0,
+        range_min=0.0,
+        range_max=200.0,
+    )
+
+    assert sorted(payouts.values()) == [2.25, 6.75]
+    assert fund_inserts == []
+
+
+def test_numeric_payouts_use_market_span_percentages_and_16pct_fallback_band():
+    from app.services.resolution_service import _compute_numeric_payouts
+
+    payouts, fund_inserts = _compute_numeric_payouts(
+        positions=[
+            (uuid.uuid4(), 3.0, "115.0"),  # 15% of 0..100 span
+            (uuid.uuid4(), 1.0, "84.0"),   # 16% of 0..100 span
+            (uuid.uuid4(), 5.0, "130.0"),  # 30% of span
+        ],
+        resolution_value=100.0,
+        range_min=0.0,
+        range_max=100.0,
+    )
+
+    assert sorted(payouts.values()) == [2.25, 6.75]
+    assert fund_inserts == []
+
+
+def test_numeric_payouts_have_no_winners_beyond_16pct_of_market_span():
+    from app.services.resolution_service import _compute_numeric_payouts
+
+    payouts, fund_inserts = _compute_numeric_payouts(
+        positions=[
+            (uuid.uuid4(), 3.0, "117.0"),
+            (uuid.uuid4(), 1.0, "82.0"),
+        ],
+        resolution_value=100.0,
+        range_min=0.0,
+        range_max=100.0,
+    )
+
+    assert payouts == {}
+    assert fund_inserts == []
+
+
+def test_numeric_payouts_cap_each_winner_and_store_surplus_per_user():
+    from app.services.resolution_service import _compute_numeric_payouts
+
+    user_a = uuid.uuid4()
+    user_b = uuid.uuid4()
+    payouts, fund_inserts = _compute_numeric_payouts(
+        positions=[
+            (user_a, 1.0, "101.0"),
+            (user_b, 1.0, "101.5"),
+            (uuid.uuid4(), 98.0, "150.0"),
+        ],
+        resolution_value=100.0,
+        range_min=0.0,
+        range_max=200.0,
+    )
+
+    assert payouts[user_a] == 10.0
+    assert payouts[user_b] == 10.0
+    assert sorted(fund_inserts) == sorted([(user_a, 40.0), (user_b, 40.0)])
 
 
 def test_beat_schedule_has_check_auto_resolution():

@@ -71,10 +71,13 @@ GITHUB_CLIENT_ID=...
 GITHUB_CLIENT_SECRET=...
 FT_CLIENT_ID=...
 FT_CLIENT_SECRET=...
+OAUTH_REDIRECT_BASE=
 
 # 42 school
-ALLOWED_HOSTS=localhost,127.0.0.1
+ALLOWED_HOSTS=localhost,127.0.0.1,voxpopuli.local
 ```
+
+Leave `OAUTH_REDIRECT_BASE` empty during local/LAN development so OAuth callbacks use the host that initiated the flow. Set it explicitly only when you need a fixed canonical URL.
 
 ### Startup Validation
 Backend validates all required env vars at startup. Missing vars → log error + exit 1.

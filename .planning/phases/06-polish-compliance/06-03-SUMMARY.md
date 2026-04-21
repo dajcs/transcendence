@@ -13,6 +13,8 @@ status: complete
 - ThemeToggle hydration mismatch fixed: deferred icon render until mounted
 - Replaced next-themes with custom `useThemeStore` (Zustand) — eliminates React 19 script-in-component warning
 - Locale hydration mismatch fixed: `useT()` defers to "en" until mounted
+- Locale selector hydration mismatch fixed: nav/settings `<select>` values stay on SSR-safe `en` until mount, then switch to stored locale
+- Root document language now syncs after hydration so Chrome/a11y checks see the active locale instead of stale `lang="en"`
 - Footer added to root layout with Privacy Policy and Terms of Service links
 - "Back to home" links on /privacy and /terms redirect to /dashboard when authenticated
 - LLM provider errors now propagated as HTTP 502 with detail instead of silent "unavailable"

@@ -33,7 +33,7 @@ interface Profile {
   avatar_url: string | null;
   bio: string | null;
   created_at: string;
-  kp: number;
+  lp: number;
   tp: number;
   total_bets: number;
   win_rate: number;
@@ -52,12 +52,14 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 const TYPE_COLORS: Record<string, string> = {
+  market: "bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-400",
   bet_placed: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
+  bet_refund: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400",
   bet_won: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
   bet_lost: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
   withdrawal: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400",
   daily_bonus: "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300",
-  kp_allocation: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400",
+  lp_allocation: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400",
   payout: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
 };
 
@@ -258,7 +260,7 @@ export default function ProfilePage() {
           {/* Stats */}
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
             <div className="rounded border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 text-center">
-              <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{profile.kp}</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{profile.lp}</p>
               <p className="text-xs text-gray-500 dark:text-gray-400">{t("profile.karma_points")}</p>
             </div>
             <div className="rounded border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 text-center">
@@ -281,15 +283,15 @@ export default function ProfilePage() {
           <div className="rounded border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
             <div className="flex border-b border-gray-200 dark:border-gray-700">
               <button className={tabClass("points")} onClick={() => setActiveTab("points")}>
-                {t("profile.tab_points")}
+                {t("profile.tab_points", { username: profile.username })}
               </button>
               {isOwnProfile && (
                 <button className={tabClass("bets")} onClick={() => setActiveTab("bets")}>
-                  {t("profile.tab_bets")}
+                  {t("profile.tab_bets", { username: profile.username })}
                 </button>
               )}
               <button className={tabClass("markets")} onClick={() => setActiveTab("markets")}>
-                {t("profile.tab_markets")}
+                {t("profile.tab_markets", { username: profile.username })}
               </button>
             </div>
 
@@ -329,7 +331,11 @@ export default function ProfilePage() {
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
-                            {allTx.map((tx) => (
+                            {allTx.filter((tx) => tx.bp_delta !== 0 || tx.tp_delta !== 0).map((tx) => {
+                              const lpDesc = tx.type === "lp_allocation" && tx.bp_delta > 0
+                                ? `${Math.round(Math.pow(2, tx.bp_delta) - 1)} ♥`
+                                : null;
+                              return (
                               <tr key={tx.id}>
                                 <td className="py-2 text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
                                   {new Date(tx.date).toLocaleString()}
@@ -340,10 +346,14 @@ export default function ProfilePage() {
                                   </span>
                                 </td>
                                 <td className="py-2 text-gray-700 dark:text-gray-300 max-w-[180px] truncate">
-                                  {tx.market_title && tx.market_id ? (
+                                  {lpDesc ? (
+                                    <span className="text-purple-600 dark:text-purple-400">{lpDesc}</span>
+                                  ) : tx.market_title && tx.market_id ? (
                                     <Link href={`/markets/${tx.market_id}`} className="hover:underline text-blue-600 dark:text-blue-400">
                                       {tx.market_title}
                                     </Link>
+                                  ) : tx.description ? (
+                                    <span>{tx.description}</span>
                                   ) : (
                                     <span className="text-gray-400">—</span>
                                   )}
@@ -361,7 +371,8 @@ export default function ProfilePage() {
                                   {tx.tp_balance.toFixed(1)}
                                 </td>
                               </tr>
-                            ))}
+                              );
+                            })}
                           </tbody>
                         </table>
                       </div>

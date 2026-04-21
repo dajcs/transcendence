@@ -6,9 +6,16 @@ from sqlalchemy import and_, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models.bet import BetPosition, Resolution
+from app.db.models.transaction import BpFundEntry, BpTransaction
 from app.db.models.social import FriendRequest
 from app.db.models.user import User
-from app.schemas.profile import PublicProfileResponse, UpdateProfileRequest, UserSearchResult
+from app.schemas.profile import (
+    HallOfFameEntry,
+    HallOfFameResponse,
+    PublicProfileResponse,
+    UpdateProfileRequest,
+    UserSearchResult,
+)
 from app.services.economy_service import get_balance
 
 
@@ -31,17 +38,15 @@ async def get_public_profile(
 
     # Win rate: positions where user's side matches the resolution outcome
     won_bets = (await db.execute(
-        select(func.count(BetPosition.id))
-        .join(Resolution, Resolution.bet_id == BetPosition.bet_id)
-        .where(
-            BetPosition.user_id == user.id,
-            BetPosition.withdrawn_at.is_(None),
-            Resolution.outcome == BetPosition.side,
+        select(func.count(func.distinct(BpTransaction.bet_id))).where(
+            BpTransaction.user_id == user.id,
+            BpTransaction.reason == "bet_win",
+            BpTransaction.bet_id.is_not(None),
         )
     )).scalar_one()
 
     resolved_bets = (await db.execute(
-        select(func.count(BetPosition.id))
+        select(func.count(func.distinct(BetPosition.bet_id)))
         .join(Resolution, Resolution.bet_id == BetPosition.bet_id)
         .where(
             BetPosition.user_id == user.id,
@@ -73,7 +78,7 @@ async def get_public_profile(
         avatar_url=user.avatar_url,
         bio=user.bio,
         created_at=user.created_at,
-        kp=int(balances["kp"]),
+        lp=int(balances["lp"]),
         tp=float(balances["tp"]),
         total_bets=int(total_bets),
         win_rate=round(win_rate, 1),
@@ -121,3 +126,38 @@ async def search_users(db: AsyncSession, q: str, limit: int = 20) -> list[UserSe
         UserSearchResult(id=u.id, username=u.username, avatar_url=u.avatar_url)
         for u in results
     ]
+
+
+async def get_hall_of_fame(db: AsyncSession, limit: int = 20) -> HallOfFameResponse:
+    """List users with the most BP diverted to the bank due to payout caps."""
+    rows = (await db.execute(
+        select(
+            User.id,
+            User.username,
+            User.avatar_url,
+            func.sum(BpFundEntry.amount).label("banked_bp"),
+            func.count(func.distinct(BpFundEntry.market_id)).label("markets_count"),
+        )
+        .join(User, User.id == BpFundEntry.user_id)
+        .where(
+            User.is_active.is_(True),
+            BpFundEntry.reason.in_(["cap_surplus", "numeric_cap_surplus"]),
+        )
+        .group_by(User.id, User.username, User.avatar_url)
+        .order_by(func.sum(BpFundEntry.amount).desc(), User.username.asc())
+        .limit(limit)
+    )).all()
+
+    return HallOfFameResponse(
+        entries=[
+            HallOfFameEntry(
+                id=row.id,
+                username=row.username,
+                avatar_url=row.avatar_url,
+                banked_bp=round(float(row.banked_bp or 0.0), 2),
+                markets_count=int(row.markets_count or 0),
+            )
+            for row in rows
+        ],
+        total=len(rows),
+    )

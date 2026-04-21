@@ -2,6 +2,8 @@
 import uuid
 import pytest
 from httpx import AsyncClient
+from fastapi import HTTPException
+from starlette.requests import Request
 from unittest.mock import AsyncMock, patch
 from app.db.models.user import User
 
@@ -122,6 +124,130 @@ async def test_oauth_providers_endpoint_returns_configured_providers(client: Asy
     resp = await client.get("/api/auth/oauth/providers")
     assert resp.status_code == 200
     assert resp.json() == {"providers": ["google", "github", "42"]}
+
+
+def _build_request(host: str, scheme: str = "https") -> Request:
+    return Request(
+        {
+            "type": "http",
+            "method": "GET",
+            "path": "/api/auth/oauth/42",
+            "headers": [(b"host", host.encode())],
+            "scheme": scheme,
+            "client": ("127.0.0.1", 12345),
+        }
+    )
+
+
+def test_resolve_oauth_redirect_base_prefers_forwarded_proto_when_unset(monkeypatch):
+    from app.api.routes.auth import _resolve_oauth_redirect_base
+    from app.config import settings
+
+    monkeypatch.setattr(settings, "oauth_redirect_base", "")
+    monkeypatch.setattr(settings, "allowed_hosts", "localhost,voxpopuli.local")
+
+    request = Request(
+        {
+            "type": "http",
+            "method": "GET",
+            "path": "/api/auth/oauth/42",
+            "headers": [
+                (b"host", b"localhost:8443"),
+                (b"x-forwarded-proto", b"https"),
+            ],
+            "scheme": "http",
+            "client": ("127.0.0.1", 12345),
+        }
+    )
+
+    assert _resolve_oauth_redirect_base(request) == "https://localhost:8443"
+
+
+@pytest.mark.asyncio
+async def test_oauth_initiate_uses_request_host_when_redirect_base_unset(monkeypatch):
+    from app.api.routes.auth import oauth_initiate
+    from app.config import settings
+
+    monkeypatch.setattr(settings, "oauth_redirect_base", "")
+    monkeypatch.setattr(settings, "allowed_hosts", "localhost,voxpopuli.local")
+
+    with patch("app.api.routes.auth.oauth_service.build_authorize_url", new=AsyncMock(return_value="https://provider.example/auth")) as mock_build:
+        resp = await oauth_initiate("42", _build_request("voxpopuli.local:8443"))
+
+    assert resp.status_code == 307
+    mock_build.assert_awaited_once_with("42", redirect_base="https://voxpopuli.local:8443")
+
+
+@pytest.mark.asyncio
+async def test_oauth_initiate_uses_configured_redirect_base_when_set(monkeypatch):
+    from app.api.routes.auth import oauth_initiate
+    from app.config import settings
+
+    monkeypatch.setattr(settings, "oauth_redirect_base", "https://auth.voxpopuli.test")
+    monkeypatch.setattr(settings, "allowed_hosts", "localhost,voxpopuli.local")
+
+    with patch("app.api.routes.auth.oauth_service.build_authorize_url", new=AsyncMock(return_value="https://provider.example/auth")) as mock_build:
+        resp = await oauth_initiate("42", _build_request("voxpopuli.local:8443"))
+
+    assert resp.status_code == 307
+    mock_build.assert_awaited_once_with("42", redirect_base="https://auth.voxpopuli.test")
+
+
+@pytest.mark.asyncio
+async def test_oauth_initiate_rejects_invalid_host_when_redirect_base_unset(monkeypatch):
+    from app.api.routes.auth import oauth_initiate
+    from app.config import settings
+
+    monkeypatch.setattr(settings, "oauth_redirect_base", "")
+    monkeypatch.setattr(settings, "allowed_hosts", "localhost,voxpopuli.local")
+
+    with pytest.raises(HTTPException, match="Invalid host header"):
+        await oauth_initiate("42", _build_request("evil.example:8443"))
+
+
+@pytest.mark.asyncio
+async def test_oauth_callback_uses_request_host_when_redirect_base_unset(monkeypatch):
+    from app.api.routes.auth import oauth_callback
+    from app.config import settings
+
+    monkeypatch.setattr(settings, "oauth_redirect_base", "")
+    monkeypatch.setattr(settings, "allowed_hosts", "localhost,voxpopuli.local")
+
+    with patch(
+        "app.api.routes.auth.oauth_service.handle_callback",
+        new=AsyncMock(return_value=(object(), "access-token", "refresh-token")),
+    ) as mock_handle:
+        resp = await oauth_callback(
+            "42",
+            _build_request("voxpopuli.local:8443"),
+            code="test-code",
+            state="test-state",
+            db=None,
+        )
+
+    assert resp.status_code == 302
+    mock_handle.assert_awaited_once()
+    assert mock_handle.await_args.kwargs["redirect_base"] == "https://voxpopuli.local:8443"
+
+
+@pytest.mark.asyncio
+async def test_oauth_callback_invalid_host_redirects_to_login_error(monkeypatch):
+    from app.api.routes.auth import oauth_callback
+    from app.config import settings
+
+    monkeypatch.setattr(settings, "oauth_redirect_base", "")
+    monkeypatch.setattr(settings, "allowed_hosts", "localhost,voxpopuli.local")
+
+    resp = await oauth_callback(
+        "42",
+        _build_request("evil.example:8443"),
+        code="test-code",
+        state="test-state",
+        db=None,
+    )
+
+    assert resp.status_code == 302
+    assert resp.headers["location"] == "/login?error=Invalid%20host%20header"
 
 
 # ── AUTH-03: Password reset no enumeration ────────────────────────────────

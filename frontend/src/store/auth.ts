@@ -8,7 +8,7 @@ interface User {
   username: string;
   avatar_url: string | null;
   bp: number;
-  kp: number;
+  lp: number;
   tp: number;
 }
 

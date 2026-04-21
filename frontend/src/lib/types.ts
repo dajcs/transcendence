@@ -20,6 +20,7 @@ export interface Market {
   comment_count: number;
   choice_counts: Record<string, number>;
   upvote_count: number;
+  user_has_liked: boolean;
 }
 
 export interface MarketListResponse {
@@ -68,6 +69,7 @@ export interface Comment {
   content: string;
   created_at: string;
   upvote_count: number;
+  user_has_liked: boolean;
 }
 
 export interface ApiError {

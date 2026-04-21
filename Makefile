@@ -28,6 +28,17 @@ build:
 down:
 	docker compose down
 
+# Restart all services
+restart:
+	docker compose down
+	docker compose up
+
+# Reload (Rebuild) all services
+reload:
+	docker compose down
+	docker compose up --build
+
+
 # Generate SSL cert + RSA key pair for JWT (run once)
 gen-keys:
 	mkdir -p nginx/ssl

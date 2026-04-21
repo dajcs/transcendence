@@ -9,7 +9,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
 from app.db.models.bet import Bet, BetPosition, PositionHistory
-from app.db.models.transaction import KpEvent
 from app.schemas.bet import (
     BetPlaceRequest,
     BetPositionResponse,
@@ -18,7 +17,6 @@ from app.schemas.bet import (
     BetWithdrawResponse,
 )
 from app.services.economy_service import (
-    compute_bet_cap,
     compute_numeric_refund_bp,
     compute_refund_bp,
     credit_bp,
@@ -71,21 +69,11 @@ async def _emit_odds_update(db: AsyncSession, bet_id: uuid.UUID) -> None:
 
 
 async def _check_bet_cap(db: AsyncSession, user_id: uuid.UUID, amount: float) -> None:
-    """BET-04: reject if amount exceeds today's kp-based cap."""
-    today = datetime.now(timezone.utc).date()
-    kp = (
-        await db.execute(
-            select(func.sum(KpEvent.amount)).where(
-                KpEvent.user_id == user_id,
-                KpEvent.day_date == today,
-            )
-        )
-    ).scalar_one()
-    cap = compute_bet_cap(int(kp or 0))
-    if amount > cap:
+    """BET-04: flat cap of 10 BP per position (D-09)."""
+    if amount > 10:
         raise HTTPException(
             status_code=422,
-            detail=f"Bet amount {amount} exceeds your daily cap of {cap} bp.",
+            detail=f"Bet amount {amount} exceeds the maximum of 10 bp per position.",
         )
 
 
@@ -111,8 +99,6 @@ async def place_bet(db: AsyncSession, user_id: uuid.UUID, data: BetPlaceRequest)
     await _check_bet_cap(db, user_id, data.amount)
 
     await deduct_bp(db, user_id=user_id, amount=data.amount, reason="bet_place", bet_id=data.bet_id)
-    if market.proposer_id == user_id:
-        await credit_bp(db, user_id=user_id, amount=data.amount, reason="own_bet_vote", bet_id=data.bet_id)
     position = BetPosition(
         id=uuid.uuid4(),
         bet_id=data.bet_id,
@@ -177,13 +163,27 @@ async def withdraw_bet(db: AsyncSession, user_id: uuid.UUID, position_id: uuid.U
             float(market.numeric_min or 0),
             float(market.numeric_max or 1),
         )
+    elif market.market_type == "multiple_choice":
+        counts_result = await db.execute(
+            select(BetPosition.side, func.count(BetPosition.id))
+            .where(
+                BetPosition.bet_id == position.bet_id,
+                BetPosition.withdrawn_at.is_(None),
+            )
+            .group_by(BetPosition.side)
+        )
+        choice_counts = {side: int(count) for side, count in counts_result.all()}
+        total_positions = sum(choice_counts.values()) or 1
+        refund = round((choice_counts.get(position.side, 0) / total_positions), 2)
     else:
         odds = await get_bet_odds(db, position.bet_id)
-        refund = compute_refund_bp(float(odds["yes_pool"]), float(odds["no_pool"]), position.side)
+        refund = compute_refund_bp(float(odds["yes_count"]), float(odds["no_count"]), position.side)
 
-    await credit_bp(db, user_id=user_id, amount=refund, reason="withdrawal_refund", bet_id=position.bet_id)
+    refund_total = round(refund * float(position.bp_staked), 2)
+
+    await credit_bp(db, user_id=user_id, amount=refund_total, reason="withdrawal_refund", bet_id=position.bet_id)
     position.withdrawn_at = datetime.now(timezone.utc)
-    position.refund_bp = refund
+    position.refund_bp = refund_total
     await db.commit()
 
     try:
@@ -197,7 +197,7 @@ async def withdraw_bet(db: AsyncSession, user_id: uuid.UUID, position_id: uuid.U
     except Exception:
         pass
 
-    return BetWithdrawResponse(id=position.id, refund_bp=float(refund), message="Position withdrawn")
+    return BetWithdrawResponse(id=position.id, refund_bp=float(refund_total), message="Position withdrawn")
 
 
 def _is_numeric(value: str) -> bool:

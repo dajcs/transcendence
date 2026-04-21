@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.types import Float, String, Uuid
 
 from app.db.models.bet import Bet
-from app.db.models.transaction import BpTransaction, KpEvent, TpTransaction
+from app.db.models.transaction import BpTransaction, LpEvent, TpTransaction
 from app.db.models.user import User
 from app.schemas.ledger import TransactionEntry, TransactionListResponse
 
@@ -44,16 +44,16 @@ async def get_user_transactions(
         cast(TpTransaction.amount, Float).label("tp_delta"),
     ).where(TpTransaction.user_id == user_id)
 
-    kp_q = select(
-        KpEvent.id.label("id"),
-        KpEvent.created_at.label("date"),
-        KpEvent.source_type.label("reason"),
+    lp_q = select(
+        LpEvent.id.label("id"),
+        LpEvent.created_at.label("date"),
+        LpEvent.source_type.label("reason"),
         cast(None, Uuid).label("bet_id"),
         literal(0.0).label("bp_delta"),
         literal(0.0).label("tp_delta"),
-    ).where(KpEvent.user_id == user_id, KpEvent.amount > 0)
+    ).where(LpEvent.user_id == user_id, LpEvent.amount > 0)
 
-    combined = union_all(bp_q, tp_q, kp_q).subquery()
+    combined = union_all(bp_q, tp_q, lp_q).subquery()
 
     # Merge BP + TP rows for the same bet_win event at the SQL level.
     # group_key = bet_id for bet_win rows (merges the pair), id for everything else.
@@ -74,15 +74,15 @@ async def get_user_transactions(
     ).group_by(group_key).subquery()
 
     tx_type = case(
-        (merged.c.reason == "market_create", "bet_placed"),
+        (merged.c.reason == "market_create", "market"),
         (merged.c.reason == "bet_place", "bet_placed"),
-        (merged.c.reason == "bet_refund", "withdrawal"),
+        (merged.c.reason.in_(["bet_refund", "withdrawal_refund"]), "bet_refund"),
         (merged.c.reason == "bet_win", "bet_won"),
         (merged.c.reason == "proposer_penalty", "bet_lost"),
-        (merged.c.reason == "kp_conversion", "kp_allocation"),
+        (merged.c.reason == "lp_conversion", "lp_allocation"),
         (merged.c.reason == "daily_login", "daily_bonus"),
         (merged.c.reason == "signup_bonus", "daily_bonus"),
-        (merged.c.reason.in_(["comment_upvote", "daily_allocation"]), "kp_allocation"),
+        (merged.c.reason.in_(["comment_upvote", "daily_allocation", "market_upvote"]), "lp_allocation"),
         else_="daily_bonus",
     ).label("tx_type")
 
@@ -143,7 +143,11 @@ async def get_user_transactions(
             id=row.id,
             date=row.date,
             type=row.tx_type,
-            description=title_map.get(row.bet_id) if row.bet_id else "",
+            description=(
+                row.date.date().isoformat()
+                if row.tx_type == "daily_bonus" and row.date
+                else title_map.get(row.bet_id, "")
+            ),
             market_id=row.bet_id,
             market_title=title_map.get(row.bet_id) if row.bet_id else None,
             bp_delta=round(row.bp_delta, 1),
