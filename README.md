@@ -16,11 +16,11 @@ A lightweight prediction market designed to reduce the distortions introduced by
 cp .env.example .env   # fill in secrets
 make gen-keys          # Generate SSL cert + RSA key pair for JWT (run once)
 
-# optional seed data for testing:
-make seed               # creates test users, bets, and comments
-
 # Start all services with hot-reload (docker-compose.override.yml picked up automatically)
 make dev               # docker compose up --build
+
+# optional seed data for testing:
+make seed               # creates test users, bets, and comments
 ```
 
 Open [https://localhost:8443](https://localhost:8443) in your browser. Use the seeded test accounts or create a new one.
@@ -56,12 +56,12 @@ Every vote costs **1 bp**. Probabilities are refreshed continuously as votes com
 
 | Currency | Name | How You Earn It | Purpose |
 |---|---|---|---|
-| **kp** | Karma Points | New upvotes on your comments or proposed bets (resets daily) | Measures community contribution |
-| **bp** | Betting Points | +10 at signup, +1 daily login, +log(kp) daily, +1 to vote on your own bet | Currency for placing bets |
+| **♥** | Like Points | New upvotes on your comments or proposed markets (resets daily) | Measures community contribution |
+| **bp** | Betting Points | +10 at signup, +1 daily login, +min(log2(♥+1), 10.0) daily | Currency for placing bets |
 | **tp** | Truth Points | for each winning bet: + (t<sub>win</sub> / t<sub>bet</sub>) | Tracks forecasting accuracy |
 | **sp** | Spice Points | Winnings from pairwise real-money bets (Part 2) | Skin-in-the-game signal |
 
-- the log-scale bet cap log(kp) prevents any single user from dominating a market regardless of how active they are
+- the log-scale bet cap min(log2(♥+1), 10.0) prevents any single user from dominating a market regardless of how active they are
 - the tp amount t<sub>win</sub> / t<sub>bet</sub> is the ratio of time in winning position over the total time of the bet (reduces last minute tp farming)
 
 

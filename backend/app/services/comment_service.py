@@ -3,12 +3,12 @@ import uuid
 from datetime import datetime, timezone
 
 from fastapi import HTTPException
-from sqlalchemy import func, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models.bet import Bet, Comment, CommentUpvote
-from app.db.models.transaction import KpEvent
+from app.db.models.transaction import LpEvent
 from app.db.models.user import User
 from app.schemas.comment import CommentCreate, CommentResponse
 
@@ -77,7 +77,11 @@ async def create_comment(
     return response
 
 
-async def list_comments(db: AsyncSession, bet_id: uuid.UUID) -> list[CommentResponse]:
+async def list_comments(
+    db: AsyncSession,
+    bet_id: uuid.UUID,
+    current_user_id: uuid.UUID | None = None,
+) -> list[CommentResponse]:
     rows = (
         await db.execute(
             select(Comment, User.username)
@@ -86,6 +90,17 @@ async def list_comments(db: AsyncSession, bet_id: uuid.UUID) -> list[CommentResp
             .order_by(Comment.created_at.asc())
         )
     ).all()
+
+    liked_ids: set[uuid.UUID] = set()
+    if current_user_id is not None and rows:
+        comment_ids = [comment.id for comment, _ in rows]
+        liked_rows = await db.execute(
+            select(CommentUpvote.comment_id).where(
+                CommentUpvote.user_id == current_user_id,
+                CommentUpvote.comment_id.in_(comment_ids),
+            )
+        )
+        liked_ids = {row[0] for row in liked_rows}
 
     response: list[CommentResponse] = []
     for comment, author_username in rows:
@@ -104,6 +119,7 @@ async def list_comments(db: AsyncSession, bet_id: uuid.UUID) -> list[CommentResp
                 content=comment.content,
                 created_at=comment.created_at,
                 upvote_count=int(upvote_count),
+                user_has_liked=comment.id in liked_ids,
             )
         )
 
@@ -121,7 +137,7 @@ async def upvote_comment(db: AsyncSession, voter_id: uuid.UUID, comment_id: uuid
     try:
         db.add(CommentUpvote(comment_id=comment_id, user_id=voter_id))
         db.add(
-            KpEvent(
+            LpEvent(
                 user_id=comment.user_id,
                 amount=1,
                 source_type="comment_upvote",
@@ -132,3 +148,31 @@ async def upvote_comment(db: AsyncSession, voter_id: uuid.UUID, comment_id: uuid
         await db.commit()
     except IntegrityError:
         await db.rollback()  # already upvoted — treat as no-op
+
+
+async def unlike_comment(db: AsyncSession, voter_id: uuid.UUID, comment_id: uuid.UUID) -> None:
+    """Remove upvote from comment; decrement LP for author by 1."""
+    comment = (await db.execute(select(Comment).where(Comment.id == comment_id))).scalar_one_or_none()
+    if comment is None:
+        raise HTTPException(status_code=404, detail="Comment not found")
+    if comment.user_id == voter_id:
+        return  # self-unlike — no-op
+    delete_result = await db.execute(
+        delete(CommentUpvote).where(
+            CommentUpvote.comment_id == comment_id,
+            CommentUpvote.user_id == voter_id,
+        )
+    )
+    if delete_result.rowcount == 0:
+        return  # not upvoted — no-op
+    today = datetime.now(timezone.utc).date()
+    db.add(
+        LpEvent(
+            user_id=comment.user_id,
+            amount=-1,
+            source_type="comment_upvote",
+            source_id=comment_id,
+            day_date=today,
+        )
+    )
+    await db.commit()

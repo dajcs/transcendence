@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**Vox Populi** — a reputation-based prediction market web application, built as a 42 school ft_transcendence project (v21.0). Users bet with platform-native points (Karma, Truth, Spice) instead of real money. Bets double as discussion threads with tiered resolution (automatic, proposer, community vote).
+**Vox Populi** — a reputation-based prediction market web application, built as a 42 school ft_transcendence project (v21.0). Users bet with platform-native points (Like Points, Betting Points, Truth Points) instead of real money. Bets double as discussion threads with tiered resolution (automatic, proposer, community vote).
 
 ## 42 Project Constraints
 

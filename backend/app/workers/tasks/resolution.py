@@ -86,23 +86,6 @@ async def _fetch_open_meteo_outcome(source: dict) -> str | None:
         return None
 
 
-async def _find_closest_numeric_outcome(db: AsyncSession, bet_id: object, actual_value: str) -> str:
-    """For numeric weather markets: return the active position side closest to actual_value."""
-    from app.db.models.bet import BetPosition
-
-    sides = (await db.execute(
-        select(BetPosition.side).where(
-            BetPosition.bet_id == bet_id,
-            BetPosition.withdrawn_at.is_(None),
-        )
-    )).scalars().all()
-
-    if not sides:
-        return actual_value
-    actual = float(actual_value)
-    return min(sides, key=lambda s: abs(float(s) - actual))
-
-
 async def _process_auto_resolution(db: AsyncSession) -> None:
     """Transition open expired bets; attempt Tier 1 or escalate."""
     now = datetime.now(timezone.utc)
@@ -134,8 +117,6 @@ async def _process_auto_resolution(db: AsyncSession) -> None:
         if outcome is not None:
             is_weather = source_config.get("provider") == "open-meteo"
             resolved_outcome = outcome
-            if is_weather and bet.market_type == "numeric":
-                resolved_outcome = await _find_closest_numeric_outcome(db, bet.id, outcome)
 
             db.add(Resolution(
                 bet_id=bet.id,
@@ -432,8 +413,6 @@ async def _resolve_single_market(bet_id_str: str) -> None:
         if outcome is not None:
             is_weather = source_config.get("provider") == "open-meteo"
             resolved_outcome = outcome
-            if is_weather and bet.market_type == "numeric":
-                resolved_outcome = await _find_closest_numeric_outcome(db, bet.id, outcome)
 
             db.add(Resolution(
                 bet_id=bet.id,

@@ -53,7 +53,7 @@ class UserResponse(BaseModel):
     avatar_url: str | None
     created_at: datetime
     bp: float = 0.0
-    kp: int = 0
+    lp: int = 0
     tp: float = 0.0
 
     model_config = {"from_attributes": True}

@@ -5,6 +5,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from httpx import AsyncClient
+from sqlalchemy import func, select
 
 
 @pytest.mark.asyncio
@@ -134,3 +135,100 @@ async def test_create_market_stores_celery_task_id(db_session):
     assert bet.celery_task_id == task_id, (
         f"Expected celery_task_id={task_id!r}, got {bet.celery_task_id!r}"
     )
+
+
+@pytest.mark.asyncio
+async def test_upvote_market_disallows_self_like(db_session):
+    """ECON-02: proposer cannot like their own market or award themselves LP."""
+    from app.db.models.bet import Bet, BetUpvote
+    from app.db.models.transaction import BpTransaction, LpEvent
+    from app.db.models.user import User
+    from app.services.market_service import upvote_market
+
+    user_id = uuid.uuid4()
+    market_id = uuid.uuid4()
+    db_session.add(User(id=user_id, email="selflike@test.com", username="selflike", password_hash="x"))
+    db_session.add(BpTransaction(user_id=user_id, amount=5.0, reason="signup"))
+    db_session.add(Bet(
+        id=market_id,
+        proposer_id=user_id,
+        title="Own market",
+        description="desc",
+        resolution_criteria="criteria",
+        deadline=datetime(2030, 1, 1, tzinfo=timezone.utc),
+        market_type="binary",
+        status="open",
+    ))
+    await db_session.commit()
+
+    await upvote_market(db_session, user_id, market_id)
+
+    upvote_count = (
+        await db_session.execute(
+            select(func.count()).select_from(BetUpvote).where(BetUpvote.bet_id == market_id)
+        )
+    ).scalar_one()
+    lp_events = (
+        await db_session.execute(
+            select(LpEvent).where(
+                LpEvent.user_id == user_id,
+                LpEvent.source_type == "market_upvote",
+                LpEvent.source_id == market_id,
+            )
+        )
+    ).scalars().all()
+
+    assert upvote_count == 0
+    assert lp_events == []
+
+
+@pytest.mark.asyncio
+async def test_unlike_market_only_records_one_negative_lp_event_when_delete_is_retried():
+    """Concurrent/stale unlike attempts must not create duplicate LP decrements."""
+    from types import SimpleNamespace
+
+    from app.services.market_service import unlike_market
+
+    market_id = uuid.uuid4()
+    proposer_id = uuid.uuid4()
+    voter_id = uuid.uuid4()
+
+    class FakeSelectResult:
+        def __init__(self, value):
+            self._value = value
+
+        def scalar_one_or_none(self):
+            return self._value
+
+    class FakeDeleteResult:
+        def __init__(self, rowcount: int):
+            self.rowcount = rowcount
+
+    class FakeSession:
+        def __init__(self):
+            self.delete_rowcounts = [1, 0]
+            self.added = []
+            self.commit_count = 0
+
+        async def execute(self, statement):
+            statement_type = statement.__class__.__name__
+            if statement_type == "Select":
+                return FakeSelectResult(SimpleNamespace(id=market_id, proposer_id=proposer_id))
+            if statement_type == "Delete":
+                return FakeDeleteResult(self.delete_rowcounts.pop(0))
+            raise AssertionError(f"Unexpected statement type: {statement_type}")
+
+        def add(self, obj):
+            self.added.append(obj)
+
+        async def commit(self):
+            self.commit_count += 1
+
+    db = FakeSession()
+
+    await unlike_market(db, voter_id, market_id)
+    await unlike_market(db, voter_id, market_id)
+
+    negative_events = [obj for obj in db.added if getattr(obj, "amount", None) == -1]
+    assert len(negative_events) == 1
+    assert db.commit_count == 1

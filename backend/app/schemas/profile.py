@@ -12,7 +12,7 @@ class PublicProfileResponse(BaseModel):
     avatar_url: str | None
     bio: str | None
     created_at: datetime
-    kp: int = 0
+    lp: int = 0
     tp: float = 0.0
     total_bets: int = 0
     win_rate: float = 0.0
@@ -52,3 +52,16 @@ class UserSearchResult(BaseModel):
     avatar_url: str | None
 
     model_config = {"from_attributes": True}
+
+
+class HallOfFameEntry(BaseModel):
+    id: uuid.UUID
+    username: str
+    avatar_url: str | None
+    banked_bp: float
+    markets_count: int
+
+
+class HallOfFameResponse(BaseModel):
+    entries: list[HallOfFameEntry]
+    total: int

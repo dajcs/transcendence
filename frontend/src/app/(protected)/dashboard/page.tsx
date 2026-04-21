@@ -85,7 +85,7 @@ export default function DashboardPage() {
           <p>
             {t("dashboard.welcome")} <span className="font-medium">{user.username}</span>
           </p>
-          <p className="mt-1">BP: {user.bp} · KP: {user.kp} · TP: {user.tp}</p>
+          <p className="mt-1">BP: {user.bp} · LP: {user.lp} · TP: {user.tp}</p>
         </div>
       )}
 

@@ -1,8 +1,11 @@
 """User profile & search tests — PROFILE-01 through PROFILE-04."""
+import uuid
+
 import pytest
 from httpx import AsyncClient
 from sqlalchemy import select
 
+from app.db.models.transaction import BpFundEntry
 from app.db.models.user import User
 
 
@@ -50,7 +53,7 @@ async def test_get_profile_success(client: AsyncClient):
     assert data["username"] == "alice"
     assert data["total_bets"] == 0
     assert data["win_rate"] == 0.0
-    assert data["kp"] == 0
+    assert data["lp"] == 0
     assert "bio" in data
     assert "created_at" in data
 
@@ -167,6 +170,41 @@ async def test_search_excludes_inactive(client: AsyncClient, db_session):
     resp = await client.get("/api/users/search?q=kar")
     assert resp.status_code == 200
     assert not any(u["username"] == "karl" for u in resp.json())
+
+
+@pytest.mark.asyncio
+async def test_hall_of_fame_lists_users_by_banked_bp(client: AsyncClient, db_session):
+    await _register_and_login(client, "hof1@example.com", "hof_alpha")
+    await _register_and_login(client, "hof2@example.com", "hof_beta")
+
+    alpha = (await db_session.execute(select(User).where(User.username == "hof_alpha"))).scalar_one()
+    beta = (await db_session.execute(select(User).where(User.username == "hof_beta"))).scalar_one()
+
+    db_session.add_all([
+        BpFundEntry(market_id=uuid.uuid4(), user_id=alpha.id, amount=12.5, reason="numeric_cap_surplus"),
+        BpFundEntry(market_id=uuid.uuid4(), user_id=alpha.id, amount=2.5, reason="cap_surplus"),
+        BpFundEntry(market_id=uuid.uuid4(), user_id=beta.id, amount=9.0, reason="cap_surplus"),
+        BpFundEntry(market_id=uuid.uuid4(), user_id=beta.id, amount=99.0, reason="numeric_surplus"),
+    ])
+    await db_session.commit()
+
+    client.cookies.clear()
+    resp = await client.get("/api/users/hall-of-fame")
+    assert resp.status_code == 200
+
+    data = resp.json()
+    assert data["total"] == 2
+    assert data["entries"][0]["username"] == "hof_alpha"
+    assert data["entries"][0]["banked_bp"] == 15.0
+    assert data["entries"][1]["username"] == "hof_beta"
+    assert data["entries"][1]["banked_bp"] == 9.0
+
+
+def test_models_package_exports_bp_fund_entry():
+    """Alembic metadata import must include BpFundEntry."""
+    from app.db.models import BpFundEntry
+
+    assert BpFundEntry.__tablename__ == "bp_fund_entries"
 
 
 # ── PROFILE-04: friendship status on profile ──────────────────────────────────

@@ -35,7 +35,7 @@ interface PayoutListResponse {
   total: number;
 }
 
-function estimateRefund(position: { side: string }, market: Market): { bp: number; reasonKey: string } {
+function estimateRefund(position: { side: string; bp_staked: number }, market: Market): { rate: number; total: number; reasonKey: string } {
   if (market.market_type === "numeric") {
     const entries = Object.entries(market.choice_counts);
     const totalVotes = entries.reduce((s, [, c]) => s + c, 0);
@@ -43,18 +43,33 @@ function estimateRefund(position: { side: string }, market: Market): { bp: numbe
       ? entries.reduce((s, [v, c]) => s + parseFloat(v) * c, 0) / totalVotes
       : parseFloat(position.side);
     const span = (market.numeric_max ?? 1) - (market.numeric_min ?? 0);
-    const bp = span > 0 ? Math.max(0, 1 - Math.abs(parseFloat(position.side) - mean) / span) : 1;
-    return { bp: Math.round(bp * 100) / 100, reasonKey: "market.consensus_proximity" as const };
+    const rate = span > 0 ? Math.max(0, 1 - Math.abs(parseFloat(position.side) - mean) / span) : 1;
+    const roundedRate = Math.round(rate * 100) / 100;
+    return {
+      rate: roundedRate,
+      total: Math.round(position.bp_staked * roundedRate * 100) / 100,
+      reasonKey: "market.consensus_proximity" as const,
+    };
   }
   if (market.market_type === "binary") {
-    const bp = position.side === "yes" ? market.yes_pct / 100 : market.no_pct / 100;
-    return { bp: Math.round(bp * 100) / 100, reasonKey: "market.winning_probability" as const };
+    const rate = position.side === "yes" ? market.yes_pct / 100 : market.no_pct / 100;
+    const roundedRate = Math.round(rate * 100) / 100;
+    return {
+      rate: roundedRate,
+      total: Math.round(position.bp_staked * roundedRate * 100) / 100,
+      reasonKey: "market.winning_probability" as const,
+    };
   }
   // multiple_choice
   const total = market.position_count || 1;
   const count = market.choice_counts[position.side] ?? 0;
-  const bp = count / total;
-  return { bp: Math.round(bp * 100) / 100, reasonKey: "market.winning_probability" as const };
+  const rate = count / total;
+  const roundedRate = Math.round(rate * 100) / 100;
+  return {
+    rate: roundedRate,
+    total: Math.round(position.bp_staked * roundedRate * 100) / 100,
+    reasonKey: "market.winning_probability" as const,
+  };
 }
 
 export default function MarketDetailPage() {
@@ -66,6 +81,7 @@ export default function MarketDetailPage() {
   const t = useT();
 
   const [side, setSide] = useState<string>("yes");
+  const [betAmount, setBetAmount] = useState<number>(1);
   const [commentText, setCommentText] = useState("");
   const [showWithdrawConfirm, setShowWithdrawConfirm] = useState(false);
   const [confirmDisputeOpen, setConfirmDisputeOpen] = useState(false);
@@ -141,6 +157,14 @@ export default function MarketDetailPage() {
     queryFn: async () => (await api.get("/api/users/me")).data,
   });
   const aiEnabled = llmSettingsQuery.data?.llm_mode !== "disabled";
+  const maxBetAmount = currentUser ? Math.min(10, Math.floor(currentUser.bp)) : 0;
+  const clampedBetAmount = maxBetAmount > 0 ? Math.min(betAmount, maxBetAmount) : 0;
+
+  useEffect(() => {
+    if (maxBetAmount > 0 && betAmount !== clampedBetAmount) {
+      setBetAmount(clampedBetAmount);
+    }
+  }, [betAmount, clampedBetAmount, maxBetAmount]);
 
   // Join bet room on mount, leave on unmount (D-12)
   useEffect(() => {
@@ -224,7 +248,9 @@ export default function MarketDetailPage() {
   }, [socket, marketId, queryClient, bootstrap]);
 
   const placeBet = useMutation({
-    mutationFn: async () => (await api.post<BetPosition>("/api/bets", { bet_id: marketId, side })).data,
+    mutationFn: async () => (
+      await api.post<BetPosition>("/api/bets", { bet_id: marketId, side, amount: clampedBetAmount })
+    ).data,
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["market", marketId] });
       await queryClient.invalidateQueries({ queryKey: ["positions"] });
@@ -255,6 +281,22 @@ export default function MarketDetailPage() {
     mutationFn: () => api.post(`/api/markets/${marketId}/upvote`),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["market", marketId] });
+      await bootstrap();
+    },
+  });
+
+  const unlikeMarket = useMutation({
+    mutationFn: () => api.delete(`/api/markets/${marketId}/upvote`),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["market", marketId] });
+      await bootstrap();
+    },
+  });
+
+  const unlikeComment = useMutation({
+    mutationFn: async (commentId: string) => api.delete(`/api/comments/${commentId}/upvote`),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["comments", marketId] });
       await bootstrap();
     },
   });
@@ -434,12 +476,14 @@ export default function MarketDetailPage() {
             <div className="flex items-start justify-between gap-4">
               <h1 className="text-2xl font-bold">{market.title}</h1>
               <button
-                onClick={() => upvoteMarket.mutate()}
-                disabled={upvoteMarket.isPending}
-                className="shrink-0 flex flex-col items-center text-gray-400 hover:text-orange-500 transition-colors disabled:opacity-50 px-2 dark:text-gray-500 dark:hover:text-orange-400"
+                onClick={() => market.user_has_liked ? unlikeMarket.mutate() : upvoteMarket.mutate()}
+                disabled={upvoteMarket.isPending || unlikeMarket.isPending}
+                className="shrink-0 flex flex-col items-center transition-colors disabled:opacity-50 px-2"
               >
-                <span className="text-2xl leading-none">▲</span>
-                <span className="text-xs font-medium">{market.upvote_count}</span>
+                <span className={`text-2xl leading-none ${market.user_has_liked ? "text-red-500" : "text-gray-400 dark:text-gray-500"}`}>
+                  {market.user_has_liked ? "♥" : "♡"}
+                </span>
+                <span className="text-xs font-medium text-gray-500 dark:text-gray-400">{market.upvote_count}</span>
               </button>
             </div>
             <p className="text-sm text-gray-600 dark:text-gray-400">{market.description}</p>
@@ -639,7 +683,11 @@ export default function MarketDetailPage() {
                   ) : (
                     <div className="mt-3 flex items-center gap-3 flex-wrap">
                       <p className="text-sm text-red-700 dark:text-red-400">
-                        {t("market.refund_bp", { bp: refundEstimate!.bp })}{" "}
+                        {t("market.refund_bp", {
+                          stake: myPosition.bp_staked,
+                          prob: refundEstimate!.rate,
+                          bp: refundEstimate!.total,
+                        })}{" "}
                         <span className="text-gray-500 dark:text-gray-400">({t(refundEstimate!.reasonKey as any)})</span>
                       </p>
                       <button
@@ -1130,9 +1178,25 @@ export default function MarketDetailPage() {
                 />
               </div>
             )}
+            {maxBetAmount > 0 ? (
+              <div className="mb-3 flex items-center gap-2">
+                <label className="text-sm text-gray-600 dark:text-gray-400">{t("market.bet_amount_label")}</label>
+                <select
+                  value={clampedBetAmount}
+                  onChange={(e) => setBetAmount(Number(e.target.value))}
+                  className="rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-2 py-1 text-sm"
+                >
+                  {Array.from({ length: maxBetAmount }, (_, i) => i + 1).map((n) => (
+                    <option key={n} value={n}>{n} BP</option>
+                  ))}
+                </select>
+              </div>
+            ) : (
+              <p className="mb-3 text-sm text-red-600 dark:text-red-400">{t("market.need_min_1bp")}</p>
+            )}
             <button
               onClick={() => placeBet.mutate()}
-              disabled={placeBet.isPending}
+              disabled={placeBet.isPending || maxBetAmount < 1}
               className="rounded bg-blue-600 px-4 py-2 text-sm text-white hover:bg-blue-700 disabled:opacity-60"
             >
               {placeBet.isPending ? t("market.placing") : t("market.place_1bp")}
@@ -1192,10 +1256,13 @@ export default function MarketDetailPage() {
                     <div className="mt-2 flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
                       <span>{new Date(comment.created_at).toLocaleString()}</span>
                       <button
-                        onClick={() => upvoteComment.mutate(comment.id)}
-                        className="flex items-center gap-1 text-gray-400 hover:text-orange-500 transition-colors"
+                        onClick={() => comment.user_has_liked
+                          ? unlikeComment.mutate(comment.id)
+                          : upvoteComment.mutate(comment.id)
+                        }
+                        className={`flex items-center gap-1 transition-colors ${comment.user_has_liked ? "text-red-500" : "text-gray-400 hover:text-red-500"}`}
                       >
-                        <span className="text-sm leading-none">▲</span>
+                        <span className="text-sm leading-none">{comment.user_has_liked ? "♥" : "♡"}</span>
                         <span>{comment.upvote_count}</span>
                       </button>
                       {depth < 4 && (

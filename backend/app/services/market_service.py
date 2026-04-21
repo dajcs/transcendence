@@ -4,7 +4,7 @@ import uuid
 from datetime import timedelta
 
 from fastapi import HTTPException
-from sqlalchemy import func, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models.bet import Bet, BetPosition, BetUpvote, Comment, Resolution
@@ -19,7 +19,6 @@ async def create_market(
     db: AsyncSession, proposer_id: uuid.UUID, data: MarketCreate
 ) -> MarketResponse:
     """Create market and deduct 1 bp atomically."""
-    await deduct_bp(db, user_id=proposer_id, amount=1.0, reason="market_create")
     bet = Bet(
         id=uuid.uuid4(),
         proposer_id=proposer_id,
@@ -35,6 +34,8 @@ async def create_market(
         resolution_source=json.dumps(data.resolution_source) if data.resolution_source else None,
     )
     db.add(bet)
+    await db.flush()
+    await deduct_bp(db, user_id=proposer_id, amount=1.0, reason="market_create", bet_id=bet.id)
     await db.commit()
     await db.refresh(bet)
 
@@ -251,7 +252,11 @@ async def list_markets(
     return MarketListResponse(items=items, total=int(total), page=page, pages=pages)
 
 
-async def get_market(db: AsyncSession, market_id: uuid.UUID) -> MarketResponse:
+async def get_market(
+    db: AsyncSession,
+    market_id: uuid.UUID,
+    current_user_id: uuid.UUID | None = None,
+) -> MarketResponse:
     market = (await db.execute(select(Bet).where(Bet.id == market_id))).scalar_one_or_none()
     if market is None:
         raise HTTPException(status_code=404, detail="Market not found")
@@ -283,6 +288,17 @@ async def get_market(db: AsyncSession, market_id: uuid.UUID) -> MarketResponse:
         )
     ).scalar_one()
 
+    user_has_liked = False
+    if current_user_id is not None:
+        user_has_liked = (
+            await db.execute(
+                select(BetUpvote).where(
+                    BetUpvote.bet_id == market_id,
+                    BetUpvote.user_id == current_user_id,
+                )
+            )
+        ).scalar_one_or_none() is not None
+
     return MarketResponse(
         id=market.id,
         title=market.title,
@@ -305,20 +321,23 @@ async def get_market(db: AsyncSession, market_id: uuid.UUID) -> MarketResponse:
         comment_count=int(comment_count),
         choice_counts=choice_counts,
         upvote_count=int(upvote_count),
+        user_has_liked=user_has_liked,
     )
 
 
 async def upvote_market(db: AsyncSession, user_id: uuid.UUID, market_id: uuid.UUID) -> None:
     from datetime import datetime, timezone
     from sqlalchemy.exc import IntegrityError
-    from app.db.models.transaction import KpEvent
+    from app.db.models.transaction import LpEvent
 
     market = (await db.execute(select(Bet).where(Bet.id == market_id))).scalar_one_or_none()
     if market is None:
         raise HTTPException(status_code=404, detail="Market not found")
+    if market.proposer_id == user_id:
+        return  # self-like not allowed
     try:
         db.add(BetUpvote(bet_id=market_id, user_id=user_id))
-        db.add(KpEvent(
+        db.add(LpEvent(
             user_id=market.proposer_id,
             amount=1,
             source_type="market_upvote",
@@ -328,3 +347,31 @@ async def upvote_market(db: AsyncSession, user_id: uuid.UUID, market_id: uuid.UU
         await db.commit()
     except IntegrityError:
         await db.rollback()  # already upvoted — treat as no-op
+
+
+async def unlike_market(db: AsyncSession, user_id: uuid.UUID, market_id: uuid.UUID) -> None:
+    """Remove upvote from market; decrement LP for proposer by 1."""
+    from datetime import datetime, timezone
+    from app.db.models.transaction import LpEvent
+
+    market = (await db.execute(select(Bet).where(Bet.id == market_id))).scalar_one_or_none()
+    if market is None:
+        raise HTTPException(status_code=404, detail="Market not found")
+    if market.proposer_id == user_id:
+        return  # self-like state is always a no-op
+    delete_result = await db.execute(
+        delete(BetUpvote).where(
+            BetUpvote.bet_id == market_id,
+            BetUpvote.user_id == user_id,
+        )
+    )
+    if delete_result.rowcount == 0:
+        return  # not upvoted — no-op
+    db.add(LpEvent(
+        user_id=market.proposer_id,
+        amount=-1,
+        source_type="market_upvote",
+        source_id=market_id,
+        day_date=datetime.now(timezone.utc).date(),
+    ))
+    await db.commit()

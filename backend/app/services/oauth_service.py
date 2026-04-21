@@ -13,7 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
 from app.db.models.user import OauthAccount, User
-from app.services.economy_service import credit_bp, convert_kp_to_bp
+from app.services.economy_service import credit_bp, convert_lp_to_bp
 from app.utils.jwt import create_access_token, create_refresh_token
 
 # ---------------------------------------------------------------------------
@@ -159,12 +159,12 @@ async def handle_callback(
     # 4. Upsert user + oauth_account
     user = await _upsert_user(db, provider_name, profile)
 
-    # 5. Convert any accumulated KP to BP on login
-    kp_converted, bp_earned = await convert_kp_to_bp(db, user.id)
+    # 5. Convert any accumulated LP to BP on login
+    lp_converted, bp_earned = await convert_lp_to_bp(db, user.id)
     if bp_earned > 0:
         await db.commit()
-        from app.services.notification_service import notify_kp_converted
-        await notify_kp_converted(db, user.id, kp_converted, bp_earned)
+        from app.services.notification_service import notify_lp_converted
+        await notify_lp_converted(db, user.id, lp_converted, bp_earned, user.username)
 
     # 6. Issue our JWT tokens
     access_token = create_access_token(str(user.id), user.email, user.username)

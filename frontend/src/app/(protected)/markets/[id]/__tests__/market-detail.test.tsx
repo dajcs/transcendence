@@ -6,9 +6,10 @@ jest.mock("next/navigation", () => ({
   useRouter: () => ({ push: jest.fn() }),
 }));
 jest.mock("@/i18n", () => ({ useT: () => (key: string) => key }));
+let mockUser: null | { bp: number; lp: number; tp: number } = null;
 jest.mock("@/store/auth", () => ({
-  useAuthStore: (selector: (s: { user: null; bootstrap: () => void }) => unknown) =>
-    selector({ user: null, bootstrap: jest.fn() }),
+  useAuthStore: (selector: (s: { user: typeof mockUser; bootstrap: () => void }) => unknown) =>
+    selector({ user: mockUser, bootstrap: jest.fn() }),
 }));
 jest.mock("@/store/socket", () => ({
   useSocketStore: (selector: (s: { socket: null }) => unknown) =>
@@ -17,12 +18,14 @@ jest.mock("@/store/socket", () => ({
 jest.mock("react-markdown", () => ({ __esModule: true, default: ({ children }: { children: string }) => children }));
 
 import { render, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { createElement } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import MarketDetailPage from "../page";
 
 const mockGet = api.get as jest.Mock;
+const mockPost = api.post as jest.Mock;
 
 // Return appropriate data based on URL to avoid type errors in the component
 function makeGetHandler() {
@@ -73,7 +76,9 @@ function makeGetHandler() {
 describe("Market detail page query keys", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockUser = null;
     mockGet.mockImplementation(makeGetHandler());
+    mockPost.mockResolvedValue({ data: {} });
   });
 
   it("positions endpoint URL contains '/positions' with marketId", async () => {
@@ -122,5 +127,112 @@ describe("Market detail page query keys", () => {
       expect(posCall).toBeDefined();
       expect(posCall).toContain("market-abc-123");
     }, { timeout: 3000 });
+  });
+
+  it("shows a low-balance message instead of bet options when user has less than 1 BP", async () => {
+    mockUser = { bp: 0.5, lp: 0, tp: 0 };
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const { findByText, queryByRole } = render(
+      createElement(QueryClientProvider, { client: qc }, createElement(MarketDetailPage))
+    );
+
+    expect(await findByText("market.need_min_1bp")).toBeInTheDocument();
+    expect(queryByRole("combobox")).not.toBeInTheDocument();
+  });
+
+  it("shows refund preview as stake multiplied by refund probability", async () => {
+    mockUser = { bp: 3, lp: 0, tp: 0 };
+    mockGet.mockImplementation((url: string) => {
+      if (String(url).includes("/positions")) {
+        return Promise.resolve({
+          data: { participants: [], aggregate: { total_bp: 0, total_participants: 0, avg_bp: 0, by_side: {} }, total: 0 },
+        });
+      }
+      if (String(url).includes("/comments")) {
+        return Promise.resolve({ data: [] });
+      }
+      if (String(url).includes("/bets/positions")) {
+        return Promise.resolve({
+          data: {
+            active: [{
+              id: "position-1",
+              bet_id: "market-abc-123",
+              side: "yes",
+              bp_staked: 3,
+              placed_at: new Date().toISOString(),
+              withdrawn_at: null,
+              refund_bp: null,
+              market_title: "Test Market",
+              market_status: "open",
+              yes_pct: 75,
+              no_pct: 25,
+            }],
+            resolved: [],
+          },
+        });
+      }
+      if (String(url).includes("/users/me")) {
+        return Promise.resolve({ data: { llm_mode: "disabled" } });
+      }
+      return Promise.resolve({
+        data: {
+          id: "market-abc-123",
+          title: "Test Market",
+          description: "desc",
+          resolution_criteria: "criteria",
+          deadline: new Date(Date.now() + 86400000).toISOString(),
+          status: "open",
+          market_type: "binary",
+          yes_pct: 75,
+          no_pct: 25,
+          yes_count: 3,
+          no_count: 1,
+          position_count: 4,
+          choice_counts: {},
+          upvote_count: 0,
+          proposer_id: "other-user",
+          choices: null,
+          numeric_min: null,
+          numeric_max: null,
+        },
+      });
+    });
+
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const { findByText, getByText } = render(
+      createElement(QueryClientProvider, { client: qc }, createElement(MarketDetailPage))
+    );
+
+    getByText("market.withdraw").click();
+    expect(await findByText(/market\.refund_bp/)).toBeInTheDocument();
+  });
+
+  it("submits the clamped bet amount when maxBetAmount shrinks", async () => {
+    mockUser = { bp: 3, lp: 0, tp: 0 };
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const user = userEvent.setup();
+    const view = render(
+      createElement(QueryClientProvider, { client: qc }, createElement(MarketDetailPage))
+    );
+
+    const select = await view.findByRole("combobox");
+    await user.selectOptions(select, "3");
+    expect((select as HTMLSelectElement).value).toBe("3");
+
+    mockUser = { bp: 1, lp: 0, tp: 0 };
+    view.rerender(
+      createElement(QueryClientProvider, { client: qc }, createElement(MarketDetailPage))
+    );
+
+    await waitFor(() => {
+      expect((view.getByRole("combobox") as HTMLSelectElement).value).toBe("1");
+    });
+
+    await user.click(view.getByRole("button", { name: "market.place_1bp" }));
+
+    expect(mockPost).toHaveBeenCalledWith(
+      "/api/bets",
+      expect.objectContaining({ bet_id: "market-abc-123", side: "yes", amount: 1 })
+    );
   });
 });

@@ -22,7 +22,7 @@ function getNotificationLink(type: string, data: { bet_id?: string; market_id?: 
   if (type === "resolution_due") {
     return data.market_id ? `/markets/${data.market_id}` : "/dashboard?tab=my_markets";
   }
-  if (type === "bet_payout") {
+  if (type === "bet_payout" || type === "lp_converted") {
     return data.username ? `/profile/${data.username}` : null;
   }
   if (type === "friend_request") return "/friends?tab=received";
@@ -41,7 +41,7 @@ const TYPE_LABEL_KEYS: Record<string, string> = {
   bet_payout: "notif.bet_payout",
   resolution_proposed: "notif.resolution_proposed",
   resolution_due: "notif.resolution_due",
-  kp_converted: "notif.kp_converted",
+  lp_converted: "notif.lp_converted",
 };
 
 export default function NotificationBell() {
@@ -155,12 +155,20 @@ export default function NotificationBell() {
         showBrowserNotification(p.message || t("notif.bet_payout"), url, d?.id);
       } catch { /* ignore */ }
     };
+    const handleLpConverted = (d: { id?: string; payload?: string }) => {
+      fetchUnreadCount();
+      try {
+        const p = JSON.parse(d?.payload ?? "{}");
+        const url = p.username ? `/profile/${p.username}` : undefined;
+        showBrowserNotification(p.message || t("notif.lp_converted"), url, d?.id);
+      } catch { /* ignore */ }
+    };
     socket.on("notification:bet_resolved", handleBetResolved);
     socket.on("notification:bet_disputed", handleBetDisputed);
     socket.on("notification:bet_payout", handleBetPayout);
     socket.on("notification:resolution_proposed", handleResolutionProposed);
     socket.on("notification:resolution_due", handleResolutionDue);
-    socket.on("notification:kp_converted", handler);
+    socket.on("notification:lp_converted", handleLpConverted);
 
     return () => {
       socket.off("notification:friend_request", handler);
@@ -172,7 +180,7 @@ export default function NotificationBell() {
       socket.off("notification:bet_payout", handleBetPayout);
       socket.off("notification:resolution_proposed", handleResolutionProposed);
       socket.off("notification:resolution_due", handleResolutionDue);
-      socket.off("notification:kp_converted", handler);
+      socket.off("notification:lp_converted", handleLpConverted);
     };
   }, [socket, fetchUnreadCount, t]);
 
