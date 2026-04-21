@@ -200,6 +200,13 @@ async def test_hall_of_fame_lists_users_by_banked_bp(client: AsyncClient, db_ses
     assert data["entries"][1]["banked_bp"] == 9.0
 
 
+def test_models_package_exports_bp_fund_entry():
+    """Alembic metadata import must include BpFundEntry."""
+    from app.db.models import BpFundEntry
+
+    assert BpFundEntry.__tablename__ == "bp_fund_entries"
+
+
 # ── PROFILE-04: friendship status on profile ──────────────────────────────────
 
 @pytest.mark.asyncio

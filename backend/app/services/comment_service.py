@@ -3,7 +3,7 @@ import uuid
 from datetime import datetime, timezone
 
 from fastapi import HTTPException
-from sqlalchemy import func, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -157,17 +157,14 @@ async def unlike_comment(db: AsyncSession, voter_id: uuid.UUID, comment_id: uuid
         raise HTTPException(status_code=404, detail="Comment not found")
     if comment.user_id == voter_id:
         return  # self-unlike — no-op
-    upvote = (
-        await db.execute(
-            select(CommentUpvote).where(
-                CommentUpvote.comment_id == comment_id,
-                CommentUpvote.user_id == voter_id,
-            )
+    delete_result = await db.execute(
+        delete(CommentUpvote).where(
+            CommentUpvote.comment_id == comment_id,
+            CommentUpvote.user_id == voter_id,
         )
-    ).scalar_one_or_none()
-    if upvote is None:
+    )
+    if delete_result.rowcount == 0:
         return  # not upvoted — no-op
-    await db.delete(upvote)
     today = datetime.now(timezone.utc).date()
     db.add(
         LpEvent(

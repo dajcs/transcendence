@@ -180,3 +180,55 @@ async def test_upvote_market_disallows_self_like(db_session):
 
     assert upvote_count == 0
     assert lp_events == []
+
+
+@pytest.mark.asyncio
+async def test_unlike_market_only_records_one_negative_lp_event_when_delete_is_retried():
+    """Concurrent/stale unlike attempts must not create duplicate LP decrements."""
+    from types import SimpleNamespace
+
+    from app.services.market_service import unlike_market
+
+    market_id = uuid.uuid4()
+    proposer_id = uuid.uuid4()
+    voter_id = uuid.uuid4()
+
+    class FakeSelectResult:
+        def __init__(self, value):
+            self._value = value
+
+        def scalar_one_or_none(self):
+            return self._value
+
+    class FakeDeleteResult:
+        def __init__(self, rowcount: int):
+            self.rowcount = rowcount
+
+    class FakeSession:
+        def __init__(self):
+            self.delete_rowcounts = [1, 0]
+            self.added = []
+            self.commit_count = 0
+
+        async def execute(self, statement):
+            statement_type = statement.__class__.__name__
+            if statement_type == "Select":
+                return FakeSelectResult(SimpleNamespace(id=market_id, proposer_id=proposer_id))
+            if statement_type == "Delete":
+                return FakeDeleteResult(self.delete_rowcounts.pop(0))
+            raise AssertionError(f"Unexpected statement type: {statement_type}")
+
+        def add(self, obj):
+            self.added.append(obj)
+
+        async def commit(self):
+            self.commit_count += 1
+
+    db = FakeSession()
+
+    await unlike_market(db, voter_id, market_id)
+    await unlike_market(db, voter_id, market_id)
+
+    negative_events = [obj for obj in db.added if getattr(obj, "amount", None) == -1]
+    assert len(negative_events) == 1
+    assert db.commit_count == 1

@@ -4,7 +4,7 @@ import uuid
 from datetime import timedelta
 
 from fastapi import HTTPException
-from sqlalchemy import func, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models.bet import Bet, BetPosition, BetUpvote, Comment, Resolution
@@ -359,17 +359,14 @@ async def unlike_market(db: AsyncSession, user_id: uuid.UUID, market_id: uuid.UU
         raise HTTPException(status_code=404, detail="Market not found")
     if market.proposer_id == user_id:
         return  # self-like state is always a no-op
-    upvote = (
-        await db.execute(
-            select(BetUpvote).where(
-                BetUpvote.bet_id == market_id,
-                BetUpvote.user_id == user_id,
-            )
+    delete_result = await db.execute(
+        delete(BetUpvote).where(
+            BetUpvote.bet_id == market_id,
+            BetUpvote.user_id == user_id,
         )
-    ).scalar_one_or_none()
-    if upvote is None:
+    )
+    if delete_result.rowcount == 0:
         return  # not upvoted — no-op
-    await db.delete(upvote)
     db.add(LpEvent(
         user_id=market.proposer_id,
         amount=-1,

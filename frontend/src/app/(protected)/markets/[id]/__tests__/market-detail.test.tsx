@@ -18,12 +18,14 @@ jest.mock("@/store/socket", () => ({
 jest.mock("react-markdown", () => ({ __esModule: true, default: ({ children }: { children: string }) => children }));
 
 import { render, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { createElement } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import MarketDetailPage from "../page";
 
 const mockGet = api.get as jest.Mock;
+const mockPost = api.post as jest.Mock;
 
 // Return appropriate data based on URL to avoid type errors in the component
 function makeGetHandler() {
@@ -76,6 +78,7 @@ describe("Market detail page query keys", () => {
     jest.clearAllMocks();
     mockUser = null;
     mockGet.mockImplementation(makeGetHandler());
+    mockPost.mockResolvedValue({ data: {} });
   });
 
   it("positions endpoint URL contains '/positions' with marketId", async () => {
@@ -202,5 +205,34 @@ describe("Market detail page query keys", () => {
 
     getByText("market.withdraw").click();
     expect(await findByText(/market\.refund_bp/)).toBeInTheDocument();
+  });
+
+  it("submits the clamped bet amount when maxBetAmount shrinks", async () => {
+    mockUser = { bp: 3, lp: 0, tp: 0 };
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const user = userEvent.setup();
+    const view = render(
+      createElement(QueryClientProvider, { client: qc }, createElement(MarketDetailPage))
+    );
+
+    const select = await view.findByRole("combobox");
+    await user.selectOptions(select, "3");
+    expect((select as HTMLSelectElement).value).toBe("3");
+
+    mockUser = { bp: 1, lp: 0, tp: 0 };
+    view.rerender(
+      createElement(QueryClientProvider, { client: qc }, createElement(MarketDetailPage))
+    );
+
+    await waitFor(() => {
+      expect((view.getByRole("combobox") as HTMLSelectElement).value).toBe("1");
+    });
+
+    await user.click(view.getByRole("button", { name: "market.place_1bp" }));
+
+    expect(mockPost).toHaveBeenCalledWith(
+      "/api/bets",
+      expect.objectContaining({ bet_id: "market-abc-123", side: "yes", amount: 1 })
+    );
   });
 });

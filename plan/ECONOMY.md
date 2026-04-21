@@ -152,7 +152,7 @@ Surplus BP from capped payouts is recorded in the `bp_fund_entries` table.
 | market_id | UUID | FK to bets.id |
 | user_id | UUID | Winner whose payout was capped |
 | amount | Numeric | Surplus BP amount |
-| reason | Text | "cap_surplus" (binary/multichoice) or "numeric_surplus" |
+| reason | Text | "cap_surplus" (binary/multichoice) or "numeric_cap_surplus" |
 | created_at | DateTime | Event timestamp |
 
 Surplus use-case (lottery/distribution) is deferred to a later phase.
@@ -161,13 +161,17 @@ Surplus use-case (lottery/distribution) is deferred to a later phase.
 
 ## Numeric Market Payout
 
-Numeric markets use a window-expansion algorithm to determine winners:
+Numeric markets use span-based error bands derived from the configured numeric range:
 
-1. **Exact match** → 10x the bet amount
-2. **No exact match** → expand window until `ceil(total_bettors × 0.10)` bettors are inside
-3. **Linear multiplier by rank:** rank 0 → 10x, rank N-1 → 0.1x
-   - `multiplier = 10 - (rank / (window_size - 1)) × 9.9`
-4. Surplus beyond multiplied payouts → special fund (`reason = "numeric_surplus"`)
+1. Parse each active prediction as a float and compute its absolute error as a percentage of the market span
+2. Select the first non-empty winner band:
+   - Band 1: error `<= 2%`
+   - Band 2: error `> 2% and <= 4%`
+   - Band 3: error `> 4% and <= 8%`
+   - Band 4: error `> 8% and <= 16%`
+3. Split the full BP pool proportionally across winners in that band
+4. Cap each winner at `10x` their own stake
+5. Surplus beyond that cap goes to the special fund (`reason = "numeric_cap_surplus"`)
 
 ---
 
@@ -221,4 +225,4 @@ Community dispute votes are weighted to penalize self-serving voting:
 
 ---
 
-*Last updated: 2026-04-19*
+*Last updated: 2026-04-21*

@@ -158,6 +158,13 @@ export default function MarketDetailPage() {
   });
   const aiEnabled = llmSettingsQuery.data?.llm_mode !== "disabled";
   const maxBetAmount = currentUser ? Math.min(10, Math.floor(currentUser.bp)) : 0;
+  const clampedBetAmount = maxBetAmount > 0 ? Math.min(betAmount, maxBetAmount) : 0;
+
+  useEffect(() => {
+    if (maxBetAmount > 0 && betAmount !== clampedBetAmount) {
+      setBetAmount(clampedBetAmount);
+    }
+  }, [betAmount, clampedBetAmount, maxBetAmount]);
 
   // Join bet room on mount, leave on unmount (D-12)
   useEffect(() => {
@@ -241,7 +248,9 @@ export default function MarketDetailPage() {
   }, [socket, marketId, queryClient, bootstrap]);
 
   const placeBet = useMutation({
-    mutationFn: async () => (await api.post<BetPosition>("/api/bets", { bet_id: marketId, side, amount: betAmount })).data,
+    mutationFn: async () => (
+      await api.post<BetPosition>("/api/bets", { bet_id: marketId, side, amount: clampedBetAmount })
+    ).data,
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["market", marketId] });
       await queryClient.invalidateQueries({ queryKey: ["positions"] });
@@ -1173,7 +1182,7 @@ export default function MarketDetailPage() {
               <div className="mb-3 flex items-center gap-2">
                 <label className="text-sm text-gray-600 dark:text-gray-400">{t("market.bet_amount_label")}</label>
                 <select
-                  value={betAmount}
+                  value={clampedBetAmount}
                   onChange={(e) => setBetAmount(Number(e.target.value))}
                   className="rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-2 py-1 text-sm"
                 >
