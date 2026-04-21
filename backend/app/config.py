@@ -33,7 +33,9 @@ class Settings(BaseSettings):
     github_client_secret: str = ""
     ft_client_id: str = ""
     ft_client_secret: str = ""
-    oauth_redirect_base: str = "https://localhost:8443"
+    # Leave unset to derive OAuth callback host from the incoming request.
+    # Set this explicitly when the deployment must use a canonical public URL.
+    oauth_redirect_base: str = ""
 
     # Email
     smtp_host: str = "localhost"

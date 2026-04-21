@@ -4,7 +4,7 @@ milestone: v21.0
 milestone_name: milestone
 current_plan: Not started
 status: Ready to plan
-last_updated: "2026-04-20T19:43:30.506Z"
+last_updated: "2026-04-21T10:44:59.618Z"
 progress:
   total_phases: 8
   completed_phases: 7
@@ -26,7 +26,7 @@ See: `.planning/PROJECT.md` (updated 2026-03-24)
 
 **Phase:** 06
 **Current Plan:** Not started
-**Last session:** 2026-04-20T19:43:30.410Z
+**Last session:** 2026-04-21T10:44:59.618Z
 **Resume file:** None
 
 ## Decisions
@@ -106,6 +106,7 @@ See: `.planning/PROJECT.md` (updated 2026-03-24)
 - [Phase 05.1 UAT]: Profile page redesigned with 3 tabs: My Points (transaction ledger), My Bets (own profile only, /api/bets/positions), My Markets (proposer_id filter on /api/markets)
 - [Phase 05.1 UAT]: /api/markets gained optional proposer_id query param (no auth required) for public profile My Markets tab
 - [Phase 05.1 UAT]: Dashboard link removed from TopNav (desktop + mobile); profile tabs replace dashboard functionality
+- [Quick 260421-exi]: Leave OAUTH_REDIRECT_BASE empty by default and forward X-Forwarded-Proto/Host through Nginx so OAuth callback URIs preserve the initiating host and HTTPS scheme
 
 ## Accumulated Context
 
@@ -147,6 +148,12 @@ See: `.planning/PROJECT.md` (updated 2026-03-24)
 | Phase 05.1 P03 | 6min | 2 tasks | 3 files |
 | Phase 05.1 P04 | 19min | 2 tasks | 8 files |
 
+### Quick Tasks Completed
+
+| # | Description | Date | Commit | Status | Directory |
+|---|-------------|------|--------|--------|-----------|
+| 260421-exi | OAuth login from different computer | 2026-04-21 | a363eed | Verified | [260421-exi-oauth-login-from-different-computer](./quick/260421-exi-oauth-login-from-different-computer/) |
+
 ## Session History
 
 | Date | Stopped At |
@@ -160,3 +167,4 @@ See: `.planning/PROJECT.md` (updated 2026-03-24)
 | 2026-03-28 | Phase 3 complete (via Claude Code) — friend system, user profiles, chat, notifications |
 | 2026-04-06 | fix/logic UAT complete — real-time market list refresh, browser push notifications, auto-resolution latency, deadline display, dispute button gating |
 | 2026-04-18 | Phase 05.1 UAT complete — all 4 tests passed; market detail sortable tables, ledger running balances + BP/TP merge, profile 3-tab redesign, Dashboard removed from nav; phase marked complete; ready for Phase 06 polish-compliance |
+| 2026-04-21 | Quick task 260421-exi complete — OAuth callback host/scheme fixed for localhost and other allowed computers; targeted auth/config verification passed |

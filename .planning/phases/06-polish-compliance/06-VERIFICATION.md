@@ -57,7 +57,7 @@ Evidence:
 - `backend/app/api/routes/auth.py` lines 149, 170: `build_authorize_url` + `handle_callback` called; state validated against Redis
 - `auth.py` line 132: `GET /api/auth/oauth/providers` returns available (configured) providers
 - `OAuthButtons.tsx` lines 15-24: fetches provider list; renders buttons for each; returns null if empty
-- `.env.example` line 37: `OAUTH_REDIRECT_BASE=https://localhost:8443` documented
+- `.env.example` line 37: `OAUTH_REDIRECT_BASE=` documented with request-host derived callback behavior for local/LAN development
 
 Needs human: Live OAuth round-trip with real credentials in .env.
 
@@ -163,7 +163,7 @@ Evidence:
 | `frontend/src/app/terms/page.tsx` | Terms page w/ useT | VERIFIED | `"use client"` + useT() + terms.* keys |
 | `backend/app/services/gdpr_service.py` | export + delete functions | VERIFIED | Both functions present with pseudonymization |
 | `backend/app/services/oauth_service.py` | PKCE OAuth for 3 providers | VERIFIED | Google, GitHub, 42 with PKCE + state/Redis |
-| `.env.example` | OAUTH_REDIRECT_BASE documented | VERIFIED | Line 37: `OAUTH_REDIRECT_BASE=https://localhost:8443` |
+| `.env.example` | OAUTH_REDIRECT_BASE documented | VERIFIED | Line 37: `OAUTH_REDIRECT_BASE=` with note to leave empty for request-host derived callbacks |
 
 ---
 
