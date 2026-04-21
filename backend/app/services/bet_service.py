@@ -163,13 +163,27 @@ async def withdraw_bet(db: AsyncSession, user_id: uuid.UUID, position_id: uuid.U
             float(market.numeric_min or 0),
             float(market.numeric_max or 1),
         )
+    elif market.market_type == "multiple_choice":
+        counts_result = await db.execute(
+            select(BetPosition.side, func.count(BetPosition.id))
+            .where(
+                BetPosition.bet_id == position.bet_id,
+                BetPosition.withdrawn_at.is_(None),
+            )
+            .group_by(BetPosition.side)
+        )
+        choice_counts = {side: int(count) for side, count in counts_result.all()}
+        total_positions = sum(choice_counts.values()) or 1
+        refund = round((choice_counts.get(position.side, 0) / total_positions), 2)
     else:
         odds = await get_bet_odds(db, position.bet_id)
-        refund = compute_refund_bp(float(odds["yes_pool"]), float(odds["no_pool"]), position.side)
+        refund = compute_refund_bp(float(odds["yes_count"]), float(odds["no_count"]), position.side)
 
-    await credit_bp(db, user_id=user_id, amount=refund, reason="withdrawal_refund", bet_id=position.bet_id)
+    refund_total = round(refund * float(position.bp_staked), 2)
+
+    await credit_bp(db, user_id=user_id, amount=refund_total, reason="withdrawal_refund", bet_id=position.bet_id)
     position.withdrawn_at = datetime.now(timezone.utc)
-    position.refund_bp = refund
+    position.refund_bp = refund_total
     await db.commit()
 
     try:
@@ -183,7 +197,7 @@ async def withdraw_bet(db: AsyncSession, user_id: uuid.UUID, position_id: uuid.U
     except Exception:
         pass
 
-    return BetWithdrawResponse(id=position.id, refund_bp=float(refund), message="Position withdrawn")
+    return BetWithdrawResponse(id=position.id, refund_bp=float(refund_total), message="Position withdrawn")
 
 
 def _is_numeric(value: str) -> bool:

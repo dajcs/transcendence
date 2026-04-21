@@ -3,7 +3,6 @@
 All DB writes go through a single async with db.begin() transaction.
 Socket emit is fire-and-forget AFTER the transaction commits.
 """
-import math
 import uuid
 from datetime import datetime, timezone
 
@@ -103,61 +102,79 @@ async def _compute_t_win(
     return max(0.0, (deadline - entry_time).total_seconds())
 
 
+def _numeric_range_error_pct(
+    predicted_value: float,
+    resolution_value: float,
+    range_min: float | None,
+    range_max: float | None,
+) -> float:
+    """Return absolute error as a fraction of the configured numeric market span."""
+    span = abs((range_max or 0.0) - (range_min or 0.0))
+    denominator = span if span > 0 else 1.0
+    return abs(predicted_value - resolution_value) / denominator
+
+
 def _compute_numeric_payouts(
     positions: list[tuple[uuid.UUID, float, str]],
     resolution_value: float,
-) -> tuple[dict[uuid.UUID, float], float]:
-    """Compute BP payouts for numeric markets (D-14 to D-17).
+    range_min: float | None,
+    range_max: float | None,
+) -> tuple[dict[uuid.UUID, float], list[tuple[uuid.UUID, float]]]:
+    """Compute BP payouts for numeric markets using span-based waterfall bands.
 
     Args:
         positions: list of (user_id, bp_staked, prediction_str) for all active positions
         resolution_value: the resolved numeric value
 
     Returns:
-        (payouts: dict[user_id -> bp_to_credit], total_surplus: float)
+        (payouts: dict[user_id -> bp_to_credit], fund_inserts: [(user_id, surplus_bp)])
     """
     if not positions:
-        return {}, 0.0
+        return {}, []
 
     total_bp_pool = sum(bp for _, bp, _ in positions)
 
-    parsed: list[tuple[uuid.UUID, float, float]] = []
+    parsed: list[tuple[uuid.UUID, float, float, float]] = []
     for uid, bp, side_str in positions:
         try:
-            parsed.append((uid, bp, float(side_str)))
+            prediction = float(side_str)
         except (ValueError, TypeError):
-            pass
+            continue
+        parsed.append((
+            uid,
+            bp,
+            prediction,
+            _numeric_range_error_pct(prediction, resolution_value, range_min, range_max),
+        ))
 
-    # D-14: exact match
-    exact_matches = [(uid, bp, pred) for uid, bp, pred in parsed if pred == resolution_value]
-    if exact_matches:
-        payouts: dict[uuid.UUID, float] = {}
-        total_winner_payouts = 0.0
-        for uid, bp, _ in exact_matches:
-            payout = bp * 10
-            payouts[uid] = payout
-            total_winner_payouts += payout
-        surplus = max(0.0, total_bp_pool - total_winner_payouts)
-        return payouts, surplus
+    if not parsed:
+        return {}, []
 
-    # D-15: no exact match — expand window until ceil(total_bettors * 0.10) inside
-    target_count = math.ceil(len(parsed) * 0.10)
-    sorted_by_dist = sorted(parsed, key=lambda x: abs(x[2] - resolution_value))
-    window = sorted_by_dist[:max(target_count, 1)]
-    window_size = len(window)
+    band_1 = [(uid, bp, pred, err) for uid, bp, pred, err in parsed if err <= 0.02]
+    band_2 = [(uid, bp, pred, err) for uid, bp, pred, err in parsed if 0.02 < err <= 0.04]
+    band_3 = [(uid, bp, pred, err) for uid, bp, pred, err in parsed if 0.04 < err <= 0.08]
+    band_4 = [(uid, bp, pred, err) for uid, bp, pred, err in parsed if 0.08 < err <= 0.16]
 
-    # D-16: linear interpolation — rank 0 (closest) = 10x, rank N-1 = 0.1x
-    payouts = {}
-    total_winner_payouts = 0.0
-    for rank, (uid, bp, _) in enumerate(window):
-        multiplier = 10.0 if window_size == 1 else 10.0 - (rank / (window_size - 1)) * 9.9
-        payout = bp * multiplier
+    winners = band_1 or band_2 or band_3 or band_4
+    if not winners:
+        return {}, []
+
+    total_winning_stake = sum(bp for _, bp, _, _ in winners)
+    if total_winning_stake <= 0:
+        return {}, []
+
+    payouts: dict[uuid.UUID, float] = {}
+    fund_inserts: list[tuple[uuid.UUID, float]] = []
+    for uid, bp, _, _ in winners:
+        proportional_share = bp / total_winning_stake * total_bp_pool
+        cap = bp * 10
+        payout = round(min(cap, proportional_share), 2)
+        surplus = round(max(0.0, proportional_share - payout), 2)
         payouts[uid] = payout
-        total_winner_payouts += payout
+        if surplus > 0:
+            fund_inserts.append((uid, surplus))
 
-    # D-17: surplus
-    surplus = max(0.0, total_bp_pool - total_winner_payouts)
-    return payouts, surplus
+    return payouts, fund_inserts
 
 
 async def trigger_payout(
@@ -242,30 +259,44 @@ async def trigger_payout(
                     BetPosition.withdrawn_at.is_(None),
                 )
             )
-            all_positions = [(row.user_id, float(row.bp_staked), row.side) for row in all_positions_result]
+            all_position_rows = all_positions_result.all()
+            all_positions = [(row.user_id, float(row.bp_staked), row.side) for row in all_position_rows]
             try:
                 resolution_value = float(outcome)
             except (ValueError, TypeError):
                 resolution_value = 0.0
 
-            numeric_payouts, numeric_surplus = _compute_numeric_payouts(all_positions, resolution_value)
+            numeric_position_map = {row.user_id: row.side for row in all_position_rows}
+            numeric_payouts, numeric_fund_inserts = _compute_numeric_payouts(
+                all_positions,
+                resolution_value,
+                bet.numeric_min,
+                bet.numeric_max,
+            )
 
             for winner_id, winner_bp in numeric_payouts.items():
                 if winner_bp > 0:
                     await credit_bp(db, winner_id, winner_bp, "bet_win", bet_id=bet_id)
-                tp = await _compute_tp_for_user(db, bet_id, winner_id, outcome, deadline_aware, t_bet)
+                tp = await _compute_tp_for_user(
+                    db,
+                    bet_id,
+                    winner_id,
+                    numeric_position_map.get(winner_id, outcome),
+                    deadline_aware,
+                    t_bet,
+                )
                 if tp > 0:
                     db.add(TpTransaction(user_id=winner_id, amount=tp, bet_id=bet_id))
                     await db.flush()
                 winner_payouts.append((winner_id, winner_bp))
                 payout_count += 1
 
-            if numeric_surplus > 0:
+            for fund_user_id, surplus_amount in numeric_fund_inserts:
                 db.add(BpFundEntry(
                     market_id=bet_id,
-                    user_id=bet.proposer_id,
-                    amount=numeric_surplus,
-                    reason="numeric_surplus",
+                    user_id=fund_user_id,
+                    amount=surplus_amount,
+                    reason="numeric_cap_surplus",
                 ))
                 await db.flush()
 

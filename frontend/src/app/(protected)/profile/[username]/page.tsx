@@ -52,7 +52,9 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 const TYPE_COLORS: Record<string, string> = {
+  market: "bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-400",
   bet_placed: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
+  bet_refund: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400",
   bet_won: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
   bet_lost: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
   withdrawal: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400",
@@ -350,6 +352,8 @@ export default function ProfilePage() {
                                     <Link href={`/markets/${tx.market_id}`} className="hover:underline text-blue-600 dark:text-blue-400">
                                       {tx.market_title}
                                     </Link>
+                                  ) : tx.description ? (
+                                    <span>{tx.description}</span>
                                   ) : (
                                     <span className="text-gray-400">—</span>
                                   )}

@@ -12,15 +12,15 @@ from app.db.models.transaction import BpTransaction, LpEvent, TpTransaction
 from app.db.models.user import User
 
 
-def compute_refund_bp(yes_pool: float, no_pool: float, side: str) -> float:
-    """Binary refund: probability of the position's side winning.
-    If total pool is 0, return 0.5 (50/50 default)."""
-    total = yes_pool + no_pool
+def compute_refund_bp(yes_count: float, no_count: float, side: str) -> float:
+    """Binary refund: probability of the position's side winning by participant count.
+    If total count is 0, return 0.5 (50/50 default)."""
+    total = yes_count + no_count
     if total == 0:
         return 0.5
     if side == "yes":
-        return round(yes_pool / total, 2)
-    return round(no_pool / total, 2)
+        return round(yes_count / total, 2)
+    return round(no_count / total, 2)
 
 
 def compute_numeric_refund_bp(estimate: float, mean_estimate: float, range_min: float, range_max: float) -> float:
@@ -119,8 +119,8 @@ async def convert_lp_to_bp(db: AsyncSession, user_id: uuid.UUID) -> tuple[int, f
 
 
 async def get_bet_odds(db: AsyncSession, bet_id: uuid.UUID) -> dict:
-    """D-12: Compute yes_pct, no_pct, and vote counts from active positions (withdrawn_at IS NULL).
-    Returns {"yes_pct", "no_pct", "yes_pool", "no_pool", "yes_count", "no_count"}."""
+    """D-12: Compute binary winning probability from participant counts, not stake size.
+    Returns {"yes_pct", "no_pct", "yes_pool", "no_pool", "yes_count", "no_count", "total_votes"}."""
     result = await db.execute(
         select(BetPosition.side, func.sum(BetPosition.bp_staked), func.count(BetPosition.id))
         .where(BetPosition.bet_id == bet_id, BetPosition.withdrawn_at.is_(None))
@@ -133,14 +133,23 @@ async def get_bet_odds(db: AsyncSession, bet_id: uuid.UUID) -> dict:
     no = pools.get("no", {}).get("pool", 0.0)
     yes_count = pools.get("yes", {}).get("count", 0)
     no_count = pools.get("no", {}).get("count", 0)
-    total = yes + no
-    if total == 0:
-        return {"yes_pct": 50.0, "no_pct": 50.0, "yes_pool": 0.0, "no_pool": 0.0, "yes_count": 0, "no_count": 0}
+    total_votes = yes_count + no_count
+    if total_votes == 0:
+        return {
+            "yes_pct": 50.0,
+            "no_pct": 50.0,
+            "yes_pool": 0.0,
+            "no_pool": 0.0,
+            "yes_count": 0,
+            "no_count": 0,
+            "total_votes": 0,
+        }
     return {
-        "yes_pct": round(yes / total * 100, 1),
-        "no_pct": round(no / total * 100, 1),
+        "yes_pct": round(yes_count / total_votes * 100, 1),
+        "no_pct": round(no_count / total_votes * 100, 1),
         "yes_pool": yes,
         "no_pool": no,
         "yes_count": yes_count,
         "no_count": no_count,
+        "total_votes": total_votes,
     }

@@ -19,7 +19,7 @@
 - [x] **AUTH-02**: User can log in and receive JWT access + refresh tokens
 - [x] **AUTH-03**: User can reset password via email link
 - [x] **AUTH-04**: User session persists across browser refresh (refresh token rotation)
-- [ ] **AUTH-05**: OAuth 2.0 login via Google, GitHub, and 42 school (PKCE flow)
+- [x] **AUTH-05**: OAuth 2.0 login via Google, GitHub, and 42 school (PKCE flow)
 
 ### Betting
 
@@ -45,7 +45,7 @@
 - [x] **RES-03**: Tier 3 community vote dispute (48h window, 1% participation minimum)
 - [x] **RES-04**: Dispute vote weights: 0.5x (voted same as own bet), 1x (no stake), 2x (voted against own bet)
 - [x] **RES-05**: Proposer penalty: loses 50% staked bp if resolution overturned
-- [x] **RES-06**: Winning bet payout: `min(bet_amount × 10, proportional_share)` BP per winner; surplus goes to `bp_fund_entries`. TP formula: raw `t_win / t_bet` (no floor). Numeric markets use window-expansion algorithm (`ceil(10% of bettors)`) with linear multiplier 10x→0.1x by rank.
+- [x] **RES-06**: Winning bet payout: `min(bet_amount × 10, proportional_share)` BP per winner; surplus goes to `bp_fund_entries`. TP formula: raw `t_win / t_bet` (no floor). Numeric markets use span-based payout bands at 2%, 4%, 8%, and 16% of `(range_max - range_min)`; the first non-empty band takes the full pool, split proportionally by staked BP, with a 10x cap and capped surplus stored in `bp_fund_entries`.
 
 ### Social
 
@@ -70,12 +70,12 @@
 
 ### Compliance & Polish
 
-- [ ] **COMP-01**: i18n: English, French, German (all UI strings)
-- [ ] **COMP-02**: Privacy Policy page at `/privacy` (EN/FR/DE)
-- [ ] **COMP-03**: Terms of Service page at `/terms` (EN/FR/DE)
+- [x] **COMP-01**: i18n: English, French, German (all UI strings)
+- [x] **COMP-02**: Privacy Policy page at `/privacy` (EN/FR/DE)
+- [x] **COMP-03**: Terms of Service page at `/terms` (EN/FR/DE)
 - [ ] **COMP-04**: Zero console errors/warnings in latest stable Chrome
-- [ ] **COMP-05**: GDPR: data export endpoint, account deletion with pseudonymization
-- [ ] **COMP-06**: Dark mode support
+- [x] **COMP-05**: GDPR: data export endpoint, account deletion with pseudonymization
+- [x] **COMP-06**: Dark mode support
 
 ### Quality
 
@@ -86,10 +86,14 @@
 
 ### Economy (Phase 6.1)
 
-- [ ] **ECON-01**: "Karma Points (KP)" renamed to "Like Points (LP)" in DB (`lp_events` table), backend Python code, API response fields, frontend Zustand store, and all i18n locale files
-- [ ] **ECON-02**: UI displays LP as ♥ N (red heart emoji + count) in nav; comment and market upvote buttons are heart icons (filled red when liked, empty otherwise); unlike removes upvote
-- [ ] **ECON-03**: Economy formulas corrected: LP→BP conversion capped at 10.0 BP (`min(log2(lp+1), 10.0)`); bet cap flat 10 BP; TP formula is raw `t_win / t_bet` (no floor); binary/multichoice payout is `min(bet_amount × 10, proportional_share)` with surplus to `bp_fund_entries`; market creator rebate removed
-- [ ] **ECON-04**: Numeric market payout uses window-expansion algorithm (`ceil(10% of bettors)`) with linear multiplier interpolation (10x→0.1x by rank); surplus goes to `bp_fund_entries`; `bp_fund_entries` table created (migration 016)
+- [x] **ECON-01**: "Karma Points (KP)" renamed to "Like Points (LP)" in DB (`lp_events` table), backend Python code, API response fields, frontend Zustand store, and all i18n locale files
+- [x] **ECON-02**: UI displays LP as ♥ N (red heart emoji + count) in nav; comment and market upvote buttons are heart icons (filled red when liked, empty otherwise); unlike removes upvote
+- [x] **ECON-03**: Economy formulas corrected: LP→BP conversion capped at 10.0 BP (`min(log2(lp+1), 10.0)`); bet cap flat 10 BP; TP formula is raw `t_win / t_bet` (no floor); binary/multichoice payout is `min(bet_amount × 10, proportional_share)` with surplus to `bp_fund_entries`; market creator rebate removed
+- [x] **ECON-04**: Numeric market payout uses span-based waterfall bands at 2%, 4%, 8%, and 16% of `(range_max - range_min)`; the first non-empty band takes the full pool, split proportionally by staked BP, with a 10x cap and capped surplus stored in `bp_fund_entries`; `bp_fund_entries` table created (migration 016). Hall of Fame surfaces users with the most cap-surplus BP.
+
+Notes:
+- Phase 06 is implemented and merged.
+- Phase 06.1 implementation is complete and HUMAN-UAT has passed.
 
 ## v2 Requirements
 
@@ -120,16 +124,16 @@
 |---|---|---|
 | INFRA-01 to INFRA-05 | Phase 1 | Pending |
 | AUTH-01 to AUTH-04 | Phase 1 | Pending |
-| AUTH-05 | Phase 6 | Pending |
+| AUTH-05 | Phase 6 | Complete |
 | BET-01 to BET-08 | Phase 2 | Complete |
 | DISC-01 to DISC-03 | Phase 2 | Complete |
 | RES-01 to RES-06 | Phase 5 | Pending |
 | SOC-01 to SOC-05 | Phase 3 | Pending |
 | RT-01 to RT-03 | Phase 4 | Pending |
 | LLM-01 to LLM-04 | Phase 5 | Pending |
-| COMP-01 to COMP-06 | Phase 6 | Pending |
+| COMP-01 to COMP-06 | Phase 6 | Complete |
 | TEST-01 to TEST-04 | Phase 7 | Pending |
-| ECON-01 to ECON-04 | Phase 6.1 | Pending |
+| ECON-01 to ECON-04 | Phase 6.1 | Complete |
 
 **Coverage:**
 - v1 requirements: 43 total
@@ -138,4 +142,4 @@
 
 ---
 *Requirements defined: 2026-03-24*
-*Last updated: 2026-03-24 after initialization*
+*Last updated: 2026-04-21 after Phase 06.1 UAT pass, numeric payout update, and Hall of Fame addition*

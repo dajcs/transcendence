@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v21.0
 milestone_name: milestone
-current_plan: Not started
-status: Ready to plan
-last_updated: "2026-04-21T10:44:59.618Z"
+current_plan: 07-not-started
+status: Phase 06.1 complete
+last_updated: "2026-04-21T18:30:00.000Z"
 progress:
-  total_phases: 8
-  completed_phases: 7
-  total_plans: 46
-  completed_plans: 46
-  percent: 100
+  total_phases: 9
+  completed_phases: 8
+  total_plans: 50
+  completed_plans: 50
+  percent: 89
 ---
 
 # Project State
@@ -20,14 +20,14 @@ progress:
 See: `.planning/PROJECT.md` (updated 2026-03-24)
 
 **Core value:** Users can bet on real-world outcomes, argue their position, and earn a verifiable reputation score — without real money.
-**Current focus:** Phase 06 — polish-compliance
+**Current focus:** Phase 07 planning. Phase 06.1 is complete, including accepted post-UAT economy fixes and Hall of Fame.
 
 ## Current Status
 
-**Phase:** 06
+**Phase:** 07
 **Current Plan:** Not started
-**Last session:** 2026-04-21T10:44:59.618Z
-**Resume file:** None
+**Last session:** 2026-04-21T18:30:00.000Z
+**Resume file:** `.planning/phases/06.1-like-points-rename-economy-formula-fix/.continue-here.md`
 
 ## Decisions
 
@@ -106,6 +106,8 @@ See: `.planning/PROJECT.md` (updated 2026-03-24)
 - [Phase 05.1 UAT]: Profile page redesigned with 3 tabs: My Points (transaction ledger), My Bets (own profile only, /api/bets/positions), My Markets (proposer_id filter on /api/markets)
 - [Phase 05.1 UAT]: /api/markets gained optional proposer_id query param (no auth required) for public profile My Markets tab
 - [Phase 05.1 UAT]: Dashboard link removed from TopNav (desktop + mobile); profile tabs replace dashboard functionality
+- [Phase 06]: Implemented outside GSD and merged back into the main codebase; planning artifacts retained as historical record
+- [Phase 06.1]: All 8 plans executed; all 6 HUMAN-UAT checks passed; accepted follow-up fixes include refund/ledger corrections, participant-count binary odds, span-based numeric payout bands (2/4/8/16%), and Hall of Fame backed by bp_fund_entries
 - [Quick 260421-exi]: Leave OAUTH_REDIRECT_BASE empty by default and forward X-Forwarded-Proto/Host through Nginx so OAuth callback URIs preserve the initiating host and HTTPS scheme
 
 ## Accumulated Context
@@ -154,6 +156,11 @@ See: `.planning/PROJECT.md` (updated 2026-03-24)
 |---|-------------|------|--------|--------|-----------|
 | 260421-exi | OAuth login from different computer | 2026-04-21 | a363eed | Verified | [260421-exi-oauth-login-from-different-computer](./quick/260421-exi-oauth-login-from-different-computer/) |
 
+### Blockers/Concerns
+
+- No active blockers for Phase 06.1; it is complete.
+- Phase 07 remains unplanned.
+
 ## Session History
 
 | Date | Stopped At |
@@ -168,3 +175,5 @@ See: `.planning/PROJECT.md` (updated 2026-03-24)
 | 2026-04-06 | fix/logic UAT complete — real-time market list refresh, browser push notifications, auto-resolution latency, deadline display, dispute button gating |
 | 2026-04-18 | Phase 05.1 UAT complete — all 4 tests passed; market detail sortable tables, ledger running balances + BP/TP merge, profile 3-tab redesign, Dashboard removed from nav; phase marked complete; ready for Phase 06 polish-compliance |
 | 2026-04-21 | Quick task 260421-exi complete — OAuth callback host/scheme fixed for localhost and other allowed computers; targeted auth/config verification passed |
+| 2026-04-21 | Phase 06 confirmed implemented and merged outside GSD; Phase 06.1 implementation confirmed complete; remaining step is HUMAN-UAT sign-off |
+| 2026-04-21 | Phase 06.1 HUMAN-UAT passed and final accepted follow-up fixes landed — phase marked complete; next work is Phase 7 |

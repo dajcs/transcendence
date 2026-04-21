@@ -1,50 +1,40 @@
 {
   "version": "1.0",
-  "timestamp": "2026-04-17T04:41:59.234Z",
-  "phase": "05.1",
-  "phase_name": "autoresolution-profile-bet-logs-market-bet-details",
-  "phase_dir": ".planning/phases/05.1-autoresolution-profile-bet-logs-market-bet-details",
-  "plan": 4,
-  "task": 2,
+  "timestamp": "2026-04-21T18:30:00.000Z",
+  "phase": "06.1",
+  "phase_name": "like-points-rename-economy-formula-fix",
+  "phase_dir": ".planning/phases/06.1-like-points-rename-economy-formula-fix",
+  "plan": 8,
+  "task": 8,
   "total_tasks": 8,
-  "status": "paused",
+  "status": "completed",
   "completed_tasks": [
-    {"id": "05.1-01-T1", "name": "Add resolution_source field to MarketCreate schema + validator", "status": "done", "commit": "ce67a57"},
-    {"id": "05.1-01-T2", "name": "Persist resolution_source in market_service.create_market", "status": "done", "commit": "022346f"},
-    {"id": "05.1-02-T1", "name": "Failing tests for ledger endpoint (TDD RED)", "status": "done", "commit": "6179a8f"},
-    {"id": "05.1-02-T2", "name": "ledger_service + GET /api/users/{username}/transactions (GREEN)", "status": "done", "commit": "3d2a236"},
-    {"id": "05.1-03-T1", "name": "Failing tests for positions/payouts (TDD RED)", "status": "done", "commit": "b5cc2a1"},
-    {"id": "05.1-03-T2", "name": "GET /markets/{id}/positions and /payouts (GREEN)", "status": "done", "commit": "298fb37"},
-    {"id": "05.1-04-T1", "name": "i18n keys + auto-resolution toggle on market creation", "status": "done", "commit": "637ce46"},
-    {"id": "05.1-04-T2", "name": "Participants, PayoutBreakdown, TransactionLedger sections", "status": "done", "commit": "52469a9"}
+    {"id": "06.1-01", "name": "DB migration 015 + LpEvent model + auth/profile schemas", "status": "done", "commit": "7d62e50"},
+    {"id": "06.1-02", "name": "BpFundEntry model + migration 016", "status": "done", "commit": "419c06f"},
+    {"id": "06.1-03", "name": "Service-layer LP rename + economy formula fixes", "status": "done", "commit": "0e257cb"},
+    {"id": "06.1-04", "name": "Unlike feature + user_has_liked wiring", "status": "done", "commit": "d652623"},
+    {"id": "06.1-05", "name": "Payout rewrite — TP time-based + 10x cap", "status": "done", "commit": "7b2c683"},
+    {"id": "06.1-06", "name": "Numeric payout implementation (later updated to span-based waterfall bands)", "status": "done", "commit": "89ef09f"},
+    {"id": "06.1-07", "name": "Frontend LP rename, heart UI, unlike, bet selector, i18n", "status": "done", "commit": "a13f7af"},
+    {"id": "06.1-08", "name": "Docs — ECONOMY.md, CLAUDE.md, README, REQUIREMENTS.md", "status": "done", "commit": "a8bb5d9"}
   ],
   "remaining_tasks": [],
   "blockers": [],
-  "human_actions_pending": [
-    {
-      "action": "On /markets/new, switch to non-binary market type, verify auto-resolution toggle is hidden (not just reset)",
-      "context": "Toggle currently stays visible for all market types — HTML section is always rendered, only state resets. Plan said 'hidden for other types'.",
-      "blocking": false
-    },
-    {
-      "action": "Create binary market with auto-resolution (Paris, rain, future date), wait for Celery to fire, verify auto-resolution without proposer action",
-      "context": "Requires running stack + Celery + live Open-Meteo API.",
-      "blocking": false
-    },
-    {
-      "action": "View a closed/resolved market detail page, verify green-bordered Payout Breakdown section appears with real data",
-      "context": "Needs a resolved market in DB to confirm conditional rendering works end-to-end.",
-      "blocking": false
-    }
-  ],
+  "human_actions_pending": [],
   "decisions": [
-    {"decision": "Renamed phase dir from 5.1-... to 05.1-... prefix", "rationale": "gsd-tools requires zero-padded numeric prefix for phase discovery", "phase": "05.1"},
-    {"decision": "Wave 1 executed sequentially (no parallel worktrees)", "rationale": "Plans 01 and 03 both modify backend/app/schemas/market.py — parallel would conflict", "phase": "05.1"}
+    {"decision": "Phase 06 was implemented outside GSD and merged", "rationale": "Planning artifacts should reflect merged reality rather than re-planning already shipped work", "phase": "06"},
+    {"decision": "Phase 06.1 implementation required human UAT before completion", "rationale": "All 6 manual checks passed and the accepted post-UAT fixes are now reflected in planning", "phase": "06.1"},
+    {"decision": "Numeric market payouts now use span-based waterfall bands at 2%, 4%, 8%, and 16% of market range", "rationale": "This replaced the earlier window-expansion design and matches the accepted user rule", "phase": "06.1"},
+    {"decision": "Hall of Fame lists BP diverted by payout caps from bp_fund_entries", "rationale": "Cap-surplus BP is now surfaced as a public leaderboard and linked from TopNav", "phase": "06.1"}
   ],
   "uncommitted_files": [
-    ".planning/phases/05.1-autoresolution-profile-bet-logs-market-bet-details/05.1-VERIFICATION.md",
-    "staged renames: 5.1-... -> 05.1-... directory"
+    ".planning/ROADMAP.md",
+    ".planning/STATE.md",
+    ".planning/REQUIREMENTS.md",
+    ".planning/HANDOFF.json",
+    ".planning/phases/06.1-like-points-rename-economy-formula-fix/.continue-here.md",
+    ".planning/phases/06.1-like-points-rename-economy-formula-fix/06.1-VERIFICATION.md"
   ],
-  "next_action": "User reviews 3 human UAT items in 05.1-HUMAN-UAT.md. On 'approved': run `node gsd-tools.cjs phase complete 05.1` and commit ROADMAP/STATE. If toggle is a bug: wrap auto-resolution section in markets/new/page.tsx with {marketType === 'binary' && ...}.",
-  "context_notes": "All 4 plans complete. 8 atomic commits. Verification human_needed (11/12 truths). Code review: 0 critical, 5 warnings (N+1 query, lexicographic sort bug, missing city validation, bare anchor tag, sort reset issue). Phase awaits human UAT sign-off to mark complete."
+  "next_action": "Start Phase 7 planning when ready.",
+  "context_notes": "Phase 05.1 is complete. Phase 06 is implemented and merged. Phase 06.1 is complete, UAT-passed, and includes accepted follow-up fixes to refund math, ledger labels, binary odds, numeric payout bands, and the Hall of Fame page."
 }

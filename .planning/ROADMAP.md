@@ -206,7 +206,9 @@ Plans:
 
 **42 modules:** OAuth 2.0 (1pt); i18n (1pt)
 
-**Plans:** 3 plans
+**Status:** Implemented outside GSD and merged; phase deliverables are in the codebase.
+
+**Plans:** 3/3 plans complete
 
 Plans:
 - [x] 06-01-PLAN.md — Merge imp/i18n + fix/polish; OAuth env gap; locale switcher in nav; GDPR+dark mode verify
@@ -223,7 +225,7 @@ Plans:
 - "Karma Points (KP)" renamed to "Like Points (LP)" across backend, frontend, DB, i18n, docs
 - LP→BP conversion capped at 10.0 BP; bet cap changed to flat 10 BP
 - TP formula: raw t_win/t_bet (no floor); binary/multichoice payout capped at 10x per winner
-- Numeric market payout: window-expansion + linear interpolation; surplus tracked in bp_fund_entries
+- Numeric market payout: span-based waterfall bands (2%, 4%, 8%, 16% of market range); first non-empty band takes the full pool; 10x cap surplus tracked in bp_fund_entries
 - Heart UI (♥) for upvotes; unlike (toggle) for comments and markets
 - ECON-01–04 requirements defined
 
@@ -232,17 +234,21 @@ Plans:
 **Canonical refs:**
 - `plan/ECONOMY.md`
 
-**Plans:** 8 plans
+**Status:** Complete.
+
+**Plans:** 8/8 plans complete
 
 Plans:
-- [ ] 06.1-01-PLAN.md — Wave 1: DB migration 015 (kp_events→lp_events) + LpEvent model + auth/profile schemas
-- [ ] 06.1-02-PLAN.md — Wave 2: BpFundEntry model + migration 016 (depends on 01)
-- [ ] 06.1-03-PLAN.md — Wave 2: Backend service renames + formula fixes (economy, bet, comment, market services)
-- [ ] 06.1-04-PLAN.md — Wave 3: Unlike feature + user_has_liked (schemas, services, routes)
-- [ ] 06.1-05-PLAN.md — Wave 3: Payout rewrite — TP time-based + binary/multichoice 10x cap
-- [ ] 06.1-06-PLAN.md — Wave 4: Numeric market payout — window-expansion algorithm
-- [ ] 06.1-07-PLAN.md — Wave 4: Frontend — kp→lp rename, heart UI, unlike, bet amount selector, i18n
-- [ ] 06.1-08-PLAN.md — Wave 5: Docs — ECONOMY.md, CLAUDE.md, README, REQUIREMENTS.md
+- [x] 06.1-01-PLAN.md — Wave 1: DB migration 015 (kp_events→lp_events) + LpEvent model + auth/profile schemas
+- [x] 06.1-02-PLAN.md — Wave 2: BpFundEntry model + migration 016 (depends on 01)
+- [x] 06.1-03-PLAN.md — Wave 2: Backend service renames + formula fixes (economy, bet, comment, market services)
+- [x] 06.1-04-PLAN.md — Wave 3: Unlike feature + user_has_liked (schemas, services, routes)
+- [x] 06.1-05-PLAN.md — Wave 3: Payout rewrite — TP time-based + binary/multichoice 10x cap
+- [x] 06.1-06-PLAN.md — Wave 4: Numeric market payout
+- [x] 06.1-07-PLAN.md — Wave 4: Frontend — kp→lp rename, heart UI, unlike, bet amount selector, i18n
+- [x] 06.1-08-PLAN.md — Wave 5: Docs — ECONOMY.md, CLAUDE.md, README, REQUIREMENTS.md
+
+**Completion Note:** HUMAN-UAT passed and accepted follow-up fixes landed on 2026-04-21. Next roadmap work is Phase 7.
 
 ---
 

@@ -1,4 +1,7 @@
 """Bet API tests — BET-02 (place YES/NO), BET-03 (withdraw), BET-05 (insufficient bp)."""
+import uuid
+from datetime import datetime, timezone
+
 import pytest
 from httpx import AsyncClient
 
@@ -60,3 +63,68 @@ async def test_withdraw_bet(client: AsyncClient):
     data = resp.json()
     assert "refund_bp" in data
     assert float(data["refund_bp"]) > 0
+
+
+@pytest.mark.asyncio
+async def test_withdraw_bet_refund_scales_with_bp_staked(client: AsyncClient):
+    market_id = await _setup_user_with_market(client, "scaledrefund@example.com", "scaledrefund")
+
+    await client.post("/api/auth/register", json={
+        "email": "counterparty@example.com",
+        "username": "counterparty",
+        "password": "Passw0rd!",
+    })
+    await client.post("/api/auth/login", json={
+        "identifier": "counterparty@example.com",
+        "password": "Passw0rd!",
+    })
+    other_resp = await client.post("/api/bets", json={"bet_id": market_id, "side": "no", "amount": 1})
+    assert other_resp.status_code == 201
+
+    await client.post("/api/auth/login", json={
+        "identifier": "scaledrefund@example.com",
+        "password": "Passw0rd!",
+    })
+    place_resp = await client.post("/api/bets", json={"bet_id": market_id, "side": "yes", "amount": 3})
+    assert place_resp.status_code == 201
+
+    resp = await client.delete(f"/api/bets/{place_resp.json()['id']}")
+    assert resp.status_code == 200
+    assert float(resp.json()["refund_bp"]) == pytest.approx(1.5)
+
+
+@pytest.mark.asyncio
+async def test_withdraw_numeric_bet_refund_scales_with_bp_staked(db_session):
+    from app.db.models.bet import Bet, BetPosition
+    from app.db.models.transaction import BpTransaction
+    from app.db.models.user import User
+    from app.services.bet_service import withdraw_bet
+
+    user_id = uuid.uuid4()
+    other_id = uuid.uuid4()
+    market_id = uuid.uuid4()
+    position_id = uuid.uuid4()
+
+    db_session.add_all([
+        User(id=user_id, email="numeric@test.com", username="numericuser", password_hash="x"),
+        User(id=other_id, email="numericother@test.com", username="numericother", password_hash="x"),
+        Bet(
+            id=market_id,
+            proposer_id=other_id,
+            title="Numeric market",
+            description="desc",
+            resolution_criteria="criteria",
+            deadline=datetime(2030, 1, 1, tzinfo=timezone.utc),
+            market_type="numeric",
+            numeric_min=0,
+            numeric_max=10,
+            status="open",
+        ),
+        BpTransaction(user_id=user_id, amount=10, reason="signup"),
+        BetPosition(id=position_id, bet_id=market_id, user_id=user_id, side="4", bp_staked=2),
+        BetPosition(id=uuid.uuid4(), bet_id=market_id, user_id=other_id, side="6", bp_staked=1),
+    ])
+    await db_session.commit()
+
+    result = await withdraw_bet(db_session, user_id, position_id)
+    assert result.refund_bp == pytest.approx(1.6)

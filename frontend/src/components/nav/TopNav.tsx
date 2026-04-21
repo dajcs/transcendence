@@ -42,12 +42,17 @@ function LanguageSelector() {
   const locale = useLocaleStore((s) => s.locale);
   const setLocale = useLocaleStore((s) => s.setLocale);
   const t = useT();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => setMounted(true), []);
+
   return (
     <select
-      value={locale}
+      value={mounted ? locale : "en"}
       onChange={(e) => setLocale(e.target.value as Locale)}
       className="rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-xs px-1.5 py-1 focus:outline-none"
       aria-label={t("nav.language")}
+      suppressHydrationWarning
     >
       <option value="en">EN</option>
       <option value="fr">FR</option>
@@ -104,6 +109,9 @@ export default function TopNav() {
               </Link>
               <Link href="/chat" className="text-sm text-blue-600 hover:underline shrink-0">
                 {t("nav.chat")}
+              </Link>
+              <Link href="/hall-of-fame" className="text-sm text-blue-600 hover:underline shrink-0">
+                {t("nav.hall_of_fame")}
               </Link>
               <Link href="/settings" className="text-sm text-blue-600 hover:underline shrink-0">
                 {t("nav.settings")}
@@ -178,6 +186,9 @@ export default function TopNav() {
               </Link>
               <Link href="/chat" onClick={() => setMobileOpen(false)} className="text-sm text-blue-600 hover:underline">
                 {t("nav.chat")}
+              </Link>
+              <Link href="/hall-of-fame" onClick={() => setMobileOpen(false)} className="text-sm text-blue-600 hover:underline">
+                {t("nav.hall_of_fame")}
               </Link>
               <Link href="/settings" onClick={() => setMobileOpen(false)} className="text-sm text-blue-600 hover:underline">
                 {t("nav.settings")}

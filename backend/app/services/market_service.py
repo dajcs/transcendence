@@ -19,7 +19,6 @@ async def create_market(
     db: AsyncSession, proposer_id: uuid.UUID, data: MarketCreate
 ) -> MarketResponse:
     """Create market and deduct 1 bp atomically."""
-    await deduct_bp(db, user_id=proposer_id, amount=1.0, reason="market_create")
     bet = Bet(
         id=uuid.uuid4(),
         proposer_id=proposer_id,
@@ -35,6 +34,8 @@ async def create_market(
         resolution_source=json.dumps(data.resolution_source) if data.resolution_source else None,
     )
     db.add(bet)
+    await db.flush()
+    await deduct_bp(db, user_id=proposer_id, amount=1.0, reason="market_create", bet_id=bet.id)
     await db.commit()
     await db.refresh(bet)
 
@@ -332,6 +333,8 @@ async def upvote_market(db: AsyncSession, user_id: uuid.UUID, market_id: uuid.UU
     market = (await db.execute(select(Bet).where(Bet.id == market_id))).scalar_one_or_none()
     if market is None:
         raise HTTPException(status_code=404, detail="Market not found")
+    if market.proposer_id == user_id:
+        return  # self-like not allowed
     try:
         db.add(BetUpvote(bet_id=market_id, user_id=user_id))
         db.add(LpEvent(
@@ -354,6 +357,8 @@ async def unlike_market(db: AsyncSession, user_id: uuid.UUID, market_id: uuid.UU
     market = (await db.execute(select(Bet).where(Bet.id == market_id))).scalar_one_or_none()
     if market is None:
         raise HTTPException(status_code=404, detail="Market not found")
+    if market.proposer_id == user_id:
+        return  # self-like state is always a no-op
     upvote = (
         await db.execute(
             select(BetUpvote).where(

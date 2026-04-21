@@ -29,6 +29,7 @@ export default function SettingsPage() {
   const locale = useLocaleStore((s) => s.locale);
   const setLocale = useLocaleStore((s) => s.setLocale);
   const queryClient = useQueryClient();
+  const [localeMounted, setLocaleMounted] = useState(false);
 
   const { data: availData } = useQuery<{ available: boolean }>({
     queryKey: ["llm-available"],
@@ -63,6 +64,10 @@ export default function SettingsPage() {
     setKeySet(data.llm_api_key_set);
   }, [data, llmAvailable]);
 
+  useEffect(() => {
+    setLocaleMounted(true);
+  }, []);
+
   const save = useMutation({
     mutationFn: async () => {
       const body: Record<string, string> = { llm_mode: mode };
@@ -90,9 +95,10 @@ export default function SettingsPage() {
         <h2 className="text-lg font-semibold">{t("settings.language")}</h2>
         <p className="text-sm text-gray-500 dark:text-gray-400">{t("settings.language_description")}</p>
         <select
-          value={locale}
+          value={localeMounted ? locale : "en"}
           onChange={(e) => setLocale(e.target.value as Locale)}
           className="rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-1.5 text-sm"
+          suppressHydrationWarning
         >
           <option value="en">English</option>
           <option value="fr">Français</option>

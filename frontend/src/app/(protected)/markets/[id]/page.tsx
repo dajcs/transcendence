@@ -35,7 +35,7 @@ interface PayoutListResponse {
   total: number;
 }
 
-function estimateRefund(position: { side: string }, market: Market): { bp: number; reasonKey: string } {
+function estimateRefund(position: { side: string; bp_staked: number }, market: Market): { rate: number; total: number; reasonKey: string } {
   if (market.market_type === "numeric") {
     const entries = Object.entries(market.choice_counts);
     const totalVotes = entries.reduce((s, [, c]) => s + c, 0);
@@ -43,18 +43,33 @@ function estimateRefund(position: { side: string }, market: Market): { bp: numbe
       ? entries.reduce((s, [v, c]) => s + parseFloat(v) * c, 0) / totalVotes
       : parseFloat(position.side);
     const span = (market.numeric_max ?? 1) - (market.numeric_min ?? 0);
-    const bp = span > 0 ? Math.max(0, 1 - Math.abs(parseFloat(position.side) - mean) / span) : 1;
-    return { bp: Math.round(bp * 100) / 100, reasonKey: "market.consensus_proximity" as const };
+    const rate = span > 0 ? Math.max(0, 1 - Math.abs(parseFloat(position.side) - mean) / span) : 1;
+    const roundedRate = Math.round(rate * 100) / 100;
+    return {
+      rate: roundedRate,
+      total: Math.round(position.bp_staked * roundedRate * 100) / 100,
+      reasonKey: "market.consensus_proximity" as const,
+    };
   }
   if (market.market_type === "binary") {
-    const bp = position.side === "yes" ? market.yes_pct / 100 : market.no_pct / 100;
-    return { bp: Math.round(bp * 100) / 100, reasonKey: "market.winning_probability" as const };
+    const rate = position.side === "yes" ? market.yes_pct / 100 : market.no_pct / 100;
+    const roundedRate = Math.round(rate * 100) / 100;
+    return {
+      rate: roundedRate,
+      total: Math.round(position.bp_staked * roundedRate * 100) / 100,
+      reasonKey: "market.winning_probability" as const,
+    };
   }
   // multiple_choice
   const total = market.position_count || 1;
   const count = market.choice_counts[position.side] ?? 0;
-  const bp = count / total;
-  return { bp: Math.round(bp * 100) / 100, reasonKey: "market.winning_probability" as const };
+  const rate = count / total;
+  const roundedRate = Math.round(rate * 100) / 100;
+  return {
+    rate: roundedRate,
+    total: Math.round(position.bp_staked * roundedRate * 100) / 100,
+    reasonKey: "market.winning_probability" as const,
+  };
 }
 
 export default function MarketDetailPage() {
@@ -142,6 +157,7 @@ export default function MarketDetailPage() {
     queryFn: async () => (await api.get("/api/users/me")).data,
   });
   const aiEnabled = llmSettingsQuery.data?.llm_mode !== "disabled";
+  const maxBetAmount = currentUser ? Math.min(10, Math.floor(currentUser.bp)) : 0;
 
   // Join bet room on mount, leave on unmount (D-12)
   useEffect(() => {
@@ -658,7 +674,11 @@ export default function MarketDetailPage() {
                   ) : (
                     <div className="mt-3 flex items-center gap-3 flex-wrap">
                       <p className="text-sm text-red-700 dark:text-red-400">
-                        {t("market.refund_bp", { bp: refundEstimate!.bp })}{" "}
+                        {t("market.refund_bp", {
+                          stake: myPosition.bp_staked,
+                          prob: refundEstimate!.rate,
+                          bp: refundEstimate!.total,
+                        })}{" "}
                         <span className="text-gray-500 dark:text-gray-400">({t(refundEstimate!.reasonKey as any)})</span>
                       </p>
                       <button
@@ -1149,24 +1169,25 @@ export default function MarketDetailPage() {
                 />
               </div>
             )}
-            <div className="mb-3 flex items-center gap-2">
-              <label className="text-sm text-gray-600 dark:text-gray-400">{t("market.bet_amount_label")}</label>
-              <select
-                value={betAmount}
-                onChange={(e) => setBetAmount(Number(e.target.value))}
-                className="rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-2 py-1 text-sm"
-              >
-                {Array.from(
-                  { length: Math.max(1, Math.min(10, Math.floor(currentUser?.bp ?? 1))) },
-                  (_, i) => i + 1
-                ).map((n) => (
-                  <option key={n} value={n}>{n} BP</option>
-                ))}
-              </select>
-            </div>
+            {maxBetAmount > 0 ? (
+              <div className="mb-3 flex items-center gap-2">
+                <label className="text-sm text-gray-600 dark:text-gray-400">{t("market.bet_amount_label")}</label>
+                <select
+                  value={betAmount}
+                  onChange={(e) => setBetAmount(Number(e.target.value))}
+                  className="rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-2 py-1 text-sm"
+                >
+                  {Array.from({ length: maxBetAmount }, (_, i) => i + 1).map((n) => (
+                    <option key={n} value={n}>{n} BP</option>
+                  ))}
+                </select>
+              </div>
+            ) : (
+              <p className="mb-3 text-sm text-red-600 dark:text-red-400">{t("market.need_min_1bp")}</p>
+            )}
             <button
               onClick={() => placeBet.mutate()}
-              disabled={placeBet.isPending}
+              disabled={placeBet.isPending || maxBetAmount < 1}
               className="rounded bg-blue-600 px-4 py-2 text-sm text-white hover:bg-blue-700 disabled:opacity-60"
             >
               {placeBet.isPending ? t("market.placing") : t("market.place_1bp")}

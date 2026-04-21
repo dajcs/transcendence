@@ -1,7 +1,6 @@
 "use client";
 
 import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuthStore } from "@/store/auth";
@@ -54,11 +53,25 @@ export default function LoginForm() {
   const {
     register,
     handleSubmit,
+    clearErrors,
     setError,
     formState: { errors, isSubmitting },
-  } = useForm<FormData>({ resolver: zodResolver(schema) });
+  } = useForm<FormData>();
 
   const onSubmit = async (data: FormData) => {
+    clearErrors();
+
+    const validation = schema.safeParse(data);
+    if (!validation.success) {
+      for (const issue of validation.error.issues) {
+        const field = issue.path[0];
+        if (field === "identifier" || field === "password") {
+          setError(field, { message: issue.message });
+        }
+      }
+      return;
+    }
+
     try {
       await api.post("/api/auth/login", data);
       await bootstrap();

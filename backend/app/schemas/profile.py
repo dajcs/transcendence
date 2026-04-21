@@ -52,3 +52,16 @@ class UserSearchResult(BaseModel):
     avatar_url: str | None
 
     model_config = {"from_attributes": True}
+
+
+class HallOfFameEntry(BaseModel):
+    id: uuid.UUID
+    username: str
+    avatar_url: str | None
+    banked_bp: float
+    markets_count: int
+
+
+class HallOfFameResponse(BaseModel):
+    entries: list[HallOfFameEntry]
+    total: int

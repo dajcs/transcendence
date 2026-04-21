@@ -111,6 +111,9 @@ Verified code-level fixes:
 - `layout.tsx` line 21: blocking inline script sets theme class before paint (prevents FOUC/warning)
 - `frontend/src/store/theme.ts`: custom Zustand store replaces next-themes (eliminates React 19 script-in-component warning)
 - `frontend/src/i18n/index.ts` line 16: `mounted ? locale : "en"` defers locale until hydrated (fixes locale hydration mismatch)
+- `frontend/src/components/nav/TopNav.tsx`: language selector now renders stable SSR value `en` until mount, preventing `<select>` hydration mismatch when localStorage stores `fr` or `de`
+- `frontend/src/app/(protected)/settings/page.tsx`: settings locale select uses the same mount-safe pattern to avoid client/server value drift
+- `frontend/src/components/ThemeProvider.tsx`: syncs `document.documentElement.lang` after hydration so the active locale is reflected in the root HTML element for Chrome/a11y checks
 - `LoginForm.tsx` lines 86,96: all inputs have `dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100`
 - `RegisterForm.tsx` lines 102,111,122: all inputs have same dark: classes
 - `OAuthButtons.tsx` line 35: "or" divider uses `dark:bg-gray-900 dark:text-white`

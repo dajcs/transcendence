@@ -74,9 +74,9 @@ async def get_user_transactions(
     ).group_by(group_key).subquery()
 
     tx_type = case(
-        (merged.c.reason == "market_create", "bet_placed"),
+        (merged.c.reason == "market_create", "market"),
         (merged.c.reason == "bet_place", "bet_placed"),
-        (merged.c.reason == "bet_refund", "withdrawal"),
+        (merged.c.reason.in_(["bet_refund", "withdrawal_refund"]), "bet_refund"),
         (merged.c.reason == "bet_win", "bet_won"),
         (merged.c.reason == "proposer_penalty", "bet_lost"),
         (merged.c.reason == "lp_conversion", "lp_allocation"),
@@ -143,7 +143,11 @@ async def get_user_transactions(
             id=row.id,
             date=row.date,
             type=row.tx_type,
-            description=title_map.get(row.bet_id) if row.bet_id else "",
+            description=(
+                row.date.date().isoformat()
+                if row.tx_type == "daily_bonus" and row.date
+                else title_map.get(row.bet_id, "")
+            ),
             market_id=row.bet_id,
             market_title=title_map.get(row.bet_id) if row.bet_id else None,
             bp_delta=round(row.bp_delta, 1),

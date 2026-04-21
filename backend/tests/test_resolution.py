@@ -138,6 +138,80 @@ def test_d11_tp_time_based_formula():
     assert math.isclose(tp, 1.0 / 3600.0)
 
 
+def test_numeric_payouts_use_closest_non_empty_band_and_full_pool():
+    from app.services.resolution_service import _compute_numeric_payouts
+
+    payouts, fund_inserts = _compute_numeric_payouts(
+        positions=[
+            (uuid.uuid4(), 3.0, "101.0"),
+            (uuid.uuid4(), 1.0, "101.5"),
+            (uuid.uuid4(), 5.0, "120.0"),
+        ],
+        resolution_value=100.0,
+        range_min=0.0,
+        range_max=200.0,
+    )
+
+    assert sorted(payouts.values()) == [2.25, 6.75]
+    assert fund_inserts == []
+
+
+def test_numeric_payouts_use_market_span_percentages_and_16pct_fallback_band():
+    from app.services.resolution_service import _compute_numeric_payouts
+
+    payouts, fund_inserts = _compute_numeric_payouts(
+        positions=[
+            (uuid.uuid4(), 3.0, "115.0"),  # 15% of 0..100 span
+            (uuid.uuid4(), 1.0, "84.0"),   # 16% of 0..100 span
+            (uuid.uuid4(), 5.0, "130.0"),  # 30% of span
+        ],
+        resolution_value=100.0,
+        range_min=0.0,
+        range_max=100.0,
+    )
+
+    assert sorted(payouts.values()) == [2.25, 6.75]
+    assert fund_inserts == []
+
+
+def test_numeric_payouts_have_no_winners_beyond_16pct_of_market_span():
+    from app.services.resolution_service import _compute_numeric_payouts
+
+    payouts, fund_inserts = _compute_numeric_payouts(
+        positions=[
+            (uuid.uuid4(), 3.0, "117.0"),
+            (uuid.uuid4(), 1.0, "82.0"),
+        ],
+        resolution_value=100.0,
+        range_min=0.0,
+        range_max=100.0,
+    )
+
+    assert payouts == {}
+    assert fund_inserts == []
+
+
+def test_numeric_payouts_cap_each_winner_and_store_surplus_per_user():
+    from app.services.resolution_service import _compute_numeric_payouts
+
+    user_a = uuid.uuid4()
+    user_b = uuid.uuid4()
+    payouts, fund_inserts = _compute_numeric_payouts(
+        positions=[
+            (user_a, 1.0, "101.0"),
+            (user_b, 1.0, "101.5"),
+            (uuid.uuid4(), 98.0, "150.0"),
+        ],
+        resolution_value=100.0,
+        range_min=0.0,
+        range_max=200.0,
+    )
+
+    assert payouts[user_a] == 10.0
+    assert payouts[user_b] == 10.0
+    assert sorted(fund_inserts) == sorted([(user_a, 40.0), (user_b, 40.0)])
+
+
 def test_beat_schedule_has_check_auto_resolution():
     """Verify check_auto_resolution is registered in the Celery beat schedule."""
     from app.workers.celery_app import celery_app

@@ -5,6 +5,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from httpx import AsyncClient
+from sqlalchemy import func, select
 
 
 @pytest.mark.asyncio
@@ -134,3 +135,48 @@ async def test_create_market_stores_celery_task_id(db_session):
     assert bet.celery_task_id == task_id, (
         f"Expected celery_task_id={task_id!r}, got {bet.celery_task_id!r}"
     )
+
+
+@pytest.mark.asyncio
+async def test_upvote_market_disallows_self_like(db_session):
+    """ECON-02: proposer cannot like their own market or award themselves LP."""
+    from app.db.models.bet import Bet, BetUpvote
+    from app.db.models.transaction import BpTransaction, LpEvent
+    from app.db.models.user import User
+    from app.services.market_service import upvote_market
+
+    user_id = uuid.uuid4()
+    market_id = uuid.uuid4()
+    db_session.add(User(id=user_id, email="selflike@test.com", username="selflike", password_hash="x"))
+    db_session.add(BpTransaction(user_id=user_id, amount=5.0, reason="signup"))
+    db_session.add(Bet(
+        id=market_id,
+        proposer_id=user_id,
+        title="Own market",
+        description="desc",
+        resolution_criteria="criteria",
+        deadline=datetime(2030, 1, 1, tzinfo=timezone.utc),
+        market_type="binary",
+        status="open",
+    ))
+    await db_session.commit()
+
+    await upvote_market(db_session, user_id, market_id)
+
+    upvote_count = (
+        await db_session.execute(
+            select(func.count()).select_from(BetUpvote).where(BetUpvote.bet_id == market_id)
+        )
+    ).scalar_one()
+    lp_events = (
+        await db_session.execute(
+            select(LpEvent).where(
+                LpEvent.user_id == user_id,
+                LpEvent.source_type == "market_upvote",
+                LpEvent.source_id == market_id,
+            )
+        )
+    ).scalars().all()
+
+    assert upvote_count == 0
+    assert lp_events == []
