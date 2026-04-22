@@ -2,7 +2,7 @@
 
 jest.mock("@/lib/api", () => ({ api: { get: jest.fn(), post: jest.fn() } }));
 jest.mock("next/navigation", () => ({
-  useParams: () => ({ id: "market-abc-123", username: "testuser" }),
+  useParams: () => ({ id: "test-market-123e4567-e89b-12d3-a456-426614174000", username: "testuser" }),
   useRouter: () => ({ push: jest.fn() }),
 }));
 jest.mock("@/i18n", () => ({ useT: () => (key: string) => key }));
@@ -23,6 +23,8 @@ import { createElement } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import MarketDetailPage from "../page";
+
+const MARKET_ID = "123e4567-e89b-12d3-a456-426614174000";
 
 const mockGet = api.get as jest.Mock;
 const mockPost = api.post as jest.Mock;
@@ -50,7 +52,7 @@ function makeGetHandler() {
     // Default: market data
     return Promise.resolve({
       data: {
-        id: "market-abc-123",
+        id: MARKET_ID,
         title: "Test Market",
         description: "desc",
         resolution_criteria: "criteria",
@@ -65,6 +67,7 @@ function makeGetHandler() {
         choice_counts: {},
         upvote_count: 0,
         proposer_id: "other-user",
+        proposer_username: "proposer_user",
         choices: null,
         numeric_min: null,
         numeric_max: null,
@@ -89,7 +92,7 @@ describe("Market detail page query keys", () => {
 
     await waitFor(() => {
       const positionsCalls = mockGet.mock.calls.filter((c: unknown[]) =>
-        String(c[0]).includes("market-abc-123") && String(c[0]).includes("/positions")
+        String(c[0]).includes(MARKET_ID) && String(c[0]).includes("/positions")
       );
       expect(positionsCalls.length).toBeGreaterThan(0);
     }, { timeout: 3000 });
@@ -104,7 +107,7 @@ describe("Market detail page query keys", () => {
     await waitFor(() => {
       // Market loaded as "open" — payouts query should not fire
       const marketCalls = mockGet.mock.calls.filter((c: unknown[]) =>
-        String(c[0]).includes("/markets/market-abc-123") && !String(c[0]).includes("/positions") && !String(c[0]).includes("/comments")
+        String(c[0]).includes(`/markets/${MARKET_ID}`) && !String(c[0]).includes("/positions") && !String(c[0]).includes("/comments")
       );
       expect(marketCalls.length).toBeGreaterThan(0);
     }, { timeout: 3000 });
@@ -139,7 +142,7 @@ describe("Market detail page query keys", () => {
       }
       return Promise.resolve({
         data: {
-          id: "market-abc-123",
+          id: MARKET_ID,
           title: "Test Market",
           description: "desc",
           resolution_criteria: "criteria",
@@ -154,6 +157,7 @@ describe("Market detail page query keys", () => {
           choice_counts: {},
           upvote_count: 0,
           proposer_id: "other-user",
+          proposer_username: "proposer_user",
           choices: null,
           numeric_min: null,
           numeric_max: null,
@@ -166,10 +170,10 @@ describe("Market detail page query keys", () => {
 
     await waitFor(() => {
       expect(
-        mockGet.mock.calls.some((c: unknown[]) => String(c[0]).includes("/api/bets/market-abc-123/resolution"))
+        mockGet.mock.calls.some((c: unknown[]) => String(c[0]).includes(`/api/bets/${MARKET_ID}/resolution`))
       ).toBe(true);
       expect(
-        mockGet.mock.calls.some((c: unknown[]) => String(c[0]).includes("/api/markets/market-abc-123/payouts"))
+        mockGet.mock.calls.some((c: unknown[]) => String(c[0]).includes(`/api/markets/${MARKET_ID}/payouts`))
       ).toBe(true);
     });
   });
@@ -184,7 +188,7 @@ describe("Market detail page query keys", () => {
       const calls = mockGet.mock.calls.map((c: unknown[]) => String(c[0]));
       const posCall = calls.find((u) => u.includes("/positions"));
       expect(posCall).toBeDefined();
-      expect(posCall).toContain("market-abc-123");
+      expect(posCall).toContain(MARKET_ID);
     }, { timeout: 3000 });
   });
 
@@ -207,7 +211,7 @@ describe("Market detail page query keys", () => {
           data: {
             active: [{
               id: "position-1",
-              bet_id: "market-abc-123",
+              bet_id: MARKET_ID,
               side: "yes",
               bp_staked: 3,
               placed_at: new Date().toISOString(),
@@ -235,7 +239,7 @@ describe("Market detail page query keys", () => {
       }
       return Promise.resolve({
         data: {
-          id: "market-abc-123",
+          id: MARKET_ID,
           title: "Test Market",
           description: "desc",
           resolution_criteria: "criteria",
@@ -250,6 +254,7 @@ describe("Market detail page query keys", () => {
           choice_counts: {},
           upvote_count: 0,
           proposer_id: "other-user",
+          proposer_username: "proposer_user",
           choices: null,
           numeric_min: null,
           numeric_max: null,
@@ -291,7 +296,25 @@ describe("Market detail page query keys", () => {
 
     expect(mockPost).toHaveBeenCalledWith(
       "/api/bets",
-      expect.objectContaining({ bet_id: "market-abc-123", side: "yes", amount: 1 })
+      expect.objectContaining({ bet_id: MARKET_ID, side: "yes", amount: 1 })
+    );
+  });
+
+  it("uses the UUID suffix from a slug route param and shows the proposer", async () => {
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const view = render(
+      createElement(QueryClientProvider, { client: qc }, createElement(MarketDetailPage))
+    );
+
+    await waitFor(() => {
+      expect(
+        mockGet.mock.calls.some((c: unknown[]) => String(c[0]).includes(`/api/markets/${MARKET_ID}`))
+      ).toBe(true);
+    });
+
+    expect(await view.findByRole("link", { name: "@proposer_user" })).toHaveAttribute(
+      "href",
+      "/profile/proposer_user"
     );
   });
 
@@ -321,7 +344,7 @@ describe("Market detail page query keys", () => {
       }
       return Promise.resolve({
         data: {
-          id: "market-abc-123",
+          id: MARKET_ID,
           title: "Test Market",
           description: "desc",
           resolution_criteria: "criteria",
@@ -336,6 +359,7 @@ describe("Market detail page query keys", () => {
           choice_counts: {},
           upvote_count: 0,
           proposer_id: "other-user",
+          proposer_username: "proposer_user",
           choices: null,
           numeric_min: null,
           numeric_max: null,

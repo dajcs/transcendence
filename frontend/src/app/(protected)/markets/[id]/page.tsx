@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { api } from "@/lib/api";
+import { getMarketIdFromRouteParam } from "@/lib/markets";
 import { useAuthStore } from "@/store/auth";
 import { useSocketStore } from "@/store/socket";
 import type { BetPosition, BetPositionsListResponse, Comment, Market, ResolutionState } from "@/lib/types";
@@ -74,7 +75,7 @@ function estimateRefund(position: { side: string; bp_staked: number }, market: M
 
 export default function MarketDetailPage() {
   const params = useParams<{ id: string }>();
-  const marketId = params.id;
+  const marketId = getMarketIdFromRouteParam(params.id);
   const queryClient = useQueryClient();
   const bootstrap = useAuthStore((s) => s.bootstrap);
   const socket = useSocketStore((s) => s.socket);
@@ -102,6 +103,11 @@ export default function MarketDetailPage() {
   const [allParticipants, setAllParticipants] = useState<ParticipantEntry[]>([]);
   const [participantSort, setParticipantSort] = useState<{ key: keyof ParticipantEntry | null; dir: "asc" | "desc" }>({ key: null, dir: "asc" });
   const [payoutSort, setPayoutSort] = useState<{ key: keyof PayoutEntry | null; dir: "asc" | "desc" }>({ key: null, dir: "asc" });
+
+  const refreshParticipants = async () => {
+    setParticipantOffset(0);
+    await queryClient.invalidateQueries({ queryKey: ["market-positions", marketId] });
+  };
 
   const participantsQuery = useQuery<ParticipantListResponse>({
     queryKey: ["market-positions", marketId, participantOffset],
@@ -177,6 +183,7 @@ export default function MarketDetailPage() {
       queryClient.setQueryData(["market", marketId], (old: Market | undefined) =>
         old ? { ...old, yes_pct: data.yes_pct, no_pct: data.no_pct, choice_counts: data.choice_counts, position_count: data.position_count } : old
       );
+      void refreshParticipants();
     };
 
     // RT-02: Live comment — invalidate query so comment list refetches
@@ -254,6 +261,7 @@ export default function MarketDetailPage() {
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["market", marketId] });
       await queryClient.invalidateQueries({ queryKey: ["positions"] });
+      await refreshParticipants();
       await bootstrap();
     },
   });
@@ -307,6 +315,7 @@ export default function MarketDetailPage() {
       setShowWithdrawConfirm(false);
       await queryClient.invalidateQueries({ queryKey: ["positions"] });
       await queryClient.invalidateQueries({ queryKey: ["market", marketId] });
+      await refreshParticipants();
       await bootstrap();
     },
   });
@@ -486,6 +495,11 @@ export default function MarketDetailPage() {
                 <span className="text-xs font-medium text-gray-500 dark:text-gray-400">{market.upvote_count}</span>
               </button>
             </div>
+            <UserLink
+              username={market.proposer_username || "unknown"}
+              label={`@${market.proposer_username || "unknown"}`}
+              className="block text-sm font-medium text-blue-600 dark:text-blue-400"
+            />
             <p className="text-sm text-gray-600 dark:text-gray-400">{market.description}</p>
             <p className="text-sm text-gray-500 dark:text-gray-400">{t("market.resolution_label")} {market.resolution_criteria}</p>
           </header>

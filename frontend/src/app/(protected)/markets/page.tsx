@@ -5,6 +5,7 @@ import { useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { api } from "@/lib/api";
+import { getMarketPath } from "@/lib/markets";
 import { useAuthStore } from "@/store/auth";
 import type { Market, MarketListResponse } from "@/lib/types";
 import { useMarketStore } from "@/store/market";
@@ -61,7 +62,7 @@ function MarketCard({ market }: { market: Market }) {
 
   return (
     <Link
-      href={`/markets/${market.id}`}
+      href={getMarketPath(market)}
       className={`block rounded border p-4 hover:border-gray-300 dark:hover:border-gray-600 ${marketCardBg(market.status, isOwnMarket)}`}
     >
       <div className="flex items-start justify-between gap-4">

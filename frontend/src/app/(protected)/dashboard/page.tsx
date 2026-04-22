@@ -8,6 +8,7 @@ import { api } from "@/lib/api";
 import type { BetPositionsListResponse, Market, MarketListResponse } from "@/lib/types";
 import { useAuthStore } from "@/store/auth";
 import { useT } from "@/i18n";
+import { getMarketPath } from "@/lib/markets";
 
 type Tab = "my_bets" | "my_markets";
 
@@ -118,7 +119,7 @@ export default function DashboardPage() {
                   return (
                     <Link
                       key={position.id}
-                      href={`/markets/${position.bet_id}`}
+                      href={getMarketPath(position.bet_id, position.market_title)}
                       className={`block rounded border p-3 hover:border-gray-300 dark:hover:border-gray-600 ${marketCardBg(position.market_status)}`}
                     >
                       <p className="font-medium text-gray-900 dark:text-gray-100">{position.market_title}</p>
@@ -147,7 +148,7 @@ export default function DashboardPage() {
                 {positionsQuery.data.resolved.map((position) => (
                   <Link
                     key={position.id}
-                    href={`/markets/${position.bet_id}`}
+                    href={getMarketPath(position.bet_id, position.market_title)}
                     className="block rounded border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-3 text-sm text-gray-700 dark:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600"
                   >
                     <p className="font-medium text-gray-900 dark:text-gray-100">{position.market_title}</p>
@@ -177,7 +178,7 @@ export default function DashboardPage() {
                   return (
                     <Link
                       key={market.id}
-                      href={`/markets/${market.id}`}
+                      href={getMarketPath(market)}
                       className={`block rounded border p-3 hover:border-gray-300 dark:hover:border-gray-600 ${marketCardBg(market.status, true)}`}
                     >
                       <p className="font-medium text-gray-900 dark:text-gray-100">{market.title}</p>
@@ -211,7 +212,7 @@ export default function DashboardPage() {
                 {closedMarkets.map((market) => (
                   <Link
                     key={market.id}
-                    href={`/markets/${market.id}`}
+                    href={getMarketPath(market)}
                     className="block rounded border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-3 text-sm text-gray-700 dark:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600"
                   >
                     <p className="font-medium text-gray-900 dark:text-gray-100">{market.title}</p>

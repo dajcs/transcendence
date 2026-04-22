@@ -91,7 +91,7 @@ export default function TopNav() {
                 href={`/profile/${encodeURIComponent(user?.username ?? "")}`}
                 className="text-sm text-blue-600 hover:underline shrink-0"
               >
-                {user?.username}
+                @{user?.username}
               </Link>
               <span className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap shrink-0">
                 BP&nbsp;{(user?.bp ?? 0).toFixed(1)}{" · "}<span className="text-red-500">♥</span>&nbsp;{user?.lp ?? 0}{" · "}TP&nbsp;{(user?.tp ?? 0).toFixed(1)}
@@ -168,7 +168,7 @@ export default function TopNav() {
                 onClick={() => setMobileOpen(false)}
                 className="text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600"
               >
-                {user?.username}
+                @{user?.username}
               </Link>
               <span className="text-xs text-gray-500 dark:text-gray-400">
                 BP&nbsp;{(user?.bp ?? 0).toFixed(1)}{" · "}<span className="text-red-500">♥</span>&nbsp;{user?.lp ?? 0}{" · "}TP&nbsp;{(user?.tp ?? 0).toFixed(1)}

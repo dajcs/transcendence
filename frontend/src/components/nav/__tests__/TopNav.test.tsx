@@ -78,7 +78,7 @@ describe("TopNav", () => {
     const view = render(<TopNav />);
 
     expect(screen.getByTestId("notification-bell")).toBeInTheDocument();
-    expect(screen.getAllByText("alice")[0]).toBeInTheDocument();
+    expect(screen.getAllByText("@alice")[0]).toBeInTheDocument();
     expect(view.container.textContent).toContain("BP");
     expect(view.container.textContent).toContain("12.3");
     expect(view.container.textContent).toContain("TP");

@@ -8,6 +8,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { useAuthStore } from "@/store/auth";
 import { useT } from "@/i18n";
+import { getMarketPath } from "@/lib/markets";
 import type { BetPositionsListResponse, MarketListResponse } from "@/lib/types";
 
 interface TransactionEntry {
@@ -349,7 +350,7 @@ export default function ProfilePage() {
                                   {lpDesc ? (
                                     <span className="text-purple-600 dark:text-purple-400">{lpDesc}</span>
                                   ) : tx.market_title && tx.market_id ? (
-                                    <Link href={`/markets/${tx.market_id}`} className="hover:underline text-blue-600 dark:text-blue-400">
+                                    <Link href={getMarketPath(tx.market_id, tx.market_title)} className="hover:underline text-blue-600 dark:text-blue-400">
                                       {tx.market_title}
                                     </Link>
                                   ) : tx.description ? (
@@ -415,7 +416,7 @@ export default function ProfilePage() {
                                 {positionsQuery.data!.active.map((p) => (
                                   <tr key={p.id}>
                                     <td className="py-2 max-w-[220px] truncate">
-                                      <Link href={`/markets/${p.bet_id}`} className="hover:underline text-blue-600 dark:text-blue-400">
+                                      <Link href={getMarketPath(p.bet_id, p.market_title)} className="hover:underline text-blue-600 dark:text-blue-400">
                                         {p.market_title}
                                       </Link>
                                     </td>
@@ -450,7 +451,7 @@ export default function ProfilePage() {
                                 {positionsQuery.data!.resolved.map((p) => (
                                   <tr key={p.id}>
                                     <td className="py-2 max-w-[220px] truncate">
-                                      <Link href={`/markets/${p.bet_id}`} className="hover:underline text-blue-600 dark:text-blue-400">
+                                      <Link href={getMarketPath(p.bet_id, p.market_title)} className="hover:underline text-blue-600 dark:text-blue-400">
                                         {p.market_title}
                                       </Link>
                                     </td>
@@ -500,7 +501,7 @@ export default function ProfilePage() {
                           {myMarketsQuery.data.items.map((m) => (
                             <tr key={m.id}>
                               <td className="py-2 max-w-[220px] truncate">
-                                <Link href={`/markets/${m.id}`} className="hover:underline text-blue-600 dark:text-blue-400">
+                                <Link href={getMarketPath(m)} className="hover:underline text-blue-600 dark:text-blue-400">
                                   {m.title}
                                 </Link>
                               </td>

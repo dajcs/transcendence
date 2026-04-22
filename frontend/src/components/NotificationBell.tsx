@@ -5,8 +5,9 @@ import Link from "next/link";
 import { useNotificationStore } from "@/store/notifications";
 import { useSocketStore } from "@/store/socket";
 import { useT } from "@/i18n";
+import { getMarketPath } from "@/lib/markets";
 
-function parsePayload(payload: string | null): { message?: string; bet_id?: string; market_id?: string } {
+function parsePayload(payload: string | null): { message?: string; bet_id?: string; market_id?: string; market_title?: string } {
   if (!payload) return {};
   try {
     return JSON.parse(payload);
@@ -15,12 +16,12 @@ function parsePayload(payload: string | null): { message?: string; bet_id?: stri
   }
 }
 
-function getNotificationLink(type: string, data: { bet_id?: string; market_id?: string; username?: string }): string | null {
+function getNotificationLink(type: string, data: { bet_id?: string; market_id?: string; market_title?: string; username?: string }): string | null {
   if (type === "bet_resolved" || type === "bet_disputed" || type === "resolution_proposed") {
-    return data.bet_id ? `/markets/${data.bet_id}` : null;
+    return data.bet_id ? getMarketPath(data.bet_id, data.market_title) : null;
   }
   if (type === "resolution_due") {
-    return data.market_id ? `/markets/${data.market_id}` : "/dashboard?tab=my_markets";
+    return data.market_id ? getMarketPath(data.market_id, data.market_title) : "/dashboard?tab=my_markets";
   }
   if (type === "bet_payout" || type === "lp_converted") {
     return data.username ? `/profile/${data.username}` : null;
@@ -85,7 +86,7 @@ export default function NotificationBell() {
         .filter((n) => !n.is_read && n.type === "resolution_due")
         .forEach((n) => {
           const p = parsePayload(n.payload);
-          const url = p.market_id ? `/markets/${p.market_id}` : "/dashboard?tab=my_markets";
+          const url = p.market_id ? getMarketPath(p.market_id, p.market_title) : "/dashboard?tab=my_markets";
           const body = p.message ?? "A market needs your resolution";
           const notif = new Notification("Vox Populi", { body, icon: "/favicon.ico", requireInteraction: true });
           notif.onclick = async () => { window.focus(); await store.markAsRead([n.id]).catch(() => {}); notif.close(); window.location.href = url; };
@@ -123,7 +124,11 @@ export default function NotificationBell() {
       fetchUnreadCount();
       try {
         const payload = JSON.parse(data?.payload ?? "{}");
-        const url = payload.bet_id ? `/markets/${payload.bet_id}` : payload.market_id ? `/markets/${payload.market_id}` : undefined;
+        const url = payload.bet_id
+          ? getMarketPath(payload.bet_id, payload.market_title)
+          : payload.market_id
+            ? getMarketPath(payload.market_id, payload.market_title)
+            : undefined;
         showBrowserNotification(payload.message || fallbackBody, url, data?.id);
       } catch { /* ignore */ }
     };
@@ -135,7 +140,7 @@ export default function NotificationBell() {
       try {
         const payload = JSON.parse(data?.payload ?? "{}");
         if (payload.market_title) title = t("notif.resolve_market", { title: payload.market_title });
-        if (payload.market_id) url = `/markets/${payload.market_id}`;
+        if (payload.market_id) url = getMarketPath(payload.market_id, payload.market_title);
       } catch { /* ignore */ }
       showBrowserNotification(title, url, data?.id);
     };
