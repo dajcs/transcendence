@@ -86,19 +86,21 @@ function MarketCard({ market }: { market: Market }) {
               {market.numeric_min} – {market.numeric_max}
             </p>
           )}
-          <p className="text-xs text-gray-500 dark:text-gray-400">
-            {market.position_count} {t("markets.votes")} · {market.comment_count} {t("markets.comments")}
-          </p>
           <button
             onClick={(e) => {
               e.preventDefault();
               upvote.mutate();
             }}
             disabled={upvote.isPending}
-            className="mt-1 rounded border border-gray-300 dark:border-gray-600 px-2 py-0.5 text-xs hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50"
+            className="mt-1 inline-flex items-center gap-1 text-xs text-gray-600 hover:text-red-600 dark:text-gray-400 dark:hover:text-red-400 disabled:opacity-50"
           >
-            ▲ {market.upvote_count}
+            <span className="text-red-500">♥</span>
+            <span>{market.upvote_count}</span>
           </button>
+          <p className="inline-flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
+            <span>💬</span>
+            <span>{market.comment_count}</span>
+          </p>
         </div>
       </div>
     </Link>
