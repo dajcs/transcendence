@@ -96,12 +96,13 @@ function MarketCard({ market }: { market: Market }) {
           <button
             onClick={(e) => {
               e.preventDefault();
+              e.stopPropagation();
               market.user_has_liked ? unlike.mutate() : upvote.mutate();
             }}
             disabled={upvote.isPending || unlike.isPending}
             className="mt-1 inline-flex items-center gap-1 text-xs text-gray-600 hover:text-red-600 dark:text-gray-400 dark:hover:text-red-400 disabled:opacity-50"
           >
-            <span className={market.user_has_liked ? "text-red-500" : "text-gray-400 dark:text-gray-500"}>
+            <span className={`text-base leading-none ${market.user_has_liked ? "text-red-500" : "text-gray-400 dark:text-gray-500"}`}>
               {market.user_has_liked ? "♥" : "♡"}
             </span>
             <span>{market.upvote_count}</span>
