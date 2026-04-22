@@ -48,6 +48,13 @@ function MarketCard({ market }: { market: Market }) {
       await bootstrap();
     },
   });
+  const unlike = useMutation({
+    mutationFn: () => api.delete(`/api/markets/${market.id}/upvote`),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["markets"] });
+      await bootstrap();
+    },
+  });
 
   const isOwnMarket = currentUser?.id === market.proposer_id;
   const badge = marketStatusBadge(market.status, isOwnMarket, t);
@@ -89,12 +96,14 @@ function MarketCard({ market }: { market: Market }) {
           <button
             onClick={(e) => {
               e.preventDefault();
-              upvote.mutate();
+              market.user_has_liked ? unlike.mutate() : upvote.mutate();
             }}
-            disabled={upvote.isPending}
+            disabled={upvote.isPending || unlike.isPending}
             className="mt-1 inline-flex items-center gap-1 text-xs text-gray-600 hover:text-red-600 dark:text-gray-400 dark:hover:text-red-400 disabled:opacity-50"
           >
-            <span className="text-red-500">♥</span>
+            <span className={market.user_has_liked ? "text-red-500" : "text-gray-400 dark:text-gray-500"}>
+              {market.user_has_liked ? "♥" : "♡"}
+            </span>
             <span>{market.upvote_count}</span>
           </button>
           <p className="inline-flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
