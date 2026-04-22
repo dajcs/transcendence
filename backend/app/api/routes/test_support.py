@@ -69,8 +69,8 @@ async def _ensure_user(
 
 
 async def _seed_open_market(db: AsyncSession) -> ScenarioResponse:
-    proposer = await _ensure_user(db, email="proposer@example.test", username="proposer")
-    bettor = await _ensure_user(db, email="bettor@example.test", username="bettor")
+    proposer = await _ensure_user(db, email="proposer@example.com", username="proposer")
+    bettor = await _ensure_user(db, email="bettor@example.com", username="bettor")
 
     market = Bet(
         id=uuid.uuid4(),
@@ -95,9 +95,9 @@ async def _seed_open_market(db: AsyncSession) -> ScenarioResponse:
 
 
 async def _seed_dispute_market(db: AsyncSession) -> ScenarioResponse:
-    proposer = await _ensure_user(db, email="proposer@example.test", username="proposer")
-    bettor = await _ensure_user(db, email="bettor@example.test", username="bettor")
-    reviewer = await _ensure_user(db, email="reviewer@example.test", username="reviewer")
+    proposer = await _ensure_user(db, email="proposer@example.com", username="proposer")
+    bettor = await _ensure_user(db, email="bettor@example.com", username="bettor")
+    reviewer = await _ensure_user(db, email="reviewer@example.com", username="reviewer")
 
     market = Bet(
         id=uuid.uuid4(),
@@ -143,8 +143,8 @@ async def _seed_dispute_market(db: AsyncSession) -> ScenarioResponse:
 
 
 async def _seed_notification_market(db: AsyncSession) -> ScenarioResponse:
-    proposer = await _ensure_user(db, email="proposer@example.test", username="proposer")
-    bettor = await _ensure_user(db, email="bettor@example.test", username="bettor")
+    proposer = await _ensure_user(db, email="proposer@example.com", username="proposer")
+    bettor = await _ensure_user(db, email="bettor@example.com", username="bettor")
 
     market = Bet(
         id=uuid.uuid4(),

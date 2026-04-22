@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 
 jest.mock("@/lib/api", () => ({ api: { post: jest.fn() } }));
 const push = jest.fn();
-const searchParamsGet = jest.fn(() => null);
+const searchParamsGet = jest.fn((_: string): string | null => null);
 jest.mock("next/navigation", () => ({
   useRouter: () => ({ push }),
   useSearchParams: () => ({ get: searchParamsGet }),

@@ -18,7 +18,8 @@ jest.mock("@/i18n", () => ({
 
 let authState: { user: null | { username: string } } = { user: { username: "alice" } };
 jest.mock("@/store/auth", () => ({
-  useAuthStore: (selector: (state: typeof authState) => unknown) => selector(authState),
+  useAuthStore: (selector?: (state: typeof authState) => unknown) =>
+    selector ? selector(authState) : authState,
 }));
 
 import { api } from "@/lib/api";

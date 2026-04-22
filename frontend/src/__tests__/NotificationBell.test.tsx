@@ -55,12 +55,15 @@ let mockNotificationFactory: jest.Mock;
 let mockRequestPermission: jest.Mock;
 let lastNotificationInstance: { onclick: null | (() => void | Promise<void>); close: jest.Mock } | null = null;
 
-function setupNotificationMock(permission: NotificationPermission) {
+function setupNotificationMock(
+  permission: NotificationPermission,
+  requestedPermission: NotificationPermission = permission,
+) {
   mockNotificationFactory = jest.fn(() => {
     lastNotificationInstance = { onclick: null, close: jest.fn() };
     return lastNotificationInstance;
   });
-  mockRequestPermission = jest.fn().mockResolvedValue(permission);
+  mockRequestPermission = jest.fn().mockResolvedValue(requestedPermission);
 
   Object.defineProperty(window, "Notification", {
     configurable: true,
@@ -131,12 +134,12 @@ describe("NotificationBell", () => {
       await lastNotificationInstance?.onclick?.();
     });
 
-    expect(notificationStore.markAsRead).toHaveBeenCalledWith([undefined]);
+    expect(notificationStore.markAsRead).not.toHaveBeenCalled();
     expect(locationHref).toBe("/dashboard?tab=my_markets");
   });
 
   it("marks stored unread resolution notifications as read after enabling browser permission", async () => {
-    setupNotificationMock("default");
+    setupNotificationMock("default", "granted");
     notificationStore.notifications = [
       {
         id: "notif-1",

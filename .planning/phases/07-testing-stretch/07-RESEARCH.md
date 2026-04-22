@@ -219,14 +219,15 @@ This means frontend Phase 7 work should add depth around existing critical pages
 | `TEST-03` frontend component tests | auth, notification, market/profile regressions | Jest + RTL |
 | `TEST-04` E2E critical paths | auth, bet lifecycle, dispute, notifications | Playwright against Docker |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. Does Playwright need a dedicated test-support API surface, or are the current UI/API flows enough to set up the four required scenarios reliably?
-   - This is a planning discretion item, not a user decision.
-   - If a helper route is added, it must be explicitly gated off by default and treated as test-only.
+   - Resolved: keep the existing env-gated `test_support` route surface already present in the repo for deterministic E2E setup where UI-only setup would be brittle or too slow.
+   - Constraint: the helper surface remains explicitly disabled by default and is only enabled in the manual E2E flow via `ENABLE_E2E_TEST_SUPPORT=true`.
 
 2. Should backend/frontend coverage thresholds be enforced immediately in CI, or should Phase 7 start by producing reports and only fail on broken tests?
-   - User decision D-05 suggests phased enforcement is acceptable if it improves practicality.
+   - Resolved: Phase 7 should prove real coverage output now, but threshold enforcement can remain phased.
+   - Rationale: D-05 prioritizes regression safety over threshold-chasing, so the immediate requirement is trustworthy runnable proof and captured percentages, not an early brittle gate on every percentage target.
 
 ## Final Recommendation
 

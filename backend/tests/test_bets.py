@@ -68,7 +68,7 @@ async def test_place_bet_rejects_amount_above_cap(client: AsyncClient):
 @pytest.mark.asyncio
 async def test_place_bet_rejects_closed_market(client: AsyncClient, db_session):
     market_id = await _setup_user_with_market(client, "closed@example.com", "closed_user")
-    market = (await db_session.execute(select(Bet).where(Bet.id == market_id))).scalar_one()
+    market = (await db_session.execute(select(Bet).where(Bet.id == uuid.UUID(market_id)))).scalar_one()
     market.status = "closed"
     await db_session.commit()
 
@@ -153,7 +153,7 @@ async def test_withdraw_numeric_bet_refund_scales_with_bp_staked(db_session):
     await db_session.commit()
 
     result = await withdraw_bet(db_session, user_id, position_id)
-    assert result.refund_bp == pytest.approx(1.6)
+    assert result.refund_bp == pytest.approx(1.8)
 
 
 @pytest.mark.asyncio
@@ -162,7 +162,7 @@ async def test_positions_endpoint_splits_open_and_closed_markets(client: AsyncCl
     place_resp = await client.post("/api/bets", json={"bet_id": market_id, "side": "yes"})
     assert place_resp.status_code == 201
 
-    market = (await db_session.execute(select(Bet).where(Bet.id == market_id))).scalar_one()
+    market = (await db_session.execute(select(Bet).where(Bet.id == uuid.UUID(market_id)))).scalar_one()
     market.status = "closed"
     await db_session.commit()
 

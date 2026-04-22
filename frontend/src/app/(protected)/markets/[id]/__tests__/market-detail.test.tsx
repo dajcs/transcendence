@@ -30,6 +30,9 @@ const mockPost = api.post as jest.Mock;
 // Return appropriate data based on URL to avoid type errors in the component
 function makeGetHandler() {
   return (url: string) => {
+    if (String(url).includes("/bets/positions")) {
+      return Promise.resolve({ data: { active: [], resolved: [] } });
+    }
     if (String(url).includes("/positions")) {
       return Promise.resolve({
         data: { participants: [], aggregate: { total_bp: 0, total_participants: 0, avg_bp: 0, by_side: {} }, total: 0 },
@@ -40,9 +43,6 @@ function makeGetHandler() {
     }
     if (String(url).includes("/comments")) {
       return Promise.resolve({ data: [] });
-    }
-    if (String(url).includes("/bets/positions")) {
-      return Promise.resolve({ data: { active: [], resolved: [] } });
     }
     if (String(url).includes("/users/me")) {
       return Promise.resolve({ data: { llm_mode: "disabled" } });
@@ -117,6 +117,9 @@ describe("Market detail page query keys", () => {
 
   it("loads resolution and payouts data once the market is closed", async () => {
     mockGet.mockImplementation((url: string) => {
+      if (String(url).includes("/bets/positions")) {
+        return Promise.resolve({ data: { active: [], resolved: [] } });
+      }
       if (String(url).includes("/positions")) {
         return Promise.resolve({
           data: { participants: [], aggregate: { total_bp: 0, total_participants: 0, avg_bp: 0, by_side: {} }, total: 0 },
@@ -130,9 +133,6 @@ describe("Market detail page query keys", () => {
       }
       if (String(url).includes("/comments")) {
         return Promise.resolve({ data: [] });
-      }
-      if (String(url).includes("/bets/positions")) {
-        return Promise.resolve({ data: { active: [], resolved: [] } });
       }
       if (String(url).includes("/users/me")) {
         return Promise.resolve({ data: { llm_mode: "disabled" } });
@@ -202,14 +202,6 @@ describe("Market detail page query keys", () => {
   it("shows refund preview as stake multiplied by refund probability", async () => {
     mockUser = { bp: 3, lp: 0, tp: 0 };
     mockGet.mockImplementation((url: string) => {
-      if (String(url).includes("/positions")) {
-        return Promise.resolve({
-          data: { participants: [], aggregate: { total_bp: 0, total_participants: 0, avg_bp: 0, by_side: {} }, total: 0 },
-        });
-      }
-      if (String(url).includes("/comments")) {
-        return Promise.resolve({ data: [] });
-      }
       if (String(url).includes("/bets/positions")) {
         return Promise.resolve({
           data: {
@@ -229,6 +221,14 @@ describe("Market detail page query keys", () => {
             resolved: [],
           },
         });
+      }
+      if (String(url).includes("/positions")) {
+        return Promise.resolve({
+          data: { participants: [], aggregate: { total_bp: 0, total_participants: 0, avg_bp: 0, by_side: {} }, total: 0 },
+        });
+      }
+      if (String(url).includes("/comments")) {
+        return Promise.resolve({ data: [] });
       }
       if (String(url).includes("/users/me")) {
         return Promise.resolve({ data: { llm_mode: "disabled" } });
@@ -258,11 +258,11 @@ describe("Market detail page query keys", () => {
     });
 
     const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-    const { findByText, getByText } = render(
+    const { findByText } = render(
       createElement(QueryClientProvider, { client: qc }, createElement(MarketDetailPage))
     );
 
-    getByText("market.withdraw").click();
+    (await findByText("market.withdraw")).click();
     expect(await findByText(/market\.refund_bp/)).toBeInTheDocument();
   });
 
@@ -297,6 +297,9 @@ describe("Market detail page query keys", () => {
 
   it("shows the resolved outcome block when resolution data exists", async () => {
     mockGet.mockImplementation((url: string) => {
+      if (String(url).includes("/bets/positions")) {
+        return Promise.resolve({ data: { active: [], resolved: [] } });
+      }
       if (String(url).includes("/positions")) {
         return Promise.resolve({
           data: { participants: [], aggregate: { total_bp: 0, total_participants: 0, avg_bp: 0, by_side: {} }, total: 0 },
@@ -312,9 +315,6 @@ describe("Market detail page query keys", () => {
       }
       if (String(url).includes("/comments")) {
         return Promise.resolve({ data: [] });
-      }
-      if (String(url).includes("/bets/positions")) {
-        return Promise.resolve({ data: { active: [], resolved: [] } });
       }
       if (String(url).includes("/users/me")) {
         return Promise.resolve({ data: { llm_mode: "disabled" } });
@@ -350,7 +350,7 @@ describe("Market detail page query keys", () => {
 
     await waitFor(() => {
       expect(view.getByText("market.outcome_label")).toBeInTheDocument();
-      expect(view.getByText("YES")).toBeInTheDocument();
+      expect(view.getByText("yes")).toBeInTheDocument();
       expect(view.getByText("Consensus reached")).toBeInTheDocument();
     });
   });

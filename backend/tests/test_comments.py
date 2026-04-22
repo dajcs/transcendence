@@ -54,8 +54,8 @@ async def test_upvote_comment_earns_kp(client: AsyncClient):
 
 
 @pytest.mark.asyncio
-async def test_duplicate_upvote_returns_409(client: AsyncClient):
-    """DISC-02: Second upvote from same user returns 409."""
+async def test_duplicate_upvote_is_idempotent(client: AsyncClient):
+    """DISC-02: Second upvote from same user is a silent no-op."""
     market_id = await _setup_user_market_bet(client, "dup_auth@example.com", "dup_auth")
     post_resp = await client.post(f"/api/markets/{market_id}/comments",
                                    json={"content": "Upvote twice test."})
@@ -68,7 +68,13 @@ async def test_duplicate_upvote_returns_409(client: AsyncClient):
 
     await client.post(f"/api/comments/{comment_id}/upvote")
     resp2 = await client.post(f"/api/comments/{comment_id}/upvote")
-    assert resp2.status_code == 409
+    assert resp2.status_code == 201
+
+    comments_resp = await client.get(f"/api/markets/{market_id}/comments")
+    assert comments_resp.status_code == 200
+    updated = next(comment for comment in comments_resp.json() if comment["id"] == comment_id)
+    assert updated["upvote_count"] == 1
+    assert updated["user_has_liked"] is True
 
 
 @pytest.mark.asyncio

@@ -21,6 +21,11 @@ const config: Config = {
     "/node_modules/",
     "<rootDir>/.next/",
   ],
+  testPathIgnorePatterns: [
+    "/node_modules/",
+    "<rootDir>/.next/",
+    "<rootDir>/e2e/",
+  ],
   coverageReporters: ["text", "lcov", "html"],
 };
 

@@ -7,7 +7,7 @@ test("auth flow supports register, login, and logout", async ({ page, request })
   expect(reset.ok()).toBeTruthy();
 
   const unique = Date.now();
-  const email = `e2e-auth-${unique}@example.test`;
+  const email = `e2e-auth-${unique}@example.com`;
   const username = `e2eauth${unique}`;
 
   await page.goto("/register");
@@ -26,5 +26,5 @@ test("auth flow supports register, login, and logout", async ({ page, request })
   await expect(page.locator("nav")).toContainText(username);
 
   await page.getByRole("button", { name: "Logout" }).first().click();
-  await page.waitForURL(/\/$/);
+  await page.waitForURL(/\/login$/);
 });

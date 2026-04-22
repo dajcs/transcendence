@@ -1,6 +1,6 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 
-async function login(page, identifier: string, password: string) {
+async function login(page: Page, identifier: string, password: string) {
   await page.goto("/login");
   await page.locator('input[type="text"]').fill(identifier);
   await page.locator('input[type="password"]').fill(password);
@@ -16,11 +16,12 @@ test("dispute flow escalates a proposer resolution into community vote", async (
   await login(page, scenario.users.bettor.email, scenario.users.bettor.password);
   await page.goto(`/markets/${scenario.market.id}`);
 
+  const resolutionSection = page.getByRole("heading", { name: "Resolution" }).locator("..");
   await expect(page.getByRole("heading", { name: scenario.market.title })).toBeVisible();
   await page.getByRole("button", { name: "Dispute Resolution (1 BP)" }).click();
-  await page.getByRole("button", { name: "Confirm" }).click();
+  await page.getByRole("button", { name: "Yes" }).click();
 
-  await expect(page.locator("section")).toContainText("Community Vote");
-  await expect(page.locator("section")).toContainText("Status:");
-  await expect(page.locator("section")).toContainText("disputed");
+  await expect(page.getByRole("heading", { name: "Community Vote" })).toBeVisible();
+  await expect(resolutionSection).toContainText("Status:");
+  await expect(resolutionSection).toContainText("disputed");
 });
