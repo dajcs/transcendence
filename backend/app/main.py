@@ -1,5 +1,6 @@
 """FastAPI application entry point."""
 from contextlib import asynccontextmanager
+import os
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -62,6 +63,11 @@ app.include_router(notifications_router, prefix="/api/notifications", tags=["not
 app.include_router(users_router, prefix="/api/users", tags=["users"])
 app.include_router(llm_router, prefix="/api", tags=["llm"])
 app.include_router(resolution_router, prefix="/api", tags=["resolution"])
+
+if os.getenv("ENABLE_E2E_TEST_SUPPORT", "").lower() in {"1", "true", "yes"}:
+    from app.api.routes.test_support import router as test_support_router
+
+    app.include_router(test_support_router, prefix="/api/test-support", tags=["test-support"])
 
 
 @app.get("/api/health")

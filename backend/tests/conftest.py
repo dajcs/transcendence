@@ -60,6 +60,16 @@ def reset_redis_singleton():
     bet_svc._redis_client = None
 
 
+@pytest.fixture(autouse=True)
+def reset_auth_redis_singleton():
+    """Reset auth_service Redis singleton between tests to avoid cross-test reuse."""
+    import app.services.auth_service as auth_svc
+
+    auth_svc._redis = None
+    yield
+    auth_svc._redis = None
+
+
 @pytest.fixture
 async def fake_redis():
     """Async FakeRedis instance for LLM rate-limit and budget tests."""
@@ -103,4 +113,5 @@ async def client(db_session: AsyncSession):
     async with AsyncClient(transport=ASGITransport(app=app), base_url="https://test") as ac:
         yield ac
     app.dependency_overrides.clear()
+    await fake_redis.aclose()
     auth_svc._redis = None

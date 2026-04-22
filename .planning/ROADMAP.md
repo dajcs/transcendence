@@ -254,20 +254,26 @@ Plans:
 
 ## Phase 7 — Testing & Stretch
 
-**Goal:** Test suite complete; stretch modules if time permits.
+**Goal:** Test suite and CI complete; stretch modules deferred beyond this phase.
 
 **Delivers:**
 - pytest backend tests (economy, resolution, auth — 80%+ coverage)
-- Vitest frontend component tests (70%+ coverage)
+- Jest frontend component tests (70%+ coverage)
 - Playwright E2E: auth flow, bet lifecycle, dispute, notifications
 - GitHub Actions CI pipeline
-- Stretch (time-permitting): Public API (+2pts), advanced search (+1pt), PWA (+1pt)
 
 **Requirements:** TEST-01–04
 
 **Canonical refs:**
 - `plan/TESTING.md`
 - `plan/SCALING.md` (load test targets)
+
+**Plans:** 3 plans
+
+Plans:
+- [ ] 07-01-PLAN.md — Backend regression baseline: pytest coverage tooling + economy/resolution/auth/API tests
+- [ ] 07-02-PLAN.md — Frontend Jest regression baseline: coverage scripts + auth/nav/profile/market-detail tests
+- [ ] 07-03-PLAN.md — Playwright critical flows + incremental GitHub Actions CI
 
 ---
 

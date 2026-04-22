@@ -1,4 +1,4 @@
-.PHONY: dev test migrate seed logs build down gen-keys
+.PHONY: dev test migrate seed logs build down gen-keys e2e e2e-list
 
 # Start all services with hot-reload (docker-compose.override.yml picked up automatically)
 dev:
@@ -7,6 +7,14 @@ dev:
 # Run backend tests inside the container
 test:
 	docker compose exec backend uv run pytest tests/ -v
+
+# Run Playwright E2E against the Docker stack
+e2e:
+	cd frontend && npm run test:e2e
+
+# List Playwright tests without executing them
+e2e-list:
+	cd frontend && npm run test:e2e:list
 
 # Run Alembic migrations (manually, outside normal startup)
 migrate:

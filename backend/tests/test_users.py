@@ -111,6 +111,54 @@ async def test_update_profile_unauthenticated(client: AsyncClient):
 
 
 @pytest.mark.asyncio
+async def test_get_my_settings_requires_auth(client: AsyncClient):
+    resp = await client.get("/api/users/me")
+    assert resp.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_patch_my_settings_round_trip_and_hides_api_key(client: AsyncClient):
+    await _register_and_login(client, "settings@example.com", "settingsuser")
+
+    patch_resp = await client.patch(
+        "/api/users/me",
+        json={
+            "llm_mode": "custom",
+            "llm_provider": "openrouter",
+            "llm_api_key": "secret-key",
+            "llm_model": "openrouter/test-model",
+        },
+    )
+    get_resp = await client.get("/api/users/me")
+
+    assert patch_resp.status_code == 200
+    assert patch_resp.json()["llm_api_key_set"] is True
+    assert get_resp.status_code == 200
+    assert get_resp.json() == {
+        "llm_mode": "custom",
+        "llm_provider": "openrouter",
+        "llm_model": "openrouter/test-model",
+        "llm_api_key_set": True,
+    }
+
+
+@pytest.mark.asyncio
+async def test_patch_my_settings_empty_api_key_clears_saved_secret(client: AsyncClient):
+    await _register_and_login(client, "clear-settings@example.com", "clearsettings")
+    await client.patch(
+        "/api/users/me",
+        json={"llm_mode": "custom", "llm_provider": "openrouter", "llm_api_key": "secret-key"},
+    )
+
+    clear_resp = await client.patch("/api/users/me", json={"llm_api_key": ""})
+    get_resp = await client.get("/api/users/me")
+
+    assert clear_resp.status_code == 200
+    assert clear_resp.json()["llm_api_key_set"] is False
+    assert get_resp.json()["llm_api_key_set"] is False
+
+
+@pytest.mark.asyncio
 async def test_update_username_invalid_chars(client: AsyncClient):
     """PROFILE-02: username with URL-unsafe chars rejected with 422."""
     await _register_and_login(client, "grace@example.com", "grace")

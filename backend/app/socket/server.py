@@ -4,6 +4,9 @@ AsyncRedisManager is used as the client_manager so that sio.emit() from any
 process (FastAPI or Celery worker) publishes to Redis pub/sub. The main server's
 manager subscribes and delivers events to connected clients.
 """
+import asyncio
+import os
+
 import socketio
 
 from app.config import settings
@@ -21,8 +24,13 @@ async def celery_emit(event: str, data: dict, room: str | None = None) -> None:
     Use this in Celery tasks instead of sio.emit() — the write-only manager
     publishes without needing the full ASGI lifecycle.
     """
+    if os.getenv("PYTEST_CURRENT_TEST"):
+        return
+
     try:
         mgr = socketio.AsyncRedisManager(settings.redis_url, write_only=True)
-        await mgr.emit(event, data, room=room)
+        # Redis is optional during tests and degraded local runs. Bound publish
+        # latency so missing Redis never blocks payouts or test completion.
+        await asyncio.wait_for(mgr.emit(event, data, room=room), timeout=0.2)
     except Exception:
         pass

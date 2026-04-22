@@ -115,6 +115,65 @@ describe("Market detail page query keys", () => {
     expect(payoutsCalls.length).toBe(0);
   });
 
+  it("loads resolution and payouts data once the market is closed", async () => {
+    mockGet.mockImplementation((url: string) => {
+      if (String(url).includes("/positions")) {
+        return Promise.resolve({
+          data: { participants: [], aggregate: { total_bp: 0, total_participants: 0, avg_bp: 0, by_side: {} }, total: 0 },
+        });
+      }
+      if (String(url).includes("/payouts")) {
+        return Promise.resolve({ data: { payouts: [], total: 0 } });
+      }
+      if (String(url).includes("/resolution")) {
+        return Promise.resolve({ data: { resolution: { outcome: "yes", justification: "Resolved", overturned: false } } });
+      }
+      if (String(url).includes("/comments")) {
+        return Promise.resolve({ data: [] });
+      }
+      if (String(url).includes("/bets/positions")) {
+        return Promise.resolve({ data: { active: [], resolved: [] } });
+      }
+      if (String(url).includes("/users/me")) {
+        return Promise.resolve({ data: { llm_mode: "disabled" } });
+      }
+      return Promise.resolve({
+        data: {
+          id: "market-abc-123",
+          title: "Test Market",
+          description: "desc",
+          resolution_criteria: "criteria",
+          deadline: new Date(Date.now() - 86400000).toISOString(),
+          status: "closed",
+          market_type: "binary",
+          yes_pct: 50,
+          no_pct: 50,
+          yes_count: 1,
+          no_count: 1,
+          position_count: 2,
+          choice_counts: {},
+          upvote_count: 0,
+          proposer_id: "other-user",
+          choices: null,
+          numeric_min: null,
+          numeric_max: null,
+        },
+      });
+    });
+
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(createElement(QueryClientProvider, { client: qc }, createElement(MarketDetailPage)));
+
+    await waitFor(() => {
+      expect(
+        mockGet.mock.calls.some((c: unknown[]) => String(c[0]).includes("/api/bets/market-abc-123/resolution"))
+      ).toBe(true);
+      expect(
+        mockGet.mock.calls.some((c: unknown[]) => String(c[0]).includes("/api/markets/market-abc-123/payouts"))
+      ).toBe(true);
+    });
+  });
+
   it("queryKey contract: market-positions key uses correct URL pattern", async () => {
     const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     render(
@@ -234,5 +293,65 @@ describe("Market detail page query keys", () => {
       "/api/bets",
       expect.objectContaining({ bet_id: "market-abc-123", side: "yes", amount: 1 })
     );
+  });
+
+  it("shows the resolved outcome block when resolution data exists", async () => {
+    mockGet.mockImplementation((url: string) => {
+      if (String(url).includes("/positions")) {
+        return Promise.resolve({
+          data: { participants: [], aggregate: { total_bp: 0, total_participants: 0, avg_bp: 0, by_side: {} }, total: 0 },
+        });
+      }
+      if (String(url).includes("/payouts")) {
+        return Promise.resolve({ data: { payouts: [], total: 0 } });
+      }
+      if (String(url).includes("/resolution")) {
+        return Promise.resolve({
+          data: { resolution: { outcome: "yes", justification: "Consensus reached", overturned: false } },
+        });
+      }
+      if (String(url).includes("/comments")) {
+        return Promise.resolve({ data: [] });
+      }
+      if (String(url).includes("/bets/positions")) {
+        return Promise.resolve({ data: { active: [], resolved: [] } });
+      }
+      if (String(url).includes("/users/me")) {
+        return Promise.resolve({ data: { llm_mode: "disabled" } });
+      }
+      return Promise.resolve({
+        data: {
+          id: "market-abc-123",
+          title: "Test Market",
+          description: "desc",
+          resolution_criteria: "criteria",
+          deadline: new Date(Date.now() - 86400000).toISOString(),
+          status: "closed",
+          market_type: "binary",
+          yes_pct: 50,
+          no_pct: 50,
+          yes_count: 1,
+          no_count: 1,
+          position_count: 2,
+          choice_counts: {},
+          upvote_count: 0,
+          proposer_id: "other-user",
+          choices: null,
+          numeric_min: null,
+          numeric_max: null,
+        },
+      });
+    });
+
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const view = render(
+      createElement(QueryClientProvider, { client: qc }, createElement(MarketDetailPage))
+    );
+
+    await waitFor(() => {
+      expect(view.getByText("market.outcome_label")).toBeInTheDocument();
+      expect(view.getByText("YES")).toBeInTheDocument();
+      expect(view.getByText("Consensus reached")).toBeInTheDocument();
+    });
   });
 });
