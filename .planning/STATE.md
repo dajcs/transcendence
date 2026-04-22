@@ -155,6 +155,7 @@ See: `.planning/PROJECT.md` (updated 2026-03-24)
 | # | Description | Date | Commit | Status | Directory |
 |---|-------------|------|--------|--------|-----------|
 | 260421-exi | OAuth login from different computer | 2026-04-21 | a363eed | Verified | [260421-exi-oauth-login-from-different-computer](./quick/260421-exi-oauth-login-from-different-computer/) |
+| 260422-seed | Restore dev seed users, weather markets, and varied stakes | 2026-04-22 | pending | Verified | `backend/scripts/` |
 
 ### Blockers/Concerns
 
