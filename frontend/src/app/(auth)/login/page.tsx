@@ -26,11 +26,6 @@ export default function LoginPage() {
           {t("auth.forgot_password")}
         </Link>
       </p>
-      <div className="flex gap-3 text-xs text-gray-400 dark:text-gray-500">
-        <Link href="/privacy" className="hover:underline">{t("auth.privacy")}</Link>
-        <span>·</span>
-        <Link href="/terms" className="hover:underline">{t("auth.terms")}</Link>
-      </div>
     </div>
   );
 }
