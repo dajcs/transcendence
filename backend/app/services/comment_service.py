@@ -12,6 +12,8 @@ from app.db.models.transaction import LpEvent
 from app.db.models.user import User
 from app.schemas.comment import CommentCreate, CommentResponse
 
+MAX_COMMENT_DEPTH = 7
+
 
 async def create_comment(
     db: AsyncSession,
@@ -29,14 +31,14 @@ async def create_comment(
             raise HTTPException(status_code=404, detail="Parent comment not found")
         if parent.bet_id != bet_id:
             raise HTTPException(status_code=422, detail="Parent comment belongs to another market")
-        # Enforce max 5-level nesting by traversing ancestor chain
+        # Enforce max 8-post thread depth by traversing ancestor chain.
         depth = 0
         current = parent
         while current.parent_id is not None:
             current = (await db.execute(select(Comment).where(Comment.id == current.parent_id))).scalar_one()
             depth += 1
-        if depth >= 4:
-            raise HTTPException(status_code=422, detail="Maximum reply depth (5 levels) reached")
+        if depth >= MAX_COMMENT_DEPTH:
+            raise HTTPException(status_code=422, detail="Maximum reply depth (8 posts) reached")
 
     comment = Comment(
         id=uuid.uuid4(),

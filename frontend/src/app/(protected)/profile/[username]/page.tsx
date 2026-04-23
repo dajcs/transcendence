@@ -8,6 +8,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { useAuthStore } from "@/store/auth";
 import { useT } from "@/i18n";
+import { getMarketPath } from "@/lib/markets";
 import type { BetPositionsListResponse, MarketListResponse } from "@/lib/types";
 
 interface TransactionEntry {
@@ -34,6 +35,7 @@ interface Profile {
   bio: string | null;
   created_at: string;
   lp: number;
+  bp: number;
   tp: number;
   total_bets: number;
   win_rate: number;
@@ -106,9 +108,9 @@ export default function ProfilePage() {
   }, [transactionsQuery.data, txOffset]);
 
   const positionsQuery = useQuery<BetPositionsListResponse>({
-    queryKey: ["positions"],
-    queryFn: async () => (await api.get("/api/bets/positions")).data,
-    enabled: activeTab === "bets" && isOwnProfile,
+    queryKey: ["profile-positions", profile?.id],
+    queryFn: async () => (await api.get(`/api/bets/positions?user_id=${profile!.id}`)).data,
+    enabled: activeTab === "bets" && !!profile?.id,
     staleTime: 30_000,
   });
 
@@ -138,6 +140,9 @@ export default function ProfilePage() {
     if (n === 0) return "—";
     return (n > 0 ? "+" : "") + n.toFixed(1);
   };
+  const trimmedBio = bio.trim();
+  const savedBio = profile?.bio ?? "";
+  const canAcceptMission = isOwnProfile && trimmedBio.length > 0 && trimmedBio !== savedBio;
 
   useEffect(() => {
     if (profile && !editing) setBio(profile.bio || "");
@@ -145,9 +150,11 @@ export default function ProfilePage() {
 
   const updateProfile = useMutation({
     mutationFn: async (data: { bio?: string }) => api.put("/api/users/me", data),
-    onSuccess: async () => {
+    onSuccess: async (_result, data) => {
+      queryClient.setQueryData<Profile>(["profile", params.username], (current) =>
+        current ? { ...current, bio: data.bio ?? current.bio } : current
+      );
       setEditing(false);
-      await queryClient.invalidateQueries({ queryKey: ["profile", params.username] });
     },
   });
 
@@ -190,13 +197,10 @@ export default function ProfilePage() {
                     <Link
                       href="/settings"
                       title={t("profile.settings")}
-                      className="rounded border border-gray-200 dark:border-gray-700 p-1.5 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-gray-100"
+                      className="rounded border border-gray-300 dark:border-gray-600 px-3 py-1 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-gray-100"
                       aria-label="Settings"
                     >
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                      </svg>
+                      {t("profile.settings")}
                     </Link>
                   )}
                   {!isOwnProfile && (
@@ -224,55 +228,64 @@ export default function ProfilePage() {
                   {t("profile.joined")} {new Date(profile.created_at).toLocaleDateString()}
                 </p>
 
-                {editing ? (
-                  <div className="mt-3 space-y-2">
-                    <textarea
-                      value={bio}
-                      onChange={(e) => setBio(e.target.value)}
-                      maxLength={500}
-                      rows={3}
-                      className="w-full rounded border border-gray-300 dark:border-gray-600 px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                      placeholder={t("profile.bio_placeholder")}
-                    />
-                    <div className="flex gap-2">
-                      <button onClick={() => updateProfile.mutate({ bio })} disabled={updateProfile.isPending} className="rounded bg-blue-600 px-3 py-1 text-sm text-white hover:bg-blue-700">
-                        {t("common.save")}
-                      </button>
-                      <button onClick={() => { setEditing(false); setBio(profile.bio || ""); }} className="rounded border border-gray-300 dark:border-gray-600 px-3 py-1 text-sm text-gray-700 dark:text-gray-300">
-                        {t("common.cancel")}
-                      </button>
+                <div className="mt-3">
+                  {isOwnProfile && (!profile.bio || editing) ? (
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                      <input
+                        value={bio}
+                        onChange={(e) => setBio(e.target.value)}
+                        maxLength={500}
+                        className="w-full rounded border border-gray-300 dark:border-gray-600 px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 sm:max-w-md"
+                        placeholder={t("profile.add_mission")}
+                      />
+                      {canAcceptMission && (
+                        <button
+                          onClick={() => updateProfile.mutate({ bio: trimmedBio })}
+                          disabled={updateProfile.isPending}
+                          className="w-fit rounded bg-blue-600 px-3 py-1.5 text-sm text-white hover:bg-blue-700 disabled:opacity-50"
+                        >
+                          {t("profile.accept_mission")}
+                        </button>
+                      )}
                     </div>
-                  </div>
-                ) : (
-                  <div className="mt-3">
-                    <p className="text-sm text-gray-700 dark:text-gray-300">{profile.bio || (isOwnProfile ? t("profile.no_bio") : "")}</p>
-                    {isOwnProfile && (
-                      <button onClick={() => setEditing(true)} className="mt-1 text-xs text-blue-600 hover:underline">
-                        {profile.bio ? t("profile.edit_bio") : t("profile.add_bio")}
-                      </button>
-                    )}
-                  </div>
-                )}
+                  ) : isOwnProfile ? (
+                    <button
+                      onClick={() => setEditing(true)}
+                      title={t("profile.change_mission")}
+                      className="text-left text-sm text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:underline"
+                    >
+                      {profile.bio}
+                    </button>
+                  ) : !profile.bio ? (
+                    <p className="text-sm text-gray-500 dark:text-gray-400">{t("profile.no_blurb")}</p>
+                  ) : (
+                    <p className="text-sm text-gray-700 dark:text-gray-300">{profile.bio}</p>
+                  )}
+                </div>
               </div>
             </div>
           </div>
 
           {/* Stats */}
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-5">
             <div className="rounded border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 text-center">
               <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{profile.lp}</p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">{t("profile.karma_points")}</p>
+              <p className="text-lg font-bold text-red-500">♥</p>
             </div>
             <div className="rounded border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 text-center">
-              <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{profile.tp}</p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">{t("profile.truth_points")}</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{profile.bp.toFixed(1)}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">BP</p>
+            </div>
+            <div className="rounded border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 text-center">
+              <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{profile.tp.toFixed(1)}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">TP</p>
             </div>
             <div className="rounded border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 text-center">
               <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{profile.total_bets}</p>
               <p className="text-xs text-gray-500 dark:text-gray-400">{t("profile.total_bets")}</p>
             </div>
             <div className="rounded border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 text-center">
-              <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{profile.win_rate}%</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{profile.win_rate.toFixed(1)}%</p>
               <p className="text-xs text-gray-500 dark:text-gray-400">{t("profile.win_rate")}</p>
             </div>
           </div>
@@ -283,15 +296,13 @@ export default function ProfilePage() {
           <div className="rounded border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
             <div className="flex border-b border-gray-200 dark:border-gray-700">
               <button className={tabClass("points")} onClick={() => setActiveTab("points")}>
-                {t("profile.tab_points", { username: profile.username })}
+                {isOwnProfile ? t("profile.tab_points_own") : t("profile.tab_points", { username: profile.username })}
               </button>
-              {isOwnProfile && (
-                <button className={tabClass("bets")} onClick={() => setActiveTab("bets")}>
-                  {t("profile.tab_bets", { username: profile.username })}
-                </button>
-              )}
+              <button className={tabClass("bets")} onClick={() => setActiveTab("bets")}>
+                {isOwnProfile ? t("profile.tab_bets_own") : t("profile.tab_bets", { username: profile.username })}
+              </button>
               <button className={tabClass("markets")} onClick={() => setActiveTab("markets")}>
-                {t("profile.tab_markets", { username: profile.username })}
+                {isOwnProfile ? t("profile.tab_markets_own") : t("profile.tab_markets", { username: profile.username })}
               </button>
             </div>
 
@@ -349,7 +360,7 @@ export default function ProfilePage() {
                                   {lpDesc ? (
                                     <span className="text-purple-600 dark:text-purple-400">{lpDesc}</span>
                                   ) : tx.market_title && tx.market_id ? (
-                                    <Link href={`/markets/${tx.market_id}`} className="hover:underline text-blue-600 dark:text-blue-400">
+                                    <Link href={getMarketPath(tx.market_id, tx.market_title)} className="hover:underline text-blue-600 dark:text-blue-400">
                                       {tx.market_title}
                                     </Link>
                                   ) : tx.description ? (
@@ -389,8 +400,8 @@ export default function ProfilePage() {
                 </div>
               )}
 
-              {/* My Bets tab — own profile only */}
-              {activeTab === "bets" && isOwnProfile && (
+              {/* Bets tab */}
+              {activeTab === "bets" && (
                 <div className="space-y-4">
                   {positionsQuery.isLoading ? (
                     <div className="space-y-2 animate-pulse">{[0, 1, 2].map((i) => <div key={i} className="h-8 rounded bg-gray-200 dark:bg-gray-700" />)}</div>
@@ -415,7 +426,7 @@ export default function ProfilePage() {
                                 {positionsQuery.data!.active.map((p) => (
                                   <tr key={p.id}>
                                     <td className="py-2 max-w-[220px] truncate">
-                                      <Link href={`/markets/${p.bet_id}`} className="hover:underline text-blue-600 dark:text-blue-400">
+                                      <Link href={getMarketPath(p.bet_id, p.market_title)} className="hover:underline text-blue-600 dark:text-blue-400">
                                         {p.market_title}
                                       </Link>
                                     </td>
@@ -450,7 +461,7 @@ export default function ProfilePage() {
                                 {positionsQuery.data!.resolved.map((p) => (
                                   <tr key={p.id}>
                                     <td className="py-2 max-w-[220px] truncate">
-                                      <Link href={`/markets/${p.bet_id}`} className="hover:underline text-blue-600 dark:text-blue-400">
+                                      <Link href={getMarketPath(p.bet_id, p.market_title)} className="hover:underline text-blue-600 dark:text-blue-400">
                                         {p.market_title}
                                       </Link>
                                     </td>
@@ -500,7 +511,7 @@ export default function ProfilePage() {
                           {myMarketsQuery.data.items.map((m) => (
                             <tr key={m.id}>
                               <td className="py-2 max-w-[220px] truncate">
-                                <Link href={`/markets/${m.id}`} className="hover:underline text-blue-600 dark:text-blue-400">
+                                <Link href={getMarketPath(m)} className="hover:underline text-blue-600 dark:text-blue-400">
                                   {m.title}
                                 </Link>
                               </td>

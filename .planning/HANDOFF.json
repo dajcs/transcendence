@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": "2026-04-21T18:30:00.000Z",
+  "timestamp": "2026-04-23T12:15:00.000Z",
   "phase": "06.1",
   "phase_name": "like-points-rename-economy-formula-fix",
   "phase_dir": ".planning/phases/06.1-like-points-rename-economy-formula-fix",
@@ -25,16 +25,11 @@
     {"decision": "Phase 06 was implemented outside GSD and merged", "rationale": "Planning artifacts should reflect merged reality rather than re-planning already shipped work", "phase": "06"},
     {"decision": "Phase 06.1 implementation required human UAT before completion", "rationale": "All 6 manual checks passed and the accepted post-UAT fixes are now reflected in planning", "phase": "06.1"},
     {"decision": "Numeric market payouts now use span-based waterfall bands at 2%, 4%, 8%, and 16% of market range", "rationale": "This replaced the earlier window-expansion design and matches the accepted user rule", "phase": "06.1"},
-    {"decision": "Hall of Fame lists BP diverted by payout caps from bp_fund_entries", "rationale": "Cap-surplus BP is now surfaced as a public leaderboard and linked from TopNav", "phase": "06.1"}
+    {"decision": "Hall of Fame lists BP diverted by payout caps from bp_fund_entries", "rationale": "Cap-surplus BP is surfaced as a public leaderboard and linked from TopNav", "phase": "06.1"},
+    {"decision": "Hall of Fame has separate BP and TP tabs", "rationale": "BP tab shows capped surplus; TP tab shows cumulative Truth Points so both reputation signals are visible without mixing metrics", "phase": "quick-260423-ics"},
+    {"decision": "/dashboard route removed", "rationale": "Profile tabs now own personal portfolio workflows; notifications, legal-page home links, and OAuth callbacks route to /markets instead of dashboard", "phase": "quick-260423-jh8"}
   ],
-  "uncommitted_files": [
-    ".planning/ROADMAP.md",
-    ".planning/STATE.md",
-    ".planning/REQUIREMENTS.md",
-    ".planning/HANDOFF.json",
-    ".planning/phases/06.1-like-points-rename-economy-formula-fix/.continue-here.md",
-    ".planning/phases/06.1-like-points-rename-economy-formula-fix/06.1-VERIFICATION.md"
-  ],
+  "uncommitted_files": [],
   "next_action": "Start Phase 7 planning when ready.",
-  "context_notes": "Phase 05.1 is complete. Phase 06 is implemented and merged. Phase 06.1 is complete, UAT-passed, and includes accepted follow-up fixes to refund math, ledger labels, binary odds, numeric payout bands, and the Hall of Fame page."
+  "context_notes": "Phase 05.1 is complete. Phase 06 is implemented and merged. Phase 06.1 is complete, UAT-passed, and includes accepted follow-up fixes to refund math, ledger labels, binary odds, numeric payout bands, and the Hall of Fame page. Quick 260423-ics redesigned Hall of Fame with localized EN/FR/DE labels and separate BP/TP leaderboard tabs. Quick 260423-jh8 removed /dashboard completely; profile tabs replace personal portfolio workflows and all live fallbacks now route to /markets."
 }

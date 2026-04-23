@@ -58,7 +58,9 @@ async def test_login_sets_cookies(client: AsyncClient):
     assert resp.status_code == 200
     cookies = resp.headers.get("set-cookie", "")
     assert "access_token" in cookies
+    assert "refresh_token" in cookies
     assert "httponly" in cookies.lower()
+    assert "path=/api/auth/refresh" in cookies.lower()
 
 
 @pytest.mark.asyncio
@@ -269,7 +271,7 @@ async def test_me_unauthenticated(client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_me_authenticated(client: AsyncClient):
-    """Register, login, then /me returns user info."""
+    """Register, login, then /me returns the authenticated user."""
     await client.post("/api/auth/register", json={
         "email": "dave@example.com", "username": "dave", "password": "Passw0rd!",
     })
@@ -277,14 +279,44 @@ async def test_me_authenticated(client: AsyncClient):
         "identifier": "dave@example.com", "password": "Passw0rd!",
     })
     resp = await client.get("/api/auth/me")
-    # Will be 401 in unit test env without real JWT keys — mark as expected
-    # Full test requires running containers with real keys
-    assert resp.status_code in (200, 401)
+    assert resp.status_code == 200
+    assert resp.json()["email"] == "dave@example.com"
+    assert resp.json()["username"] == "dave"
 
 
 @pytest.mark.asyncio
 async def test_refresh_rotation(client: AsyncClient):
-    """POST /api/auth/refresh should return a new access_token cookie."""
+    await client.post("/api/auth/register", json={
+        "email": "refresh@example.com", "username": "refreshuser", "password": "Passw0rd!",
+    })
+    login_resp = await client.post("/api/auth/login", json={
+        "identifier": "refresh@example.com", "password": "Passw0rd!",
+    })
+    old_refresh = client.cookies.get("refresh_token")
+
     resp = await client.post("/api/auth/refresh")
-    # Without a valid refresh token cookie, expect 401
-    assert resp.status_code == 401
+
+    assert login_resp.status_code == 200
+    assert old_refresh
+    assert resp.status_code == 200
+    assert resp.json() == {"ok": True}
+    assert client.cookies.get("refresh_token")
+    assert client.cookies.get("access_token")
+
+
+@pytest.mark.asyncio
+async def test_logout_clears_cookies_and_revokes_authenticated_session(client: AsyncClient):
+    await client.post("/api/auth/register", json={
+        "email": "logout@example.com", "username": "logoutuser", "password": "Passw0rd!",
+    })
+    await client.post("/api/auth/login", json={
+        "identifier": "logout@example.com", "password": "Passw0rd!",
+    })
+
+    resp = await client.post("/api/auth/logout")
+
+    assert resp.status_code == 200
+    set_cookie = resp.headers.get("set-cookie", "").lower()
+    assert "access_token=\"\"" in set_cookie
+    assert "refresh_token=\"\"" in set_cookie
+    assert (await client.get("/api/auth/me")).status_code == 401

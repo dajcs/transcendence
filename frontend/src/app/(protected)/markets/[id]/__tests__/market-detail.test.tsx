@@ -2,7 +2,7 @@
 
 jest.mock("@/lib/api", () => ({ api: { get: jest.fn(), post: jest.fn() } }));
 jest.mock("next/navigation", () => ({
-  useParams: () => ({ id: "market-abc-123", username: "testuser" }),
+  useParams: () => ({ id: "test-market-123e4567-e89b-12d3-a456-426614174000", username: "testuser" }),
   useRouter: () => ({ push: jest.fn() }),
 }));
 jest.mock("@/i18n", () => ({ useT: () => (key: string) => key }));
@@ -24,12 +24,17 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import MarketDetailPage from "../page";
 
+const MARKET_ID = "123e4567-e89b-12d3-a456-426614174000";
+
 const mockGet = api.get as jest.Mock;
 const mockPost = api.post as jest.Mock;
 
 // Return appropriate data based on URL to avoid type errors in the component
 function makeGetHandler() {
   return (url: string) => {
+    if (String(url).includes("/bets/positions")) {
+      return Promise.resolve({ data: { active: [], resolved: [] } });
+    }
     if (String(url).includes("/positions")) {
       return Promise.resolve({
         data: { participants: [], aggregate: { total_bp: 0, total_participants: 0, avg_bp: 0, by_side: {} }, total: 0 },
@@ -41,16 +46,13 @@ function makeGetHandler() {
     if (String(url).includes("/comments")) {
       return Promise.resolve({ data: [] });
     }
-    if (String(url).includes("/bets/positions")) {
-      return Promise.resolve({ data: { active: [], resolved: [] } });
-    }
     if (String(url).includes("/users/me")) {
       return Promise.resolve({ data: { llm_mode: "disabled" } });
     }
     // Default: market data
     return Promise.resolve({
       data: {
-        id: "market-abc-123",
+        id: MARKET_ID,
         title: "Test Market",
         description: "desc",
         resolution_criteria: "criteria",
@@ -65,6 +67,7 @@ function makeGetHandler() {
         choice_counts: {},
         upvote_count: 0,
         proposer_id: "other-user",
+        proposer_username: "proposer_user",
         choices: null,
         numeric_min: null,
         numeric_max: null,
@@ -89,7 +92,7 @@ describe("Market detail page query keys", () => {
 
     await waitFor(() => {
       const positionsCalls = mockGet.mock.calls.filter((c: unknown[]) =>
-        String(c[0]).includes("market-abc-123") && String(c[0]).includes("/positions")
+        String(c[0]).includes(MARKET_ID) && String(c[0]).includes("/positions")
       );
       expect(positionsCalls.length).toBeGreaterThan(0);
     }, { timeout: 3000 });
@@ -104,7 +107,7 @@ describe("Market detail page query keys", () => {
     await waitFor(() => {
       // Market loaded as "open" — payouts query should not fire
       const marketCalls = mockGet.mock.calls.filter((c: unknown[]) =>
-        String(c[0]).includes("/markets/market-abc-123") && !String(c[0]).includes("/positions") && !String(c[0]).includes("/comments")
+        String(c[0]).includes(`/markets/${MARKET_ID}`) && !String(c[0]).includes("/positions") && !String(c[0]).includes("/comments")
       );
       expect(marketCalls.length).toBeGreaterThan(0);
     }, { timeout: 3000 });
@@ -113,6 +116,66 @@ describe("Market detail page query keys", () => {
       String(c[0]).includes("/payouts")
     );
     expect(payoutsCalls.length).toBe(0);
+  });
+
+  it("loads resolution and payouts data once the market is closed", async () => {
+    mockGet.mockImplementation((url: string) => {
+      if (String(url).includes("/bets/positions")) {
+        return Promise.resolve({ data: { active: [], resolved: [] } });
+      }
+      if (String(url).includes("/positions")) {
+        return Promise.resolve({
+          data: { participants: [], aggregate: { total_bp: 0, total_participants: 0, avg_bp: 0, by_side: {} }, total: 0 },
+        });
+      }
+      if (String(url).includes("/payouts")) {
+        return Promise.resolve({ data: { payouts: [], total: 0 } });
+      }
+      if (String(url).includes("/resolution")) {
+        return Promise.resolve({ data: { resolution: { outcome: "yes", justification: "Resolved", overturned: false } } });
+      }
+      if (String(url).includes("/comments")) {
+        return Promise.resolve({ data: [] });
+      }
+      if (String(url).includes("/users/me")) {
+        return Promise.resolve({ data: { llm_mode: "disabled" } });
+      }
+      return Promise.resolve({
+        data: {
+          id: MARKET_ID,
+          title: "Test Market",
+          description: "desc",
+          resolution_criteria: "criteria",
+          deadline: new Date(Date.now() - 86400000).toISOString(),
+          status: "closed",
+          market_type: "binary",
+          yes_pct: 50,
+          no_pct: 50,
+          yes_count: 1,
+          no_count: 1,
+          position_count: 2,
+          choice_counts: {},
+          upvote_count: 0,
+          proposer_id: "other-user",
+          proposer_username: "proposer_user",
+          choices: null,
+          numeric_min: null,
+          numeric_max: null,
+        },
+      });
+    });
+
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(createElement(QueryClientProvider, { client: qc }, createElement(MarketDetailPage)));
+
+    await waitFor(() => {
+      expect(
+        mockGet.mock.calls.some((c: unknown[]) => String(c[0]).includes(`/api/bets/${MARKET_ID}/resolution`))
+      ).toBe(true);
+      expect(
+        mockGet.mock.calls.some((c: unknown[]) => String(c[0]).includes(`/api/markets/${MARKET_ID}/payouts`))
+      ).toBe(true);
+    });
   });
 
   it("queryKey contract: market-positions key uses correct URL pattern", async () => {
@@ -125,7 +188,7 @@ describe("Market detail page query keys", () => {
       const calls = mockGet.mock.calls.map((c: unknown[]) => String(c[0]));
       const posCall = calls.find((u) => u.includes("/positions"));
       expect(posCall).toBeDefined();
-      expect(posCall).toContain("market-abc-123");
+      expect(posCall).toContain(MARKET_ID);
     }, { timeout: 3000 });
   });
 
@@ -143,20 +206,12 @@ describe("Market detail page query keys", () => {
   it("shows refund preview as stake multiplied by refund probability", async () => {
     mockUser = { bp: 3, lp: 0, tp: 0 };
     mockGet.mockImplementation((url: string) => {
-      if (String(url).includes("/positions")) {
-        return Promise.resolve({
-          data: { participants: [], aggregate: { total_bp: 0, total_participants: 0, avg_bp: 0, by_side: {} }, total: 0 },
-        });
-      }
-      if (String(url).includes("/comments")) {
-        return Promise.resolve({ data: [] });
-      }
       if (String(url).includes("/bets/positions")) {
         return Promise.resolve({
           data: {
             active: [{
               id: "position-1",
-              bet_id: "market-abc-123",
+              bet_id: MARKET_ID,
               side: "yes",
               bp_staked: 3,
               placed_at: new Date().toISOString(),
@@ -171,12 +226,20 @@ describe("Market detail page query keys", () => {
           },
         });
       }
+      if (String(url).includes("/positions")) {
+        return Promise.resolve({
+          data: { participants: [], aggregate: { total_bp: 0, total_participants: 0, avg_bp: 0, by_side: {} }, total: 0 },
+        });
+      }
+      if (String(url).includes("/comments")) {
+        return Promise.resolve({ data: [] });
+      }
       if (String(url).includes("/users/me")) {
         return Promise.resolve({ data: { llm_mode: "disabled" } });
       }
       return Promise.resolve({
         data: {
-          id: "market-abc-123",
+          id: MARKET_ID,
           title: "Test Market",
           description: "desc",
           resolution_criteria: "criteria",
@@ -191,6 +254,7 @@ describe("Market detail page query keys", () => {
           choice_counts: {},
           upvote_count: 0,
           proposer_id: "other-user",
+          proposer_username: "proposer_user",
           choices: null,
           numeric_min: null,
           numeric_max: null,
@@ -199,11 +263,12 @@ describe("Market detail page query keys", () => {
     });
 
     const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-    const { findByText, getByText } = render(
+    const user = userEvent.setup();
+    const { findByText } = render(
       createElement(QueryClientProvider, { client: qc }, createElement(MarketDetailPage))
     );
 
-    getByText("market.withdraw").click();
+    await user.click(await findByText("market.withdraw"));
     expect(await findByText(/market\.refund_bp/)).toBeInTheDocument();
   });
 
@@ -232,7 +297,162 @@ describe("Market detail page query keys", () => {
 
     expect(mockPost).toHaveBeenCalledWith(
       "/api/bets",
-      expect.objectContaining({ bet_id: "market-abc-123", side: "yes", amount: 1 })
+      expect.objectContaining({ bet_id: MARKET_ID, side: "yes", amount: 1 })
     );
+  });
+
+  it("uses the UUID suffix from a slug route param and shows the proposer", async () => {
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const view = render(
+      createElement(QueryClientProvider, { client: qc }, createElement(MarketDetailPage))
+    );
+
+    await waitFor(() => {
+      expect(
+        mockGet.mock.calls.some((c: unknown[]) => String(c[0]).includes(`/api/markets/${MARKET_ID}`))
+      ).toBe(true);
+    });
+
+    expect(await view.findByRole("link", { name: "@proposer_user" })).toHaveAttribute(
+      "href",
+      "/profile/proposer_user"
+    );
+  });
+
+  it("shows the resolved outcome block when resolution data exists", async () => {
+    mockGet.mockImplementation((url: string) => {
+      if (String(url).includes("/bets/positions")) {
+        return Promise.resolve({ data: { active: [], resolved: [] } });
+      }
+      if (String(url).includes("/positions")) {
+        return Promise.resolve({
+          data: { participants: [], aggregate: { total_bp: 0, total_participants: 0, avg_bp: 0, by_side: {} }, total: 0 },
+        });
+      }
+      if (String(url).includes("/payouts")) {
+        return Promise.resolve({ data: { payouts: [], total: 0 } });
+      }
+      if (String(url).includes("/resolution")) {
+        return Promise.resolve({
+          data: { resolution: { outcome: "yes", justification: "Consensus reached", overturned: false } },
+        });
+      }
+      if (String(url).includes("/comments")) {
+        return Promise.resolve({ data: [] });
+      }
+      if (String(url).includes("/users/me")) {
+        return Promise.resolve({ data: { llm_mode: "disabled" } });
+      }
+      return Promise.resolve({
+        data: {
+          id: MARKET_ID,
+          title: "Test Market",
+          description: "desc",
+          resolution_criteria: "criteria",
+          deadline: new Date(Date.now() - 86400000).toISOString(),
+          status: "closed",
+          market_type: "binary",
+          yes_pct: 50,
+          no_pct: 50,
+          yes_count: 1,
+          no_count: 1,
+          position_count: 2,
+          choice_counts: {},
+          upvote_count: 0,
+          proposer_id: "other-user",
+          proposer_username: "proposer_user",
+          choices: null,
+          numeric_min: null,
+          numeric_max: null,
+        },
+      });
+    });
+
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const view = render(
+      createElement(QueryClientProvider, { client: qc }, createElement(MarketDetailPage))
+    );
+
+    await waitFor(() => {
+      expect(view.getByText("market.outcome_label")).toBeInTheDocument();
+      expect(view.getByText("yes")).toBeInTheDocument();
+      expect(view.getByText("Consensus reached")).toBeInTheDocument();
+    });
+  });
+
+  it("allows one more normal reply at the extended max visible depth", async () => {
+    const created_at = new Date().toISOString();
+    const comments = Array.from({ length: 7 }, (_, index) => ({
+      id: `comment-${index}`,
+      bet_id: MARKET_ID,
+      user_id: `user-${index}`,
+      author_username: `user_${index}`,
+      parent_id: index === 0 ? null : `comment-${index - 1}`,
+      content: `Level ${index}`,
+      created_at,
+      upvote_count: 0,
+      user_has_liked: false,
+    }));
+
+    mockGet.mockImplementation((url: string) => {
+      if (String(url).includes("/bets/positions")) {
+        return Promise.resolve({ data: { active: [], resolved: [] } });
+      }
+      if (String(url).includes("/positions")) {
+        return Promise.resolve({
+          data: { participants: [], aggregate: { total_bp: 0, total_participants: 0, avg_bp: 0, by_side: {} }, total: 0 },
+        });
+      }
+      if (String(url).includes("/comments")) {
+        return Promise.resolve({ data: comments });
+      }
+      if (String(url).includes("/users/me")) {
+        return Promise.resolve({ data: { llm_mode: "disabled" } });
+      }
+      return Promise.resolve({
+        data: {
+          id: MARKET_ID,
+          title: "Test Market",
+          description: "desc",
+          resolution_criteria: "criteria",
+          deadline: new Date(Date.now() + 86400000).toISOString(),
+          status: "open",
+          market_type: "binary",
+          yes_pct: 50,
+          no_pct: 50,
+          yes_count: 0,
+          no_count: 0,
+          position_count: 0,
+          choice_counts: {},
+          upvote_count: 0,
+          proposer_id: "other-user",
+          proposer_username: "proposer_user",
+          choices: null,
+          numeric_min: null,
+          numeric_max: null,
+        },
+      });
+    });
+
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const user = userEvent.setup();
+    const view = render(
+      createElement(QueryClientProvider, { client: qc }, createElement(MarketDetailPage))
+    );
+
+    expect(view.queryByRole("button", { name: "market.new_thread" })).not.toBeInTheDocument();
+    const replyButtons = await view.findAllByRole("button", { name: "market.reply" });
+    await user.click(replyButtons[replyButtons.length - 1]);
+    await user.type(await view.findByPlaceholderText("market.write_reply"), "One more reply{enter}");
+
+    await waitFor(() => {
+      expect(mockPost).toHaveBeenCalledWith(
+        `/api/markets/${MARKET_ID}/comments`,
+        {
+          content: "One more reply",
+          parent_id: "comment-6",
+        }
+      );
+    });
   });
 });

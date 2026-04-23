@@ -13,6 +13,7 @@ class PublicProfileResponse(BaseModel):
     bio: str | None
     created_at: datetime
     lp: int = 0
+    bp: float = 0.0
     tp: float = 0.0
     total_bets: int = 0
     win_rate: float = 0.0
@@ -62,6 +63,15 @@ class HallOfFameEntry(BaseModel):
     markets_count: int
 
 
+class HallOfFameTpEntry(BaseModel):
+    id: uuid.UUID
+    username: str
+    avatar_url: str | None
+    truth_points: float
+    markets_count: int
+
+
 class HallOfFameResponse(BaseModel):
     entries: list[HallOfFameEntry]
+    tp_entries: list[HallOfFameTpEntry]
     total: int

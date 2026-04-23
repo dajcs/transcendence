@@ -156,14 +156,13 @@ class TestNotificationEmits:
         """create_notification() emits notification:{type} to user:{id} room."""
         from app.db.models.user import User
         from app.services.notification_service import create_notification
-        from app.socket.server import sio
 
         user_id = uuid.uuid4()
         user = User(id=user_id, email="n@t.com", username="notifuser", password_hash="x")
         db_session.add(user)
         await db_session.commit()
 
-        with patch.object(sio, "emit", new_callable=AsyncMock) as mock_emit:
+        with patch("app.socket.server.celery_emit", new_callable=AsyncMock) as mock_emit:
             await create_notification(db_session, user_id, "friend_request", {"from_username": "alice"})
 
         calls = [str(c) for c in mock_emit.call_args_list]

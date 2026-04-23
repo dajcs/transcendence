@@ -25,6 +25,7 @@ dependencies = [
 dev = [
     "pytest>=8.3.0",
     "pytest-asyncio>=0.24.0",
+    "pytest-cov>=6.1.1",
     "httpx>=0.28.0",
     "aiosqlite>=0.22.1",
     "fakeredis>=2.34.1",
@@ -33,6 +34,14 @@ dev = [
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
+addopts = "--cov --cov-report=term-missing --cov-report=xml"
+
+[tool.coverage.run]
+branch = true
+source = ["app"]
+
+[tool.coverage.report]
+skip_covered = false
 
 [tool.black]
 line-length = 88

@@ -1,18 +1,39 @@
 """Economy service tests — BET-03 (withdrawal refund), BET-04 (bet cap), BET-05 (atomic balance)."""
+import uuid
+from datetime import date
+
 import pytest
+from fastapi import HTTPException
+
+from app.db.models.transaction import LpEvent
+from app.db.models.user import User
 
 
-def test_convert_lp_to_bp_cap():
-    """D-08: LP→BP uses min(log2(lp+1), 10.0). Cap enforced at 10.0 BP."""
-    import math
+@pytest.mark.asyncio
+async def test_convert_lp_to_bp_caps_bp_and_resets_lp(db_session):
+    """LP conversion should cap at 10 BP and zero out accumulated LP."""
+    from app.services.economy_service import convert_lp_to_bp, get_balance
 
-    def _formula(lp: int) -> float:
-        return min(math.log2(lp + 1), 10.0)
+    user_id = uuid.uuid4()
+    db_session.add(User(id=user_id, email="lp@test.com", username="lp_user", password_hash="x"))
+    db_session.add(
+        LpEvent(
+            user_id=user_id,
+            amount=2048,
+            source_type="like_received",
+            source_id=user_id,
+            day_date=date(2026, 4, 22),
+        )
+    )
+    await db_session.commit()
 
-    assert _formula(0) == 0.0
-    assert _formula(1) == 1.0
-    assert abs(_formula(1023) - 10.0) < 0.001
-    assert _formula(2000) == 10.0
+    lp_converted, bp_earned = await convert_lp_to_bp(db_session, user_id)
+
+    assert lp_converted == 2048
+    assert bp_earned == pytest.approx(10.0)
+
+    balance = await get_balance(db_session, user_id)
+    assert balance == {"bp": 10.0, "lp": 0, "tp": 0.0}
 
 
 def test_withdrawal_refund_formula():
@@ -22,6 +43,14 @@ def test_withdrawal_refund_formula():
     assert compute_refund_bp(80.0, 20.0, "no") == 0.2
     assert compute_refund_bp(0.0, 0.0, "yes") == 0.5
     assert compute_refund_bp(50.0, 50.0, "yes") == 0.5
+
+
+def test_numeric_refund_formula_clamps_by_market_span():
+    from app.services.economy_service import compute_numeric_refund_bp
+
+    assert compute_numeric_refund_bp(55.0, 50.0, 0.0, 100.0) == 0.95
+    assert compute_numeric_refund_bp(0.0, 100.0, 0.0, 100.0) == 0.0
+    assert compute_numeric_refund_bp(42.0, 42.0, 10.0, 10.0) == 1.0
 
 
 @pytest.mark.asyncio
@@ -112,9 +141,7 @@ async def test_deduct_bp_success(db_session):
 async def test_deduct_bp_insufficient(db_session):
     """BET-05: deduct_bp raises HTTPException(402) when balance < amount."""
     from app.services.economy_service import credit_bp, deduct_bp
-    from app.db.models.user import User
-    from fastapi import HTTPException
-    import uuid
+
     user_id = uuid.uuid4()
     user = User(id=user_id, email=f"{user_id}@test.com", username=str(user_id)[:20], is_active=True)
     db_session.add(user)
@@ -123,3 +150,14 @@ async def test_deduct_bp_insufficient(db_session):
     with pytest.raises(HTTPException) as exc_info:
         await deduct_bp(db_session, user_id, 10.0, "bet_place")
     assert exc_info.value.status_code == 402
+
+
+@pytest.mark.asyncio
+async def test_convert_lp_to_bp_with_no_lp_is_noop(db_session):
+    from app.services.economy_service import convert_lp_to_bp
+
+    user_id = uuid.uuid4()
+    db_session.add(User(id=user_id, email="nolp@test.com", username="nolp_user", password_hash="x"))
+    await db_session.commit()
+
+    assert await convert_lp_to_bp(db_session, user_id) == (0, 0.0)

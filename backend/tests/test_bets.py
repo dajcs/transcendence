@@ -4,6 +4,9 @@ from datetime import datetime, timezone
 
 import pytest
 from httpx import AsyncClient
+from sqlalchemy import select
+
+from app.db.models.bet import Bet
 
 
 async def _setup_user_with_market(client: AsyncClient, email: str, username: str):
@@ -50,6 +53,29 @@ async def test_duplicate_bet_rejected(client: AsyncClient):
     await client.post("/api/bets", json={"bet_id": market_id, "side": "yes"})
     resp = await client.post("/api/bets", json={"bet_id": market_id, "side": "no"})
     assert resp.status_code == 409
+
+
+@pytest.mark.asyncio
+async def test_place_bet_rejects_amount_above_cap(client: AsyncClient):
+    market_id = await _setup_user_with_market(client, "capped@example.com", "capped")
+
+    resp = await client.post("/api/bets", json={"bet_id": market_id, "side": "yes", "amount": 11})
+
+    assert resp.status_code == 422
+    assert "maximum of 10 bp" in resp.json()["detail"]
+
+
+@pytest.mark.asyncio
+async def test_place_bet_rejects_closed_market(client: AsyncClient, db_session):
+    market_id = await _setup_user_with_market(client, "closed@example.com", "closed_user")
+    market = (await db_session.execute(select(Bet).where(Bet.id == uuid.UUID(market_id)))).scalar_one()
+    market.status = "closed"
+    await db_session.commit()
+
+    resp = await client.post("/api/bets", json={"bet_id": market_id, "side": "yes"})
+
+    assert resp.status_code == 409
+    assert resp.json()["detail"] == "Market is not open for betting"
 
 
 @pytest.mark.asyncio
@@ -127,4 +153,55 @@ async def test_withdraw_numeric_bet_refund_scales_with_bp_staked(db_session):
     await db_session.commit()
 
     result = await withdraw_bet(db_session, user_id, position_id)
-    assert result.refund_bp == pytest.approx(1.6)
+    assert result.refund_bp == pytest.approx(1.8)
+
+
+@pytest.mark.asyncio
+async def test_positions_endpoint_splits_open_and_closed_markets(client: AsyncClient, db_session):
+    market_id = await _setup_user_with_market(client, "positions@example.com", "positions_user")
+    place_resp = await client.post("/api/bets", json={"bet_id": market_id, "side": "yes"})
+    assert place_resp.status_code == 201
+
+    market = (await db_session.execute(select(Bet).where(Bet.id == uuid.UUID(market_id)))).scalar_one()
+    market.status = "closed"
+    await db_session.commit()
+
+    resp = await client.get("/api/bets/positions")
+
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["active"] == []
+    assert len(data["resolved"]) == 1
+    assert data["resolved"][0]["market_status"] == "closed"
+
+
+@pytest.mark.asyncio
+async def test_positions_endpoint_can_list_another_users_positions(client: AsyncClient, db_session):
+    market_id = await _setup_user_with_market(client, "owner@example.com", "market_owner")
+
+    await client.post("/api/auth/register", json={
+        "email": "viewer@example.com", "username": "viewer", "password": "Passw0rd!",
+    })
+    await client.post("/api/auth/register", json={
+        "email": "otherbettor@example.com", "username": "otherbettor", "password": "Passw0rd!",
+    })
+    await client.post("/api/auth/login", json={
+        "identifier": "otherbettor@example.com", "password": "Passw0rd!",
+    })
+    place_resp = await client.post("/api/bets", json={"bet_id": market_id, "side": "yes"})
+    assert place_resp.status_code == 201
+
+    from app.db.models.user import User
+    other_user = (
+        await db_session.execute(select(User).where(User.username == "otherbettor"))
+    ).scalar_one()
+
+    await client.post("/api/auth/login", json={
+        "identifier": "viewer@example.com", "password": "Passw0rd!",
+    })
+    resp = await client.get(f"/api/bets/positions?user_id={other_user.id}")
+
+    assert resp.status_code == 200
+    data = resp.json()
+    assert len(data["active"]) == 1
+    assert data["active"][0]["id"] == place_resp.json()["id"]

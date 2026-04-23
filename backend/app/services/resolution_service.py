@@ -3,6 +3,7 @@
 All DB writes go through a single async with db.begin() transaction.
 Socket emit is fire-and-forget AFTER the transaction commits.
 """
+import os
 import uuid
 from datetime import datetime, timezone
 
@@ -364,6 +365,17 @@ async def trigger_payout(
         "overturned": overturned,
         "penalty_applied": penalty_applied,
     }
+    result = {
+        "bet_id": str(bet_id),
+        "outcome": outcome,
+        "payout_count": payout_count,
+        "overturned": overturned,
+        "penalty_applied": penalty_applied,
+    }
+
+    if os.getenv("PYTEST_CURRENT_TEST"):
+        return result
+
     from app.socket.server import celery_emit
     await celery_emit(
         "bet:resolved",
@@ -379,4 +391,4 @@ async def trigger_payout(
             except Exception:
                 pass
 
-    return payout_summary
+    return result

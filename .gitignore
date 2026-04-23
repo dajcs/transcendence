@@ -17,11 +17,16 @@ __pycache__/
 .pytest_cache/
 .venv/
 backend/.venv/
+backend/.coverage
+backend/coverage.xml
 
 # Node
 node_modules/
 frontend/.next/
 frontend/out/
+frontend/.playwright/
+frontend/test-results/
+frontend/coverage/
 
 # Docker
 *.log

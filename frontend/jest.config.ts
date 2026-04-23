@@ -9,6 +9,24 @@ const config: Config = {
   moduleNameMapper: {
     "^@/(.*)$": "<rootDir>/src/$1",
   },
+  collectCoverageFrom: [
+    "<rootDir>/src/**/*.{ts,tsx}",
+    "!<rootDir>/src/**/*.d.ts",
+    "!<rootDir>/src/**/__tests__/**",
+    "!<rootDir>/src/app/layout.tsx",
+    "!<rootDir>/src/app/providers.tsx",
+    "!<rootDir>/src/lib/types.ts",
+  ],
+  coveragePathIgnorePatterns: [
+    "/node_modules/",
+    "<rootDir>/.next/",
+  ],
+  testPathIgnorePatterns: [
+    "/node_modules/",
+    "<rootDir>/.next/",
+    "<rootDir>/e2e/",
+  ],
+  coverageReporters: ["text", "lcov", "html"],
 };
 
 export default createJestConfig(config);

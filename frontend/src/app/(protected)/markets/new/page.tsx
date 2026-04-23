@@ -4,6 +4,7 @@ import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { api } from "@/lib/api";
+import { getMarketPath } from "@/lib/markets";
 import { useAuthStore } from "@/store/auth";
 import { useT } from "@/i18n";
 
@@ -133,7 +134,7 @@ export default function NewMarketPage() {
 
       const response = await api.post("/api/markets", payload);
       await bootstrap();
-      router.push(`/markets/${response.data.id}`);
+      router.push(getMarketPath(response.data.id, title));
     } catch (err: unknown) {
       const detail = (err as { response?: { data?: { detail?: unknown } } })?.response?.data?.detail;
       if (Array.isArray(detail)) {

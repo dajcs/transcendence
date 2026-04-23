@@ -139,7 +139,7 @@ Where:
 
 ### Type
 - **tp** is a **float** (stored as `Numeric(10, 4)`). Displayed with 1 decimal in the nav header.
-- Leaderboard sorts by cumulative tp
+- Hall of Fame TP tab sorts by cumulative tp
 
 ---
 
@@ -156,6 +156,8 @@ Surplus BP from capped payouts is recorded in the `bp_fund_entries` table.
 | created_at | DateTime | Event timestamp |
 
 Surplus use-case (lottery/distribution) is deferred to a later phase.
+
+The Hall of Fame BP tab surfaces users with the most cap-surplus BP from this ledger.
 
 ---
 

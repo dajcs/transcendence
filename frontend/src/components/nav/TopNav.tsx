@@ -78,7 +78,8 @@ export default function TopNav() {
     <nav className="border-b border-gray-200 dark:border-gray-700">
       {/* Main bar — always visible */}
       <div className="flex items-start justify-between px-4 sm:px-6 py-3 gap-2">
-        <Link href="/" className="font-bold text-xl text-gray-900 dark:text-gray-100 shrink-0">
+        <Link href="/" className="flex shrink-0 items-center gap-2 font-bold text-xl text-gray-900 dark:text-gray-100">
+          <img src="/voxpopuli-logo.png" alt="" className="h-9 w-9 rounded-full object-cover" />
           {t("app.name")}
         </Link>
 
@@ -91,10 +92,10 @@ export default function TopNav() {
                 href={`/profile/${encodeURIComponent(user?.username ?? "")}`}
                 className="text-sm text-blue-600 hover:underline shrink-0"
               >
-                {user?.username}
+                @{user?.username}
               </Link>
               <span className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap shrink-0">
-                BP&nbsp;{(user?.bp ?? 0).toFixed(1)}{" · "}<span className="text-red-500">♥</span>&nbsp;{user?.lp ?? 0}{" · "}TP&nbsp;{(user?.tp ?? 0).toFixed(1)}
+                <span className="text-red-500">♥</span>&nbsp;{user?.lp ?? 0}{" · "}BP&nbsp;{(user?.bp ?? 0).toFixed(1)}{" · "}TP&nbsp;{(user?.tp ?? 0).toFixed(1)}
               </span>
               <Link href="/markets" className="text-sm text-blue-600 hover:underline shrink-0">
                 {t("nav.markets")}
@@ -112,9 +113,6 @@ export default function TopNav() {
               </Link>
               <Link href="/hall-of-fame" className="text-sm text-blue-600 hover:underline shrink-0">
                 {t("nav.hall_of_fame")}
-              </Link>
-              <Link href="/settings" className="text-sm text-blue-600 hover:underline shrink-0">
-                {t("nav.settings")}
               </Link>
               <button
                 onClick={handleLogout}
@@ -168,10 +166,10 @@ export default function TopNav() {
                 onClick={() => setMobileOpen(false)}
                 className="text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600"
               >
-                {user?.username}
+                @{user?.username}
               </Link>
               <span className="text-xs text-gray-500 dark:text-gray-400">
-                BP&nbsp;{(user?.bp ?? 0).toFixed(1)}{" · "}<span className="text-red-500">♥</span>&nbsp;{user?.lp ?? 0}{" · "}TP&nbsp;{(user?.tp ?? 0).toFixed(1)}
+                <span className="text-red-500">♥</span>&nbsp;{user?.lp ?? 0}{" · "}BP&nbsp;{(user?.bp ?? 0).toFixed(1)}{" · "}TP&nbsp;{(user?.tp ?? 0).toFixed(1)}
               </span>
               <Link href="/markets" onClick={() => setMobileOpen(false)} className="text-sm text-blue-600 hover:underline">
                 {t("nav.markets")}
@@ -189,9 +187,6 @@ export default function TopNav() {
               </Link>
               <Link href="/hall-of-fame" onClick={() => setMobileOpen(false)} className="text-sm text-blue-600 hover:underline">
                 {t("nav.hall_of_fame")}
-              </Link>
-              <Link href="/settings" onClick={() => setMobileOpen(false)} className="text-sm text-blue-600 hover:underline">
-                {t("nav.settings")}
               </Link>
               <button
                 onClick={handleLogout}

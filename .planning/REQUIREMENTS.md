@@ -36,7 +36,7 @@
 
 - [x] **DISC-01**: Each bet has a threaded comment section
 - [x] **DISC-02**: Users can upvote comments (earns lp for author); unlike removes upvote and decrements lp. Heart icon shows filled/empty based on `user_has_liked`.
-- [x] **DISC-03**: Comments support nested replies (up to 5 levels deep)
+- [x] **DISC-03**: Comments support nested replies up to 8 posts in a chain.
 
 ### Resolution
 
@@ -89,7 +89,7 @@
 - [x] **ECON-01**: "Karma Points (KP)" renamed to "Like Points (LP)" in DB (`lp_events` table), backend Python code, API response fields, frontend Zustand store, and all i18n locale files
 - [x] **ECON-02**: UI displays LP as ♥ N (red heart emoji + count) in nav; comment and market upvote buttons are heart icons (filled red when liked, empty otherwise); unlike removes upvote
 - [x] **ECON-03**: Economy formulas corrected: LP→BP conversion capped at 10.0 BP (`min(log2(lp+1), 10.0)`); bet cap flat 10 BP; TP formula is raw `t_win / t_bet` (no floor); binary/multichoice payout is `min(bet_amount × 10, proportional_share)` with surplus to `bp_fund_entries`; market creator rebate removed
-- [x] **ECON-04**: Numeric market payout uses span-based waterfall bands at 2%, 4%, 8%, and 16% of `(range_max - range_min)`; the first non-empty band takes the full pool, split proportionally by staked BP, with a 10x cap and capped surplus stored in `bp_fund_entries`; `bp_fund_entries` table created (migration 016). Hall of Fame surfaces users with the most cap-surplus BP.
+- [x] **ECON-04**: Numeric market payout uses span-based waterfall bands at 2%, 4%, 8%, and 16% of `(range_max - range_min)`; the first non-empty band takes the full pool, split proportionally by staked BP, with a 10x cap and capped surplus stored in `bp_fund_entries`; `bp_fund_entries` table created (migration 016). Hall of Fame surfaces users with the most cap-surplus BP and a second TP leaderboard tab.
 
 Notes:
 - Phase 06 is implemented and merged.
@@ -142,4 +142,4 @@ Notes:
 
 ---
 *Requirements defined: 2026-03-24*
-*Last updated: 2026-04-21 after Phase 06.1 UAT pass, numeric payout update, and Hall of Fame addition*
+*Last updated: 2026-04-23 after Hall of Fame BP/TP tab redesign and i18n update*

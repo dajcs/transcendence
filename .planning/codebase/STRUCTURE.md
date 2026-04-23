@@ -73,7 +73,6 @@ transcendence/                        # Project root
 │       │   │   ├── register/page.tsx
 │       │   │   └── reset-password/page.tsx
 │       │   ├── (protected)/          # Route group: authenticated pages
-│       │   │   ├── dashboard/page.tsx
 │       │   │   ├── markets/
 │       │   │   │   ├── page.tsx      # Markets list
 │       │   │   │   ├── [id]/page.tsx # Market detail + bet placement
@@ -146,8 +145,8 @@ transcendence/                        # Project root
 
 **`frontend/src/app/(protected)/`:**
 - Purpose: All authenticated pages; Next.js route group (no URL impact)
-- Contains: `dashboard`, `markets`, `friends`, `chat`, `profile` page directories
-- Note: No middleware-enforced redirect yet; pages rely on component-level auth checks
+- Contains: `markets`, `friends`, `chat`, `profile`, `hall-of-fame`, and `settings` page directories
+- Note: Route protection is enforced by `frontend/src/proxy.ts`; the old `/dashboard` route has been removed and profile tabs cover its former personal portfolio workflows
 
 **`frontend/src/store/`:**
 - Purpose: Zustand state atoms; each store owns one domain's data + API calls
