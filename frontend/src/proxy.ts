@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const token = request.cookies.get("access_token");
   const { pathname } = request.nextUrl;
 
@@ -13,11 +13,6 @@ export function middleware(request: NextRequest) {
   // Redirect authenticated users away from auth pages and root
   if (token && (pathname === "/" || pathname === "/login" || pathname === "/register")) {
     return NextResponse.redirect(new URL("/markets", request.url));
-  }
-
-  // Redirect unauthenticated users from root to login
-  if (!token && pathname === "/") {
-    return NextResponse.redirect(new URL("/login", request.url));
   }
 
   return NextResponse.next();
