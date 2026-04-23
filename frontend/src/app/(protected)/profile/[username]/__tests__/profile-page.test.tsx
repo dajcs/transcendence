@@ -36,7 +36,8 @@ const profile = {
   bio: null,
   created_at: "2026-01-02T00:00:00.000Z",
   lp: 14,
-  tp: 3,
+  bp: 12.25,
+  tp: 3.4,
   total_bets: 5,
   win_rate: 60,
   is_friend: false,
@@ -103,7 +104,7 @@ function setupApi() {
     if (url.startsWith("/api/users/alice/transactions")) {
       return Promise.resolve({ data: transactions });
     }
-    if (url === "/api/bets/positions") {
+    if (url === "/api/bets/positions?user_id=user-1") {
       return Promise.resolve({ data: positions });
     }
     if (url.startsWith("/api/markets?proposer_id=user-1")) {
@@ -140,17 +141,73 @@ describe("ProfilePage", () => {
 
     expect(await screen.findByRole("heading", { name: "alice" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Settings" })).toHaveAttribute("href", "/settings");
-    expect(screen.getByText("profile.no_bio")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "profile.add_bio" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /profile\.tab_bets/u })).toBeInTheDocument();
+    expect(screen.getByPlaceholderText("profile.add_mission")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "profile.accept_mission" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "profile.tab_points_own" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "profile.tab_bets_own" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "profile.tab_markets_own" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "profile.add_friend" })).not.toBeInTheDocument();
+    expect(screen.getByText("♥")).toHaveClass("text-red-500");
+    expect(screen.getByText("14")).toBeInTheDocument();
+    expect(screen.getByText("BP")).toBeInTheDocument();
+    expect(screen.getByText("12.3")).toBeInTheDocument();
+    expect(screen.getByText("TP")).toBeInTheDocument();
+    expect(screen.getByText("3.4")).toBeInTheDocument();
+    expect(screen.getByText("5")).toBeInTheDocument();
+    expect(screen.getByText("60.0%")).toBeInTheDocument();
+  });
+
+  it("accepts a new mission statement inline", async () => {
+    renderPage();
+
+    const missionInput = await screen.findByPlaceholderText("profile.add_mission");
+    await userEvent.type(missionInput, "Predict carefully");
+
+    await userEvent.click(screen.getByRole("button", { name: "profile.accept_mission" }));
+
+    await waitFor(() => {
+      expect(mockPut).toHaveBeenCalledWith("/api/users/me", { bio: "Predict carefully" });
+    });
+    expect(await screen.findByRole("button", { name: "Predict carefully" })).toHaveAttribute(
+      "title",
+      "profile.change_mission",
+    );
+    expect(screen.queryByPlaceholderText("profile.add_mission")).not.toBeInTheDocument();
+  });
+
+  it("turns an existing mission statement into an inline editor when clicked", async () => {
+    mockGet.mockImplementation((url: string) => {
+      if (url === "/api/users/alice") {
+        return Promise.resolve({ data: { ...profile, bio: "Existing mission" } });
+      }
+      if (url.startsWith("/api/users/alice/transactions")) {
+        return Promise.resolve({ data: transactions });
+      }
+      if (url === "/api/bets/positions?user_id=user-1") {
+        return Promise.resolve({ data: positions });
+      }
+      if (url.startsWith("/api/markets?proposer_id=user-1")) {
+        return Promise.resolve({ data: markets });
+      }
+      throw new Error(`Unhandled GET ${url}`);
+    });
+
+    renderPage();
+
+    const mission = await screen.findByRole("button", { name: "Existing mission" });
+    expect(mission).toHaveAttribute("title", "profile.change_mission");
+
+    await userEvent.click(mission);
+
+    expect(screen.getByDisplayValue("Existing mission")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "profile.accept_mission" })).not.toBeInTheDocument();
   });
 
   it("loads and renders the markets tab for the viewed profile", async () => {
     renderPage();
 
     await screen.findByRole("heading", { name: "alice" });
-    await userEvent.click(screen.getByRole("button", { name: /profile\.tab_markets/u }));
+    await userEvent.click(screen.getByRole("button", { name: "profile.tab_markets_own" }));
 
     expect(await screen.findByRole("link", { name: "Rain Market" })).toHaveAttribute(
       "href",
@@ -159,7 +216,7 @@ describe("ProfilePage", () => {
     expect(mockGet).toHaveBeenCalledWith("/api/markets?proposer_id=user-1&limit=50&sort=newest");
   });
 
-  it("shows friend actions for another user's profile and hides the bets tab", async () => {
+  it("shows friend actions for another user's profile and exposes their bets tab", async () => {
     params = { username: "bob" };
     authState = { user: { username: "alice" } };
     mockGet.mockImplementation((url: string) => {
@@ -174,13 +231,22 @@ describe("ProfilePage", () => {
       if (url.startsWith("/api/markets?proposer_id=user-2")) {
         return Promise.resolve({ data: { ...markets, items: [] } });
       }
+      if (url === "/api/bets/positions?user_id=user-2") {
+        return Promise.resolve({ data: positions });
+      }
       throw new Error(`Unhandled GET ${url}`);
     });
 
     renderPage();
 
     expect(await screen.findByRole("heading", { name: "bob" })).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /profile\.tab_bets/u })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: 'profile.tab_points:{"username":"bob"}' })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: 'profile.tab_bets:{"username":"bob"}' })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: 'profile.tab_markets:{"username":"bob"}' })).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: 'profile.tab_bets:{"username":"bob"}' }));
+    expect(await screen.findByRole("link", { name: "Rain Market" })).toHaveAttribute("href", "/markets/market-1");
+    expect(mockGet).toHaveBeenCalledWith("/api/bets/positions?user_id=user-2");
 
     await userEvent.click(screen.getByRole("button", { name: "profile.add_friend" }));
 

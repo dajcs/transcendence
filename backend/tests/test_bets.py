@@ -173,3 +173,35 @@ async def test_positions_endpoint_splits_open_and_closed_markets(client: AsyncCl
     assert data["active"] == []
     assert len(data["resolved"]) == 1
     assert data["resolved"][0]["market_status"] == "closed"
+
+
+@pytest.mark.asyncio
+async def test_positions_endpoint_can_list_another_users_positions(client: AsyncClient, db_session):
+    market_id = await _setup_user_with_market(client, "owner@example.com", "market_owner")
+
+    await client.post("/api/auth/register", json={
+        "email": "viewer@example.com", "username": "viewer", "password": "Passw0rd!",
+    })
+    await client.post("/api/auth/register", json={
+        "email": "otherbettor@example.com", "username": "otherbettor", "password": "Passw0rd!",
+    })
+    await client.post("/api/auth/login", json={
+        "identifier": "otherbettor@example.com", "password": "Passw0rd!",
+    })
+    place_resp = await client.post("/api/bets", json={"bet_id": market_id, "side": "yes"})
+    assert place_resp.status_code == 201
+
+    from app.db.models.user import User
+    other_user = (
+        await db_session.execute(select(User).where(User.username == "otherbettor"))
+    ).scalar_one()
+
+    await client.post("/api/auth/login", json={
+        "identifier": "viewer@example.com", "password": "Passw0rd!",
+    })
+    resp = await client.get(f"/api/bets/positions?user_id={other_user.id}")
+
+    assert resp.status_code == 200
+    data = resp.json()
+    assert len(data["active"]) == 1
+    assert data["active"][0]["id"] == place_resp.json()["id"]

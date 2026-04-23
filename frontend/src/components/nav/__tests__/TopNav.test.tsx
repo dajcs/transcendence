@@ -79,10 +79,8 @@ describe("TopNav", () => {
 
     expect(screen.getByTestId("notification-bell")).toBeInTheDocument();
     expect(screen.getAllByText("@alice")[0]).toBeInTheDocument();
-    expect(view.container.textContent).toContain("BP");
-    expect(view.container.textContent).toContain("12.3");
-    expect(view.container.textContent).toContain("TP");
-    expect(view.container.textContent).toContain("4.5");
+    expect(view.container.textContent).toContain("♥\u00a07 · BP\u00a012.3 · TP\u00a04.5");
+    expect(screen.queryByRole("link", { name: "nav.settings" })).not.toBeInTheDocument();
     expect(screen.getAllByText("2")[0]).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "nav.markets" })).toHaveAttribute("href", "/markets");
     expect(screen.getByRole("link", { name: "nav.hall_of_fame" })).toHaveAttribute("href", "/hall-of-fame");
