@@ -26,6 +26,18 @@ async def get_user_transactions(
         raise HTTPException(status_code=404, detail="User not found")
     user_id = user_row.id
 
+    lp_converted_amount = (
+        select(func.abs(func.sum(LpEvent.amount)))
+        .where(
+            LpEvent.user_id == user_id,
+            LpEvent.source_type == "lp_reset_login",
+            LpEvent.amount < 0,
+            LpEvent.created_at == BpTransaction.created_at,
+        )
+        .correlate(BpTransaction)
+        .scalar_subquery()
+    )
+
     bp_q = select(
         BpTransaction.id.label("id"),
         BpTransaction.created_at.label("date"),
@@ -33,6 +45,13 @@ async def get_user_transactions(
         BpTransaction.bet_id.label("bet_id"),
         cast(BpTransaction.amount, Float).label("bp_delta"),
         literal(0.0).label("tp_delta"),
+        case(
+            (
+                BpTransaction.reason == "lp_conversion",
+                cast(func.coalesce(lp_converted_amount, 0), Float),
+            ),
+            else_=literal(0.0),
+        ).label("lp_delta"),
     ).where(BpTransaction.user_id == user_id)
 
     tp_q = select(
@@ -42,6 +61,7 @@ async def get_user_transactions(
         TpTransaction.bet_id.label("bet_id"),
         literal(0.0).label("bp_delta"),
         cast(TpTransaction.amount, Float).label("tp_delta"),
+        literal(0.0).label("lp_delta"),
     ).where(TpTransaction.user_id == user_id)
 
     lp_q = select(
@@ -51,6 +71,7 @@ async def get_user_transactions(
         cast(None, Uuid).label("bet_id"),
         literal(0.0).label("bp_delta"),
         literal(0.0).label("tp_delta"),
+        literal(0.0).label("lp_delta"),
     ).where(LpEvent.user_id == user_id, LpEvent.amount > 0)
 
     combined = union_all(bp_q, tp_q, lp_q).subquery()
@@ -71,6 +92,7 @@ async def get_user_transactions(
         cast(func.max(cast(combined.c.bet_id, String)), Uuid).label("bet_id"),
         func.sum(combined.c.bp_delta).label("bp_delta"),
         func.sum(combined.c.tp_delta).label("tp_delta"),
+        func.sum(combined.c.lp_delta).label("lp_delta"),
     ).group_by(group_key).subquery()
 
     tx_type = case(
@@ -107,6 +129,7 @@ async def get_user_transactions(
         merged.c.bet_id,
         merged.c.bp_delta,
         merged.c.tp_delta,
+        merged.c.lp_delta,
         tx_type,
         bp_balance,
         tp_balance,
@@ -146,6 +169,8 @@ async def get_user_transactions(
             description=(
                 row.date.date().isoformat()
                 if row.tx_type == "daily_bonus" and row.date
+                else f"{int(row.lp_delta)} ♥"
+                if row.tx_type == "lp_allocation" and row.lp_delta
                 else title_map.get(row.bet_id, "")
             ),
             market_id=row.bet_id,

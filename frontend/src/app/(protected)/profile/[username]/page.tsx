@@ -344,7 +344,7 @@ export default function ProfilePage() {
                           <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
                             {allTx.filter((tx) => tx.bp_delta !== 0 || tx.tp_delta !== 0).map((tx) => {
                               const lpDesc = tx.type === "lp_allocation" && tx.bp_delta > 0
-                                ? `${Math.round(Math.pow(2, tx.bp_delta) - 1)} ♥`
+                                ? tx.description || `${Math.round(Math.pow(2, tx.bp_delta) - 1)} ♥`
                                 : null;
                               return (
                               <tr key={tx.id}>

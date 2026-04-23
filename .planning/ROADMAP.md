@@ -170,7 +170,7 @@ Plans:
 
 **Delivers:**
 - Market creation form: auto-resolution toggle with city/condition fields; resolution_source JSON persisted to Bet
-- Profile pages: full sortable point transaction ledger (BP/TP/KP UNION query, all flows)
+- Profile pages: full sortable point transaction ledger (BP/TP/LP UNION query, all flows, exact LP conversion descriptions)
 - Market detail pages: participant list + aggregate stats; payout breakdown for closed markets
 - Three new public GET endpoints: positions, payouts, transactions
 

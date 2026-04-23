@@ -163,6 +163,7 @@ See: `.planning/PROJECT.md` (updated 2026-03-24)
 | 260423-jh8 | Remove obsolete dashboard page and links | 2026-04-23 | pending | Verified | [260423-jh8-remove-dashboard-page-and-all-links-wait](./quick/260423-jh8-remove-dashboard-page-and-all-links-wait/) |
 | 260423-k0z | Increase discussion reply depth | 2026-04-23 | pending | Verified | [260423-k0z-increase-market-discussion-reply-depth-t](./quick/260423-k0z-increase-market-discussion-reply-depth-t/) |
 | fast | Fix dev seed message idempotency crash | 2026-04-23 | pending | Verified | `backend/scripts/seed_dev.py` |
+| fast | Fix LP conversion ledger description mismatch | 2026-04-23 | pending | Verified | `backend/app/services/ledger_service.py` |
 
 ### Blockers/Concerns
 

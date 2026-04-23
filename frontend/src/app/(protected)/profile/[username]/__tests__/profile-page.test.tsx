@@ -58,8 +58,20 @@ const transactions = {
       tp_delta: 1.0,
       tp_balance: 3.0,
     },
+    {
+      id: "tx-2",
+      date: "2026-01-03T12:00:00.000Z",
+      type: "lp_allocation",
+      description: "21 ♥",
+      market_id: null,
+      market_title: null,
+      bp_delta: 4.5,
+      bp_balance: 10.0,
+      tp_delta: 0,
+      tp_balance: 2.0,
+    },
   ],
-  total: 1,
+  total: 2,
 };
 
 const positions = {
@@ -155,6 +167,7 @@ describe("ProfilePage", () => {
     expect(screen.getByText("3.4")).toBeInTheDocument();
     expect(screen.getByText("5")).toBeInTheDocument();
     expect(screen.getByText("60.0%")).toBeInTheDocument();
+    expect(await screen.findByText("21 ♥")).toBeInTheDocument();
   });
 
   it("accepts a new mission statement inline", async () => {
@@ -211,7 +224,7 @@ describe("ProfilePage", () => {
 
     expect(await screen.findByRole("link", { name: "Rain Market" })).toHaveAttribute(
       "href",
-      "/markets/market-1",
+      "/markets/rain-market-market-1",
     );
     expect(mockGet).toHaveBeenCalledWith("/api/markets?proposer_id=user-1&limit=50&sort=newest");
   });
@@ -246,7 +259,10 @@ describe("ProfilePage", () => {
     expect(screen.getByRole("button", { name: 'profile.tab_markets:{"username":"bob"}' })).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole("button", { name: 'profile.tab_bets:{"username":"bob"}' }));
-    expect(await screen.findByRole("link", { name: "Rain Market" })).toHaveAttribute("href", "/markets/market-1");
+    expect(await screen.findByRole("link", { name: "Rain Market" })).toHaveAttribute(
+      "href",
+      "/markets/rain-market-market-1",
+    );
     expect(mockGet).toHaveBeenCalledWith("/api/bets/positions?user_id=user-2");
 
     await userEvent.click(screen.getByRole("button", { name: "profile.add_friend" }));

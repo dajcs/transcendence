@@ -29,7 +29,7 @@
 - [x] **BET-04**: Bet cap: flat 10 BP per position (or available balance, whichever is lower). Backend enforces via `_check_bet_cap()`; UI dropdown limits options to `1..min(10, floor(balance))`.
 - [x] **BET-05**: bp balance cannot go below 0; checked atomically before deduction
 - [x] **BET-06**: New user receives 10 bp signup bonus
-- [x] **BET-07**: LP→BP conversion on login: `+min(log2(lp+1), 10.0)` bp; lp reset to 0 after conversion
+- [x] **BET-07**: LP→BP conversion on login: `+min(log2(lp+1), 10.0)` bp; lp reset to 0 after conversion; notification and ledger descriptions use the exact converted LP amount.
 - [x] **BET-08**: Daily login bonus: +1 bp
 
 ### Discussion
