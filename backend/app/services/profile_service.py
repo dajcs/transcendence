@@ -6,12 +6,13 @@ from sqlalchemy import and_, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models.bet import BetPosition, Resolution
-from app.db.models.transaction import BpFundEntry, BpTransaction
+from app.db.models.transaction import BpFundEntry, BpTransaction, TpTransaction
 from app.db.models.social import FriendRequest
 from app.db.models.user import User
 from app.schemas.profile import (
     HallOfFameEntry,
     HallOfFameResponse,
+    HallOfFameTpEntry,
     PublicProfileResponse,
     UpdateProfileRequest,
     UserSearchResult,
@@ -130,8 +131,8 @@ async def search_users(db: AsyncSession, q: str, limit: int = 20) -> list[UserSe
 
 
 async def get_hall_of_fame(db: AsyncSession, limit: int = 20) -> HallOfFameResponse:
-    """List users with the most BP diverted to the bank due to payout caps."""
-    rows = (await db.execute(
+    """List users leading the BP surplus and TP leaderboards."""
+    bp_rows = (await db.execute(
         select(
             User.id,
             User.username,
@@ -149,6 +150,21 @@ async def get_hall_of_fame(db: AsyncSession, limit: int = 20) -> HallOfFameRespo
         .limit(limit)
     )).all()
 
+    tp_rows = (await db.execute(
+        select(
+            User.id,
+            User.username,
+            User.avatar_url,
+            func.sum(TpTransaction.amount).label("truth_points"),
+            func.count(func.distinct(TpTransaction.bet_id)).label("markets_count"),
+        )
+        .join(User, User.id == TpTransaction.user_id)
+        .where(User.is_active.is_(True))
+        .group_by(User.id, User.username, User.avatar_url)
+        .order_by(func.sum(TpTransaction.amount).desc(), User.username.asc())
+        .limit(limit)
+    )).all()
+
     return HallOfFameResponse(
         entries=[
             HallOfFameEntry(
@@ -158,7 +174,17 @@ async def get_hall_of_fame(db: AsyncSession, limit: int = 20) -> HallOfFameRespo
                 banked_bp=round(float(row.banked_bp or 0.0), 2),
                 markets_count=int(row.markets_count or 0),
             )
-            for row in rows
+            for row in bp_rows
         ],
-        total=len(rows),
+        tp_entries=[
+            HallOfFameTpEntry(
+                id=row.id,
+                username=row.username,
+                avatar_url=row.avatar_url,
+                truth_points=round(float(row.truth_points or 0.0), 2),
+                markets_count=int(row.markets_count or 0),
+            )
+            for row in tp_rows
+        ],
+        total=len(bp_rows),
     )

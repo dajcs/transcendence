@@ -4,7 +4,7 @@ milestone: v21.0
 milestone_name: milestone
 current_plan: 07-not-started
 status: Phase 06.1 complete
-last_updated: "2026-04-21T18:30:00.000Z"
+last_updated: "2026-04-23T11:30:00.000Z"
 progress:
   total_phases: 9
   completed_phases: 8
@@ -158,6 +158,7 @@ See: `.planning/PROJECT.md` (updated 2026-03-24)
 | 260422-seed | Restore dev seed users, weather markets, and varied stakes | 2026-04-22 | pending | Verified | `backend/scripts/` |
 | 260423-evu | Profile page redesign | 2026-04-23 | 55a5aa7 | Verified | [260423-evu-profile-page-redesign](./quick/260423-evu-profile-page-redesign/) |
 | fast | Add Vox Populi logo to nav and favicon | 2026-04-23 | pending | Verified | `frontend/public/voxpopuli-logo.png` |
+| 260423-ics | Hall of Fame redesign with BP/TP tabs and i18n translations | 2026-04-23 | pending | Verified | [260423-ics-hall-of-fame-redesign-translate-hall-of-](./quick/260423-ics-hall-of-fame-redesign-translate-hall-of-/) |
 
 ### Blockers/Concerns
 

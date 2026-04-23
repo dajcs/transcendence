@@ -5,7 +5,7 @@ import pytest
 from httpx import AsyncClient
 from sqlalchemy import select
 
-from app.db.models.transaction import BpFundEntry
+from app.db.models.transaction import BpFundEntry, TpTransaction
 from app.db.models.user import User
 
 
@@ -221,7 +221,7 @@ async def test_search_excludes_inactive(client: AsyncClient, db_session):
 
 
 @pytest.mark.asyncio
-async def test_hall_of_fame_lists_users_by_banked_bp(client: AsyncClient, db_session):
+async def test_hall_of_fame_lists_users_by_banked_bp_and_tp(client: AsyncClient, db_session):
     await _register_and_login(client, "hof1@example.com", "hof_alpha")
     await _register_and_login(client, "hof2@example.com", "hof_beta")
 
@@ -233,6 +233,9 @@ async def test_hall_of_fame_lists_users_by_banked_bp(client: AsyncClient, db_ses
         BpFundEntry(market_id=uuid.uuid4(), user_id=alpha.id, amount=2.5, reason="cap_surplus"),
         BpFundEntry(market_id=uuid.uuid4(), user_id=beta.id, amount=9.0, reason="cap_surplus"),
         BpFundEntry(market_id=uuid.uuid4(), user_id=beta.id, amount=99.0, reason="numeric_surplus"),
+        TpTransaction(user_id=beta.id, amount=3.25, bet_id=uuid.uuid4()),
+        TpTransaction(user_id=alpha.id, amount=1.0, bet_id=uuid.uuid4()),
+        TpTransaction(user_id=beta.id, amount=2.25, bet_id=uuid.uuid4()),
     ])
     await db_session.commit()
 
@@ -246,6 +249,11 @@ async def test_hall_of_fame_lists_users_by_banked_bp(client: AsyncClient, db_ses
     assert data["entries"][0]["banked_bp"] == 15.0
     assert data["entries"][1]["username"] == "hof_beta"
     assert data["entries"][1]["banked_bp"] == 9.0
+    assert data["tp_entries"][0]["username"] == "hof_beta"
+    assert data["tp_entries"][0]["truth_points"] == 5.5
+    assert data["tp_entries"][0]["markets_count"] == 2
+    assert data["tp_entries"][1]["username"] == "hof_alpha"
+    assert data["tp_entries"][1]["truth_points"] == 1.0
 
 
 def test_models_package_exports_bp_fund_entry():

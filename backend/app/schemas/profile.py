@@ -63,6 +63,15 @@ class HallOfFameEntry(BaseModel):
     markets_count: int
 
 
+class HallOfFameTpEntry(BaseModel):
+    id: uuid.UUID
+    username: str
+    avatar_url: str | None
+    truth_points: float
+    markets_count: int
+
+
 class HallOfFameResponse(BaseModel):
     entries: list[HallOfFameEntry]
+    tp_entries: list[HallOfFameTpEntry]
     total: int
