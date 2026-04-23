@@ -45,7 +45,7 @@ Resolution (Tiers 1–3), social features, and real-time updates are separate ph
 - **D-14:** Bet placement and market creation use SELECT FOR UPDATE on user row to prevent double-spend. bp balance check + deduction in a single DB transaction.
 
 ### Comment Threads
-- **D-15:** Up to 5-level deep replies (parent_id supported in Comment model). Flat render with depth-based indent (24px per level). Reply button hidden at depth ≥ 4. Backend enforces max via ancestor chain traversal. No collapse/expand — keep it simple.
+- **D-15:** Up to 8 posts in a nested reply chain (parent_id supported in Comment model). Flat render with depth-based indent (24px per level). Reply button is hidden once the 8-post chain limit is reached. Backend enforces max via ancestor chain traversal. No collapse/expand — keep it simple.
 - **D-16:** Upvoting a comment earns +1 kp for the author. Self-upvotes and duplicate upvotes are silent no-ops (IntegrityError caught and rolled back — no error returned). Market upvotes follow the same idempotent pattern. Comment upvote button uses a Reddit-style small ▲ arrow (orange on hover); market upvote uses a larger stacked ▲ / count column.
 - **D-18:** Comments are rendered in DFS tree order (not flat created_at order) so replies appear directly under their parent. Depth map and children map built from flat API response before render.
 - **D-19:** Date display uses `toLocaleString()` — browser system locale, no fixed format.

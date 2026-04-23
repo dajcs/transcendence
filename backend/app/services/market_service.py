@@ -223,6 +223,16 @@ async def list_markets(
                 select(func.count(BetUpvote.bet_id)).where(BetUpvote.bet_id == row.id)
             )
         ).scalar_one()
+        user_has_liked = False
+        if user_id is not None:
+            user_has_liked = (
+                await db.execute(
+                    select(BetUpvote).where(
+                        BetUpvote.bet_id == row.id,
+                        BetUpvote.user_id == user_id,
+                    )
+                )
+            ).scalar_one_or_none() is not None
         items.append(
             MarketResponse(
                 id=row.id,
@@ -246,6 +256,7 @@ async def list_markets(
                 comment_count=int(comment_count),
                 choice_counts=choice_counts,
                 upvote_count=int(upvote_count),
+                user_has_liked=user_has_liked,
             )
         )
 

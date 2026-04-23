@@ -5,6 +5,7 @@ import { useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { api } from "@/lib/api";
+import { getMarketPath } from "@/lib/markets";
 import { useAuthStore } from "@/store/auth";
 import type { Market, MarketListResponse } from "@/lib/types";
 import { useMarketStore } from "@/store/market";
@@ -48,13 +49,20 @@ function MarketCard({ market }: { market: Market }) {
       await bootstrap();
     },
   });
+  const unlike = useMutation({
+    mutationFn: () => api.delete(`/api/markets/${market.id}/upvote`),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["markets"] });
+      await bootstrap();
+    },
+  });
 
   const isOwnMarket = currentUser?.id === market.proposer_id;
   const badge = marketStatusBadge(market.status, isOwnMarket, t);
 
   return (
     <Link
-      href={`/markets/${market.id}`}
+      href={getMarketPath(market)}
       className={`block rounded border p-4 hover:border-gray-300 dark:hover:border-gray-600 ${marketCardBg(market.status, isOwnMarket)}`}
     >
       <div className="flex items-start justify-between gap-4">
@@ -86,19 +94,24 @@ function MarketCard({ market }: { market: Market }) {
               {market.numeric_min} – {market.numeric_max}
             </p>
           )}
-          <p className="text-xs text-gray-500 dark:text-gray-400">
-            {market.position_count} {t("markets.votes")} · {market.comment_count} {t("markets.comments")}
-          </p>
           <button
             onClick={(e) => {
               e.preventDefault();
-              upvote.mutate();
+              e.stopPropagation();
+              market.user_has_liked ? unlike.mutate() : upvote.mutate();
             }}
-            disabled={upvote.isPending}
-            className="mt-1 rounded border border-gray-300 dark:border-gray-600 px-2 py-0.5 text-xs hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50"
+            disabled={upvote.isPending || unlike.isPending}
+            className="mt-1 inline-flex items-center gap-1 text-xs text-gray-600 hover:text-red-600 dark:text-gray-400 dark:hover:text-red-400 disabled:opacity-50"
           >
-            ▲ {market.upvote_count}
+            <span className={`text-base leading-none ${market.user_has_liked ? "text-red-500" : "text-gray-400 dark:text-gray-500"}`}>
+              {market.user_has_liked ? "♥" : "♡"}
+            </span>
+            <span>{market.upvote_count}</span>
           </button>
+          <p className="inline-flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
+            <span>💬</span>
+            <span>{market.comment_count}</span>
+          </p>
         </div>
       </div>
     </Link>

@@ -17,6 +17,7 @@ docker compose down -v
 to stop and remove compose stack + volumes
 """
 import asyncio
+import json
 import random
 import uuid
 from datetime import datetime, timedelta, timezone
@@ -33,6 +34,8 @@ from app.utils.password import hash_password
 random.seed(42)
 
 TODAY = datetime.now(timezone.utc).date()
+SEED_BP_AMOUNT = 11.0
+SEED_LP_AMOUNT = 100
 
 # Deadlines: a few minutes out, a few hours out, a few days out
 DEADLINE_OFFSETS = [
@@ -127,7 +130,7 @@ CHAT_SCRIPTS: dict[tuple[str, str], list[tuple[str, str]]] = {
     ],
 }
 
-# 3 markets per user (binary, multiple_choice, numeric)
+# 3 baseline markets per user (binary, multiple_choice, numeric)
 MARKET_TEMPLATES = [
     # ── alice ──────────────────────────────────────────────────────────────────
     {
@@ -329,6 +332,43 @@ MARKET_TEMPLATES = [
         "numeric_min": 8.0,
         "numeric_max": 35.0,
     },
+    # ── weather / auto-resolution coverage ────────────────────────────────────
+    {
+        "proposer": "alice",
+        "market_type": "binary",
+        "title": "Will it rain in Paris at the next market deadline?",
+        "description": "Weather auto-resolution smoke market for rain.",
+        "resolution_criteria": "Open-Meteo current weather reports rain in Paris at resolution time.",
+        "resolution_source": {"provider": "open-meteo", "location": "Paris", "condition": "rain"},
+    },
+    {
+        "proposer": "bob",
+        "market_type": "binary",
+        "title": "Will it snow in Berlin at the next market deadline?",
+        "description": "Weather auto-resolution smoke market for snow.",
+        "resolution_criteria": "Open-Meteo current weather reports snow in Berlin at resolution time.",
+        "resolution_source": {"provider": "open-meteo", "location": "Berlin", "condition": "snow"},
+    },
+    {
+        "proposer": "gina",
+        "market_type": "numeric",
+        "title": "What temperature will Paris report at the next market deadline?",
+        "description": "Weather auto-resolution smoke market for temperature.",
+        "resolution_criteria": "Open-Meteo current temperature in Paris at resolution time.",
+        "numeric_min": -10.0,
+        "numeric_max": 40.0,
+        "resolution_source": {"provider": "open-meteo", "location": "Paris", "condition": "temperature"},
+    },
+    {
+        "proposer": "hugo",
+        "market_type": "numeric",
+        "title": "What wind speed will Luxembourg City report at the next market deadline?",
+        "description": "Weather auto-resolution smoke market for wind speed.",
+        "resolution_criteria": "Open-Meteo current wind speed in Luxembourg City at resolution time.",
+        "numeric_min": 0.0,
+        "numeric_max": 160.0,
+        "resolution_source": {"provider": "open-meteo", "location": "Luxembourg", "condition": "wind"},
+    },
 ]
 
 COMMENT_POOL = [
@@ -355,6 +395,37 @@ COMMENT_POOL = [
 ]
 
 
+async def _ensure_seed_balances(db, user: User) -> None:
+    seed_bp_exists = (
+        await db.execute(
+            select(BpTransaction.id).where(
+                BpTransaction.user_id == user.id,
+                BpTransaction.reason == "seed",
+            )
+        )
+    ).scalar_one_or_none()
+    if seed_bp_exists is None:
+        db.add(BpTransaction(user_id=user.id, amount=SEED_BP_AMOUNT, reason="seed"))
+
+    seed_lp_exists = (
+        await db.execute(
+            select(LpEvent.id).where(
+                LpEvent.user_id == user.id,
+                LpEvent.source_type == "seed",
+                LpEvent.source_id == user.id,
+            )
+        )
+    ).scalar_one_or_none()
+    if seed_lp_exists is None:
+        db.add(LpEvent(
+            user_id=user.id,
+            amount=SEED_LP_AMOUNT,
+            source_type="seed",
+            source_id=user.id,
+            day_date=TODAY,
+        ))
+
+
 async def seed():
     async with AsyncSessionLocal() as db:
         now = datetime.now(timezone.utc)
@@ -366,6 +437,10 @@ async def seed():
                 select(User).where(User.email == u["email"])
             )).scalar_one_or_none()
             if existing:
+                if not existing.password_hash:
+                    existing.password_hash = hash_password(u["username"])
+                    print(f"  restored password login: {u['username']}")
+                await _ensure_seed_balances(db, existing)
                 print(f"  skip user: {u['username']}")
                 user_map[u["username"]] = existing
                 continue
@@ -379,11 +454,7 @@ async def seed():
             )
             db.add(user)
             await db.flush()
-            db.add(BpTransaction(user_id=user.id, amount=11.0, reason="seed"))
-            db.add(LpEvent(
-                user_id=user.id, amount=100, source_type="seed",
-                source_id=user.id, day_date=TODAY,
-            ))
+            await _ensure_seed_balances(db, user)
             user_map[u["username"]] = user
             print(f"  created user: {u['username']}")
 
@@ -418,10 +489,10 @@ async def seed():
             first_sender = lines[0][0]
             first_recipient = u2_name if first_sender == u1_name else u1_name
             existing = (await db.execute(
-                select(Message).where(
+                select(Message.id).where(
                     Message.from_user_id == user_map[first_sender].id,
                     Message.to_user_id == user_map[first_recipient].id,
-                )
+                ).limit(1)
             )).scalar_one_or_none()
             if existing:
                 print(f"  skip messages: {u1_name} <-> {u2_name}")
@@ -464,6 +535,11 @@ async def seed():
                 numeric_min=tmpl.get("numeric_min"),
                 numeric_max=tmpl.get("numeric_max"),
                 status="open",
+                resolution_source=(
+                    json.dumps(tmpl["resolution_source"])
+                    if tmpl.get("resolution_source")
+                    else None
+                ),
             )
             db.add(market)
             market_map[tmpl["title"]] = market
@@ -516,7 +592,7 @@ async def seed():
                     bet_id=market.id,
                     user_id=bettor.id,
                     side=side,
-                    bp_staked=1.0,
+                    bp_staked=float(random.randint(1, 10)),
                 ))
 
             # Comments (2–4 from other users) + upvotes on each comment

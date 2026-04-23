@@ -183,7 +183,7 @@ async def oauth_callback(
     error: str = "",
     db: AsyncSession = Depends(get_db),
 ):
-    """Handle the OAuth callback — exchange code, upsert user, set cookies, redirect to dashboard."""
+    """Handle the OAuth callback — exchange code, upsert user, set cookies, redirect to markets."""
     from urllib.parse import quote
     from fastapi.responses import RedirectResponse
 

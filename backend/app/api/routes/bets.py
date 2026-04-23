@@ -1,7 +1,7 @@
 """Bet routes."""
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_db
@@ -39,6 +39,10 @@ async def withdraw_bet(
 
 
 @router.get("/positions", response_model=BetPositionsListResponse)
-async def list_positions(request: Request, db: AsyncSession = Depends(get_db)):
+async def list_positions(
+    request: Request,
+    user_id: uuid.UUID | None = Query(default=None),
+    db: AsyncSession = Depends(get_db),
+):
     user = await _get_current_user(request, db)
-    return await bet_service.list_positions(db, user_id=user.id)
+    return await bet_service.list_positions(db, user_id=user_id or user.id)

@@ -12,6 +12,11 @@ const themeScript = `(function(){try{var t=localStorage.getItem('theme');if(t===
 export const metadata: Metadata = {
   title: "Vox Populi",
   description: "Reputation-based prediction markets",
+  icons: {
+    icon: "/voxpopuli-logo.png",
+    shortcut: "/voxpopuli-logo.png",
+    apple: "/voxpopuli-logo.png",
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

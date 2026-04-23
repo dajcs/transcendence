@@ -7,7 +7,7 @@ import { useAuthStore } from "@/store/auth";
 export default function TermsPage() {
   const t = useT();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
-  const homeHref = isAuthenticated ? "/dashboard" : "/";
+  const homeHref = isAuthenticated ? "/markets" : "/";
 
   return (
     <article className="prose prose-sm max-w-3xl mx-auto dark:prose-invert">

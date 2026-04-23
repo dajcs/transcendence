@@ -67,12 +67,10 @@ async def list_markets(
     limit: int = Query(default=20, ge=1, le=100),
     db: AsyncSession = Depends(get_db),
 ):
-    user_id = None
+    current_user = await _get_current_user_optional(request, db)
+    user_id = current_user.id if current_user else None
     if my_bets or my_markets:
-        try:
-            user = await _get_current_user(request, db)
-            user_id = user.id
-        except HTTPException:
+        if user_id is None:
             raise HTTPException(status_code=401, detail="Login required for this filter")
 
     return await market_service.list_markets(

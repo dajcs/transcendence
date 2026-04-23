@@ -64,6 +64,43 @@ async def test_list_markets(client: AsyncClient):
     assert "total" in data
 
 
+@pytest.mark.asyncio
+async def test_list_markets_includes_user_like_state(client: AsyncClient):
+    """Market list includes user_has_liked for the authenticated viewer."""
+    await client.post("/api/auth/register", json={
+        "email": "creator-list@example.com", "username": "creatorlist", "password": "Passw0rd!",
+    })
+    await client.post("/api/auth/login", json={
+        "identifier": "creator-list@example.com", "password": "Passw0rd!",
+    })
+    create_resp = await client.post("/api/markets", json={
+        "title": "Liked market list state",
+        "description": "desc",
+        "resolution_criteria": "criteria",
+        "deadline": "2027-01-01T00:00:00Z",
+    })
+    assert create_resp.status_code == 201
+    market_id = create_resp.json()["id"]
+
+    await client.post("/api/auth/logout")
+
+    await client.post("/api/auth/register", json={
+        "email": "liker-list@example.com", "username": "likerlist", "password": "Passw0rd!",
+    })
+    await client.post("/api/auth/login", json={
+        "identifier": "liker-list@example.com", "password": "Passw0rd!",
+    })
+
+    like_resp = await client.post(f"/api/markets/{market_id}/upvote")
+    assert like_resp.status_code == 201
+
+    list_resp = await client.get("/api/markets?sort=deadline&status=all&page=1&limit=20")
+    assert list_resp.status_code == 200
+    items = list_resp.json()["items"]
+    liked_market = next(item for item in items if item["id"] == market_id)
+    assert liked_market["user_has_liked"] is True
+
+
 # ---------------------------------------------------------------------------
 # ETA scheduling: task fires at deadline, task_id stored on bet
 # ---------------------------------------------------------------------------
