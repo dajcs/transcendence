@@ -263,11 +263,12 @@ describe("Market detail page query keys", () => {
     });
 
     const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const user = userEvent.setup();
     const { findByText } = render(
       createElement(QueryClientProvider, { client: qc }, createElement(MarketDetailPage))
     );
 
-    (await findByText("market.withdraw")).click();
+    await user.click(await findByText("market.withdraw"));
     expect(await findByText(/market\.refund_bp/)).toBeInTheDocument();
   });
 
@@ -376,6 +377,82 @@ describe("Market detail page query keys", () => {
       expect(view.getByText("market.outcome_label")).toBeInTheDocument();
       expect(view.getByText("yes")).toBeInTheDocument();
       expect(view.getByText("Consensus reached")).toBeInTheDocument();
+    });
+  });
+
+  it("allows one more normal reply at the extended max visible depth", async () => {
+    const created_at = new Date().toISOString();
+    const comments = Array.from({ length: 7 }, (_, index) => ({
+      id: `comment-${index}`,
+      bet_id: MARKET_ID,
+      user_id: `user-${index}`,
+      author_username: `user_${index}`,
+      parent_id: index === 0 ? null : `comment-${index - 1}`,
+      content: `Level ${index}`,
+      created_at,
+      upvote_count: 0,
+      user_has_liked: false,
+    }));
+
+    mockGet.mockImplementation((url: string) => {
+      if (String(url).includes("/bets/positions")) {
+        return Promise.resolve({ data: { active: [], resolved: [] } });
+      }
+      if (String(url).includes("/positions")) {
+        return Promise.resolve({
+          data: { participants: [], aggregate: { total_bp: 0, total_participants: 0, avg_bp: 0, by_side: {} }, total: 0 },
+        });
+      }
+      if (String(url).includes("/comments")) {
+        return Promise.resolve({ data: comments });
+      }
+      if (String(url).includes("/users/me")) {
+        return Promise.resolve({ data: { llm_mode: "disabled" } });
+      }
+      return Promise.resolve({
+        data: {
+          id: MARKET_ID,
+          title: "Test Market",
+          description: "desc",
+          resolution_criteria: "criteria",
+          deadline: new Date(Date.now() + 86400000).toISOString(),
+          status: "open",
+          market_type: "binary",
+          yes_pct: 50,
+          no_pct: 50,
+          yes_count: 0,
+          no_count: 0,
+          position_count: 0,
+          choice_counts: {},
+          upvote_count: 0,
+          proposer_id: "other-user",
+          proposer_username: "proposer_user",
+          choices: null,
+          numeric_min: null,
+          numeric_max: null,
+        },
+      });
+    });
+
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const user = userEvent.setup();
+    const view = render(
+      createElement(QueryClientProvider, { client: qc }, createElement(MarketDetailPage))
+    );
+
+    expect(view.queryByRole("button", { name: "market.new_thread" })).not.toBeInTheDocument();
+    const replyButtons = await view.findAllByRole("button", { name: "market.reply" });
+    await user.click(replyButtons[replyButtons.length - 1]);
+    await user.type(await view.findByPlaceholderText("market.write_reply"), "One more reply{enter}");
+
+    await waitFor(() => {
+      expect(mockPost).toHaveBeenCalledWith(
+        `/api/markets/${MARKET_ID}/comments`,
+        {
+          content: "One more reply",
+          parent_id: "comment-6",
+        }
+      );
     });
   });
 });

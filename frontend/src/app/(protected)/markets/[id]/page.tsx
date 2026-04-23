@@ -36,6 +36,8 @@ interface PayoutListResponse {
   total: number;
 }
 
+const MAX_COMMENT_DEPTH = 7;
+
 function estimateRefund(position: { side: string; bp_staked: number }, market: Market): { rate: number; total: number; reasonKey: string } {
   if (market.market_type === "numeric") {
     const entries = Object.entries(market.choice_counts);
@@ -1279,9 +1281,12 @@ export default function MarketDetailPage() {
                         <span className="text-sm leading-none">{comment.user_has_liked ? "♥" : "♡"}</span>
                         <span>{comment.upvote_count}</span>
                       </button>
-                      {depth < 4 && (
+                      {depth < MAX_COMMENT_DEPTH && (
                         <button
-                          onClick={() => setReplyingTo(replyingTo === comment.id ? null : comment.id)}
+                          onClick={() => {
+                            setReplyText("");
+                            setReplyingTo(replyingTo === comment.id ? null : comment.id);
+                          }}
                           className="rounded border border-gray-300 dark:border-gray-600 px-2 py-0.5 hover:bg-gray-100 dark:hover:bg-gray-700"
                         >
                           {t("market.reply")}
@@ -1293,7 +1298,7 @@ export default function MarketDetailPage() {
                         onSubmit={(e) => {
                           e.preventDefault();
                           if (!replyText.trim()) return;
-                          postComment.mutate({ content: replyText, parentId: comment.id });
+                          postComment.mutate({ content: replyText.trim(), parentId: comment.id });
                         }}
                         className="mt-2 flex gap-2"
                       >

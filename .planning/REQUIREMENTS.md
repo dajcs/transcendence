@@ -36,7 +36,7 @@
 
 - [x] **DISC-01**: Each bet has a threaded comment section
 - [x] **DISC-02**: Users can upvote comments (earns lp for author); unlike removes upvote and decrements lp. Heart icon shows filled/empty based on `user_has_liked`.
-- [x] **DISC-03**: Comments support nested replies (up to 5 levels deep)
+- [x] **DISC-03**: Comments support nested replies up to 8 posts in a chain.
 
 ### Resolution
 

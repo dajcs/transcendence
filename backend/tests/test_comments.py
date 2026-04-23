@@ -92,20 +92,20 @@ async def test_reply_creates_child_comment(client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_nested_reply_rejected(client: AsyncClient):
-    """DISC-03: Replying beyond max depth (5 levels) returns 422."""
+    """DISC-03: Replying beyond max depth (8 posts) returns 422."""
     market_id = await _setup_user_market_bet(client, "deep@example.com", "deep")
-    # Build a chain 5 levels deep (depth 0-4), then attempt level 5
+    # Build a chain 8 posts deep (depth 0-7), then attempt depth 8.
     current_id = None
-    for level in range(5):
+    for level in range(8):
         payload = {"content": f"Level {level}."}
         if current_id is not None:
             payload["parent_id"] = current_id
         resp = await client.post(f"/api/markets/{market_id}/comments", json=payload)
         assert resp.status_code == 201, f"Level {level} should succeed"
         current_id = resp.json()["id"]
-    # Level 5 must be rejected
+    # Depth 8 must be rejected.
     deep_resp = await client.post(f"/api/markets/{market_id}/comments",
-                                   json={"content": "Level 5 — invalid.", "parent_id": current_id})
+                                   json={"content": "Level 8 - invalid.", "parent_id": current_id})
     assert deep_resp.status_code == 422
 
 
