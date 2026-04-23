@@ -489,10 +489,10 @@ async def seed():
             first_sender = lines[0][0]
             first_recipient = u2_name if first_sender == u1_name else u1_name
             existing = (await db.execute(
-                select(Message).where(
+                select(Message.id).where(
                     Message.from_user_id == user_map[first_sender].id,
                     Message.to_user_id == user_map[first_recipient].id,
-                )
+                ).limit(1)
             )).scalar_one_or_none()
             if existing:
                 print(f"  skip messages: {u1_name} <-> {u2_name}")
