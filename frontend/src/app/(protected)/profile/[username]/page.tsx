@@ -256,8 +256,10 @@ export default function ProfilePage() {
                     >
                       {profile.bio}
                     </button>
+                  ) : !profile.bio ? (
+                    <p className="text-sm text-gray-500 dark:text-gray-400">{t("profile.no_blurb")}</p>
                   ) : (
-                    <p className="text-sm text-gray-700 dark:text-gray-300">{profile.bio || t("profile.no_blurb")}</p>
+                    <p className="text-sm text-gray-700 dark:text-gray-300">{profile.bio}</p>
                   )}
                 </div>
               </div>
