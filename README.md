@@ -46,10 +46,12 @@ Money-driven prediction markets have structural flaws: complicated share buying 
 
 ### How Betting Works
 
-Every vote costs **1 bp**. Probabilities are refreshed continuously as votes come in.
+Each position stakes between **1 and 10 BP**.
 
-- **Withdrawal** – a bet can be withdrawn at any time, but only a fraction is reimbursed: the current winning probability of the position (e.g. a position with 10 % winning probability returns 0.1 bp).
-- **Winning** – a correct bet pays **+1 bp** and **tp** (between 0 and 1).
+- **Probabilities** – market probabilities are based on the **number of active votes on each side**, not the total BP staked. A larger stake increases your payout weight if you win, but it does not move the displayed probability on its own.
+- **Withdrawal** – a bet can be withdrawn at any time before resolution, but only part of the stake is refunded, depending on the actual winning probability at the time of withdrawal.
+- **Winning** – when a market resolves, the total pot is distributed among the winning side. Winners are paid in proportion to their **BP-s staked** on the correct outcome (max 10x return).
+- **Truth Points** – winning also grants **TP**, based on how long you spent in the correct position during the lifetime of the market. Getting in early and staying right counts more than switching late.
 
 
 ### Points Economy
@@ -57,35 +59,35 @@ Every vote costs **1 bp**. Probabilities are refreshed continuously as votes com
 | Currency | Name | How You Earn It | Purpose |
 |---|---|---|---|
 | **♥** | Like Points | New upvotes on your comments or proposed markets (resets daily) | Measures community contribution |
-| **bp** | Betting Points | +10 at signup, +1 daily login, +min(log2(♥+1), 10.0) daily | Currency for placing bets |
-| **tp** | Truth Points | for each winning bet: + (t<sub>win</sub> / t<sub>bet</sub>) | Tracks forecasting accuracy |
-| **sp** | Spice Points | Winnings from pairwise real-money bets (Part 2) | Skin-in-the-game signal |
+| **BP** | Betting Points | +10 at signup, +1 daily login, +log2(♥+1) but max 10 | Currency for placing bets |
+| **TP** | Truth Points | for each winning bet: + (t<sub>win</sub> / t<sub>bet</sub>) | Tracks forecasting accuracy |
+| **SP** | Spice Points | Winnings from pairwise real-money bets (coming soon) | Skin-in-the-game signal |
 
-- the log-scale bet cap min(log2(♥+1), 10.0) prevents any single user from dominating a market regardless of how active they are
-- the tp amount t<sub>win</sub> / t<sub>bet</sub> is the ratio of time in winning position over the total time of the bet (reduces last minute tp farming)
+- the log2-scale bet cap of max 10 prevents any single user from dominating a market regardless of how active they are
+- the TP amount t<sub>win</sub> / t<sub>bet</sub> is the ratio of time in winning position over the total time of the bet (reduces last minute TP farming)
 
 
 ### Bets as Discussions
 
 Every bet doubles as a discussion thread. Anyone can propose a bet and define its terms. Resolution works in three tiers:
 
-1. **Automatic** – pulled from public APIs/data sources whenever possible.
+1. **Automatic** – pulled from public APIs/data sources ([open-meteo](https://open-meteo.com/) in current implementation).
 2. **Bet Proposer** – if the outcome is clear-cut, the proposer can resolve it unilaterally.
 3. **Community vote** – if proposer outcome is disputed, a weighted majority vote determines the final resolution.
-    - disputing a bet costs 1 bp and a losing dispute costs an additional 1 bp, while a successful dispute rewards 2 bp to the disputing voters
-    - at least 1% of the participants must vote in the dispute for it to be valid
+    - disputing a bet costs 1 BP and a losing dispute costs an additional 1 BP, while a successful dispute rewards 2 BP to the disputing voters
+    - at least 10% of the losing participants must vote to trigger a dispute
     - vote weight:
         - 0.5x for users voting for their winning position
         - 2x for users voting against their own position
         - 1x for users who didn't participate in the bet
-    - bet proposers wrongly resolving a bet lose half of their staked bp as a penalty (including eventual winning on ongoing bets)
+    - bet proposers wrongly resolving a bet lose half of their staked BP as a penalty (including eventual winning on ongoing bets)
 
 
 ### Who Can Play
 
 Humans only. No bots, no automation. Participation earns points; points unlock larger positions.
 
-## Part 2 – Spice
+## Part 2 – Spice Up Your Bets (coming soon)
 
 Once the platform reaches critical mass (~10k users), optional real-money micro-bets become available:
 

@@ -6,7 +6,7 @@
      backend/app/services/bet_service.py:80 checks market.status == "open" but does not check market.deadline > now. Any delayed Celery/beat run leaves an expired market bettable.
   3. High: user-supplied LLM API keys are stored plaintext.
      The model comment explicitly says plaintext at backend/app/db/models/user.py:28, and backend/app/api/routes/users.py:83 writes the raw key directly. For go-live this needs encryption at rest or removal of BYO-key storage.
-  4. Medium: protected frontend routes are incomplete.
+  4. **fixed**: protected frontend routes are incomplete.
      frontend/src/proxy.ts:9 guards /markets, /friends, /chat, and /profile, but not /settings even though settings contains account export/delete and LLM key UI. Unauthenticated users hit client-side API failures instead of a clean redirect.
   5. Medium: password reset links are hardcoded to localhost.
      backend/app/services/auth_service.py:150 builds https://localhost:8443/reset-password?..., so production reset emails would be unusable unless this is made configurable.
