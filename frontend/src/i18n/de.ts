@@ -13,7 +13,6 @@ const de = {
   "common.no": "Nein",
 
   // Nav
-  "nav.dashboard": "Übersicht",
   "nav.markets": "Märkte",
   "nav.friends": "Freunde",
   "nav.chat": "Nachrichten",
@@ -58,21 +57,6 @@ const de = {
   "auth.privacy": "Datenschutz",
   "auth.terms": "Nutzungsbedingungen",
   "auth.email_password": "E-Mail oder Benutzername + Passwort",
-
-  // Dashboard
-  "dashboard.title": "Übersicht",
-  "dashboard.welcome": "Willkommen,",
-  "dashboard.my_bets": "Meine Wetten",
-  "dashboard.my_markets": "Meine Märkte",
-  "dashboard.active": "Aktiv",
-  "dashboard.resolved_withdrawn": "Aufgelöst / Zurückgezogen",
-  "dashboard.no_active_bets": "Keine aktiven Wetten.",
-  "dashboard.no_resolved": "Noch keine aufgelösten Positionen.",
-  "dashboard.no_active_markets": "Keine aktiven Märkte.",
-  "dashboard.create_one": "Erstellen",
-  "dashboard.no_closed_markets": "Noch keine geschlossenen Märkte.",
-  "dashboard.staked": "gesetzt",
-  "dashboard.win": "Gewinn",
 
   // Markets
   "markets.title": "Märkte",
@@ -416,11 +400,6 @@ const de = {
   // Market payout banner
   "market.payout_overturned": "Auflösung aufgehoben! Ergebnis: {outcome}. {winners} Gewinner ausgezahlt.",
   "market.payout_resolved": "Wette aufgelöst: {outcome}. {winners} Gewinner ausgezahlt.",
-
-  // Dashboard extra
-  "dashboard.closed": "geschlossen",
-  "dashboard.stake": "Einsatz",
-  "dashboard.refund": "Erstattung",
 
   // Market detail extra (audit fixes)
   "market.resolution_label": "Auflösung:",

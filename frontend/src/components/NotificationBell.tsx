@@ -21,7 +21,7 @@ function getNotificationLink(type: string, data: { bet_id?: string; market_id?: 
     return data.bet_id ? getMarketPath(data.bet_id, data.market_title) : null;
   }
   if (type === "resolution_due") {
-    return data.market_id ? getMarketPath(data.market_id, data.market_title) : "/dashboard?tab=my_markets";
+    return data.market_id ? getMarketPath(data.market_id, data.market_title) : "/markets";
   }
   if (type === "bet_payout" || type === "lp_converted") {
     return data.username ? `/profile/${data.username}` : null;
@@ -86,7 +86,7 @@ export default function NotificationBell() {
         .filter((n) => !n.is_read && n.type === "resolution_due")
         .forEach((n) => {
           const p = parsePayload(n.payload);
-          const url = p.market_id ? getMarketPath(p.market_id, p.market_title) : "/dashboard?tab=my_markets";
+          const url = p.market_id ? getMarketPath(p.market_id, p.market_title) : "/markets";
           const body = p.message ?? "A market needs your resolution";
           const notif = new Notification("Vox Populi", { body, icon: "/favicon.ico", requireInteraction: true });
           notif.onclick = async () => { window.focus(); await store.markAsRead([n.id]).catch(() => {}); notif.close(); window.location.href = url; };
@@ -136,7 +136,7 @@ export default function NotificationBell() {
     const handleResolutionDue = (data: { id?: string; payload?: string }) => {
       fetchUnreadCount();
       let title = t("notif.resolution_required");
-      let url: string | undefined = "/dashboard?tab=my_markets";
+      let url: string | undefined = "/markets";
       try {
         const payload = JSON.parse(data?.payload ?? "{}");
         if (payload.market_title) title = t("notif.resolve_market", { title: payload.market_title });

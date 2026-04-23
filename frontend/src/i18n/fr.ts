@@ -13,7 +13,6 @@ const fr = {
   "common.no": "Non",
 
   // Nav
-  "nav.dashboard": "Tableau de bord",
   "nav.markets": "Marchés",
   "nav.friends": "Amis",
   "nav.chat": "Messages",
@@ -58,21 +57,6 @@ const fr = {
   "auth.privacy": "Confidentialité",
   "auth.terms": "Conditions",
   "auth.email_password": "E-mail ou nom d'utilisateur + mot de passe",
-
-  // Dashboard
-  "dashboard.title": "Tableau de bord",
-  "dashboard.welcome": "Bienvenue,",
-  "dashboard.my_bets": "Mes paris",
-  "dashboard.my_markets": "Mes marchés",
-  "dashboard.active": "Actifs",
-  "dashboard.resolved_withdrawn": "Résolus / Retirés",
-  "dashboard.no_active_bets": "Aucun pari actif.",
-  "dashboard.no_resolved": "Aucune position résolue pour le moment.",
-  "dashboard.no_active_markets": "Aucun marché actif.",
-  "dashboard.create_one": "Créer un marché",
-  "dashboard.no_closed_markets": "Aucun marché clôturé pour le moment.",
-  "dashboard.staked": "misé",
-  "dashboard.win": "Gain",
 
   // Markets
   "markets.title": "Marchés",
@@ -416,11 +400,6 @@ const fr = {
   // Market payout banner
   "market.payout_overturned": "Résolution annulée ! Résultat : {outcome}. {winners} gagnant(s) payé(s).",
   "market.payout_resolved": "Pari résolu : {outcome}. {winners} gagnant(s) payé(s).",
-
-  // Dashboard extra
-  "dashboard.closed": "fermé",
-  "dashboard.stake": "Mise",
-  "dashboard.refund": "Remb.",
 
   // Market detail extra (audit fixes)
   "market.resolution_label": "Résolution :",

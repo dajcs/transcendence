@@ -135,7 +135,7 @@ describe("NotificationBell", () => {
     });
 
     expect(notificationStore.markAsRead).not.toHaveBeenCalled();
-    expect(locationHref).toBe("/dashboard?tab=my_markets");
+    expect(locationHref).toBe("/markets");
   });
 
   it("marks stored unread resolution notifications as read after enabling browser permission", async () => {

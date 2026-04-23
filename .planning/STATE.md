@@ -71,7 +71,7 @@ See: `.planning/PROJECT.md` (updated 2026-03-24)
 - [Phase 05-05]: resolutionQuery enabled only when market.status !== open to avoid 404 on open markets (no resolution record yet)
 - [Phase 05-hotfix]: resolution.py async with db.begin() replaced with await db.commit() — SQLAlchemy 2.x autobegin on first query makes nested begin() raise InvalidRequestError
 - [Phase 05-hotfix]: list_positions active condition changed from market.status == "open" to market.status != "closed" — positions on pending_resolution/proposer_resolved/disputed markets must show in active list with status colors
-- [Phase 05-hotfix]: MarketCard status colors: open=white, pending_resolution=red(own)/yellow, proposer_resolved=blue, disputed=violet, closed=green — identical on /markets and /dashboard
+- [Phase 05-hotfix]: MarketCard status colors: open=white, pending_resolution=red(own)/yellow, proposer_resolved=blue, disputed=violet, closed=green — used on market portfolio surfaces
 - [Phase 05-hotfix]: Dispute button myPosition guard removed — backend enforces 403; frontend shows error inline so button is always visible on proposer_resolved markets
 - [Phase 05-06]: TopNav.tsx (not Navbar.tsx) is the actual nav component — plan referenced wrong filename
 - [Phase 05-06]: dispute:voted patches React Query cache directly for immediate tally updates without refetch round-trip
@@ -89,7 +89,7 @@ See: `.planning/PROJECT.md` (updated 2026-03-24)
 - [fix/logic]: bet:status_changed emitted to both room="bet:{id}" AND room="global" — market list page (and all tabs) update live without refresh; applies to Celery beat, _resolve_single_market, _escalate_overdue_proposer, propose_resolution route, and dispute route
 - [fix/logic]: check_auto_resolution beat interval changed 5min→60s; inline _process_auto_resolution replaces enqueue pattern for lower latency
 - [fix/logic]: Browser Notification requireInteraction:true — stays until clicked/dismissed; onclick calls markAllAsRead() to clear bell badge
-- [fix/logic]: Dashboard "closes in closed" fixed — conditional render shows "closed" when timeLeft()="closed", toLocaleDateString→toLocaleString for deadline time display
+- [fix/logic]: Portfolio market cards show "closed" when timeLeft()="closed"; deadline display uses toLocaleString for date+time
 - [fix/logic]: Dispute/Accept buttons hidden from non-participants — myPosition guard added; proposers see "Awaiting…", non-participants see info text, only betters see action buttons
 - [Phase 05.1]: validate_resolution_source runs as second model_validator — Pydantic runs both in order; json.dumps() to Text column; resolution_source not exposed in MarketResponse (internal Celery task only)
 - [Phase 05.1]: signup_bonus BpTransaction at registration — empty user test asserts structure not empty list
@@ -106,6 +106,7 @@ See: `.planning/PROJECT.md` (updated 2026-03-24)
 - [Phase 05.1 UAT]: Profile page redesigned with 3 tabs: My Points (transaction ledger), My Bets (own profile only, /api/bets/positions), My Markets (proposer_id filter on /api/markets)
 - [Phase 05.1 UAT]: /api/markets gained optional proposer_id query param (no auth required) for public profile My Markets tab
 - [Phase 05.1 UAT]: Dashboard link removed from TopNav (desktop + mobile); profile tabs replace dashboard functionality
+- [Quick 260423-jh8]: `/dashboard` route removed completely; auth/legal/notification fallbacks now route to `/markets`, and profile tabs remain the personal portfolio surface
 - [Phase 06]: Implemented outside GSD and merged back into the main codebase; planning artifacts retained as historical record
 - [Phase 06.1]: All 8 plans executed; all 6 HUMAN-UAT checks passed; accepted follow-up fixes include refund/ledger corrections, participant-count binary odds, span-based numeric payout bands (2/4/8/16%), and Hall of Fame backed by bp_fund_entries
 - [Quick 260421-exi]: Leave OAUTH_REDIRECT_BASE empty by default and forward X-Forwarded-Proto/Host through Nginx so OAuth callback URIs preserve the initiating host and HTTPS scheme
@@ -159,6 +160,7 @@ See: `.planning/PROJECT.md` (updated 2026-03-24)
 | 260423-evu | Profile page redesign | 2026-04-23 | 55a5aa7 | Verified | [260423-evu-profile-page-redesign](./quick/260423-evu-profile-page-redesign/) |
 | fast | Add Vox Populi logo to nav and favicon | 2026-04-23 | pending | Verified | `frontend/public/voxpopuli-logo.png` |
 | 260423-ics | Hall of Fame redesign with BP/TP tabs and i18n translations | 2026-04-23 | pending | Verified | [260423-ics-hall-of-fame-redesign-translate-hall-of-](./quick/260423-ics-hall-of-fame-redesign-translate-hall-of-/) |
+| 260423-jh8 | Remove obsolete dashboard page and links | 2026-04-23 | pending | Verified | [260423-jh8-remove-dashboard-page-and-all-links-wait](./quick/260423-jh8-remove-dashboard-page-and-all-links-wait/) |
 
 ### Blockers/Concerns
 
@@ -174,7 +176,7 @@ See: `.planning/PROJECT.md` (updated 2026-03-24)
 | 2026-03-24 | Completed 01-foundation/01-03-PLAN.md — Auth API: register, login, /me, refresh, logout, reset |
 | 2026-03-24 | Completed 01-foundation/01-04-PLAN.md — Next.js 16 frontend: auth UI, Zustand store, proxy route guard |
 | 2026-03-24 | Completed 01-foundation/01-05-PLAN.md — Dev seed + full stack smoke test; Phase 1 complete |
-| 2026-03-26 | Phase 2 complete — markets, betting, economy, comments, dashboard |
+| 2026-03-26 | Phase 2 complete — markets, betting, economy, comments, initial portfolio surface |
 | 2026-03-28 | Phase 3 complete (via Claude Code) — friend system, user profiles, chat, notifications |
 | 2026-04-06 | fix/logic UAT complete — real-time market list refresh, browser push notifications, auto-resolution latency, deadline display, dispute button gating |
 | 2026-04-18 | Phase 05.1 UAT complete — all 4 tests passed; market detail sortable tables, ledger running balances + BP/TP merge, profile 3-tab redesign, Dashboard removed from nav; phase marked complete; ready for Phase 06 polish-compliance |

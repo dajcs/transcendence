@@ -13,7 +13,6 @@ const en = {
   "common.no": "No",
 
   // Nav
-  "nav.dashboard": "Dashboard",
   "nav.markets": "Markets",
   "nav.friends": "Friends",
   "nav.chat": "Chat",
@@ -58,21 +57,6 @@ const en = {
   "auth.privacy": "Privacy",
   "auth.terms": "Terms",
   "auth.email_password": "Email or username + password",
-
-  // Dashboard
-  "dashboard.title": "Dashboard",
-  "dashboard.welcome": "Welcome,",
-  "dashboard.my_bets": "My Bets",
-  "dashboard.my_markets": "My Markets",
-  "dashboard.active": "Active",
-  "dashboard.resolved_withdrawn": "Resolved / Withdrawn",
-  "dashboard.no_active_bets": "No active bets.",
-  "dashboard.no_resolved": "No resolved positions yet.",
-  "dashboard.no_active_markets": "No active markets.",
-  "dashboard.create_one": "Create one",
-  "dashboard.no_closed_markets": "No closed markets yet.",
-  "dashboard.staked": "staked",
-  "dashboard.win": "Win",
 
   // Markets
   "markets.title": "Markets",
@@ -416,11 +400,6 @@ const en = {
   // Market payout banner
   "market.payout_overturned": "Resolution overturned! Outcome: {outcome}. {winners} winner(s) paid.",
   "market.payout_resolved": "Bet resolved: {outcome}. {winners} winner(s) paid.",
-
-  // Dashboard extra
-  "dashboard.closed": "closed",
-  "dashboard.stake": "Stake",
-  "dashboard.refund": "Refund",
 
   // Market detail extra (audit fixes)
   "market.resolution_label": "Resolution:",
