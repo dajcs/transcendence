@@ -165,6 +165,7 @@ See: `.planning/PROJECT.md` (updated 2026-03-24)
 | fast | Fix dev seed message idempotency crash | 2026-04-23 | pending | Verified | `backend/scripts/seed_dev.py` |
 | fast | Fix LP conversion ledger description mismatch | 2026-04-23 | pending | Verified | `backend/app/services/ledger_service.py` |
 | fast | Clear stale Next generated route types before frontend type-check | 2026-04-23 | pending | Verified | `frontend/package.json` |
+| fast | Remove duplicate Privacy Policy and Terms of Service links from home page | 2026-04-23 | pending | Verified | `frontend/src/app/page.tsx` |
 | quick | Protect `/settings` behind frontend proxy guard and add regression test | 2026-04-23 | pending | Verified | `frontend/src/proxy.ts` |
 
 ### Blockers/Concerns
