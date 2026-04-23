@@ -240,6 +240,7 @@ describe("ProfilePage", () => {
     renderPage();
 
     expect(await screen.findByRole("heading", { name: "bob" })).toBeInTheDocument();
+    expect(screen.getByText("profile.no_blurb")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: 'profile.tab_points:{"username":"bob"}' })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: 'profile.tab_bets:{"username":"bob"}' })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: 'profile.tab_markets:{"username":"bob"}' })).toBeInTheDocument();

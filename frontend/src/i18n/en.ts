@@ -227,7 +227,7 @@ const en = {
   "profile.no_bio": "blurb",
   "profile.edit_bio": "Change mission",
   "profile.add_bio": "Add mission statement",
-  "profile.no_blurb": "blurb",
+  "profile.no_blurb": "six * seven",
   "profile.change_mission": "Change mission",
   "profile.add_mission": "Add mission statement",
   "profile.accept_mission": "Accept",
