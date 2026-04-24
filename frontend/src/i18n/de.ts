@@ -451,8 +451,8 @@ const de = {
   "hall.empty_tp": "Bisher wurden keine Wahrheitspunkte erfasst.",
 
   // Footer
-  "footer.privacy": "Datenschutzrichtlinie",
-  "footer.terms": "Nutzungsbedingungen",
+  "footer.privacy": "Datenschutz-richtlinie",
+  "footer.terms": "Nutzungs-bedingungen",
 
   // Settings extra (audit fixes)
   "settings.delete_confirm_word": "LÖSCHEN",
