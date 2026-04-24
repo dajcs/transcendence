@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/auth";
 import { useThemeStore } from "@/store/theme";
@@ -102,9 +103,7 @@ export default function Sidebar() {
 
       {/* 1. Logo */}
       <Link href="/markets" className="flex items-center gap-2.5 px-4 pt-4 pb-3 shrink-0">
-        <div className="w-[28px] h-[28px] rounded-lg flex items-center justify-center text-white font-extrabold text-sm shrink-0 bg-[var(--accent)]">
-          V
-        </div>
+        <Image src="/voxpopuli-logo.png" width={28} height={28} alt="Vox Populi" className="rounded-lg shrink-0" />
         <span className="font-bold text-[15px] tracking-tight text-gray-900 dark:text-gray-100">
           Vox Populi
         </span>
