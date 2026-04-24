@@ -26,5 +26,6 @@ test("auth flow supports register, login, and logout", async ({ page, request })
   await expect(page.locator("nav")).toContainText(username);
 
   await page.getByRole("button", { name: "Logout" }).first().click();
-  await page.waitForURL(/\/login$/);
+  await page.waitForURL((url) => url.pathname === "/");
+  await expect(page.getByRole("link", { name: "Login" }).first()).toBeVisible();
 });
