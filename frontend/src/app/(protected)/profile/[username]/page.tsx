@@ -270,7 +270,7 @@ export default function ProfilePage() {
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-5">
             <div className="rounded border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 text-center">
               <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{profile.lp}</p>
-              <p className="text-lg font-bold text-red-500">♥</p>
+              <p className="text-lg font-bold text-red-500">❤️</p>
             </div>
             <div className="rounded border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 text-center">
               <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{profile.bp.toFixed(1)}</p>
@@ -344,7 +344,7 @@ export default function ProfilePage() {
                           <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
                             {allTx.filter((tx) => tx.bp_delta !== 0 || tx.tp_delta !== 0).map((tx) => {
                               const lpDesc = tx.type === "lp_allocation" && tx.bp_delta > 0
-                                ? tx.description || `${Math.round(Math.pow(2, tx.bp_delta) - 1)} ♥`
+                                ? tx.description || `${Math.round(Math.pow(2, tx.bp_delta) - 1)} ❤️`
                                 : null;
                               return (
                               <tr key={tx.id}>

@@ -193,7 +193,7 @@ const en = {
   "ledger.type_withdrawal": "Withdrawal",
   "ledger.type_bet_refund": "Bet Refund",
   "ledger.type_daily_bonus": "Daily Bonus",
-  "ledger.type_lp_allocation": "♥→BP",
+  "ledger.type_lp_allocation": "❤️→BP",
   "ledger.type_payout": "Payout",
   "ledger.no_transactions": "No transactions yet.",
   "ledger.load_more": "Load more",
@@ -276,7 +276,7 @@ const en = {
   "notif.bet_disputed": "Bet Disputed",
   "notif.resolution_proposed": "Resolution Proposed",
   "notif.resolution_due": "Resolution Required",
-  "notif.lp_converted": "♥ Converted",
+  "notif.lp_converted": "❤️ Converted",
   "notif.new": "New notification",
 
   // Markets page extra

@@ -58,8 +58,8 @@ Each position stakes between **1 and 10 BP**.
 
 | Currency | Name | How You Earn It | Purpose |
 |---|---|---|---|
-| **♥** | Like Points | New upvotes on your comments or proposed markets (resets daily) | Measures community contribution |
-| **BP** | Betting Points | +10 at signup, +1 daily login, +log2(♥+1) but max 10 | Currency for placing bets |
+| **❤️** | Like Points | New upvotes on your comments or proposed markets (resets daily) | Measures community contribution |
+| **BP** | Betting Points | +10 at signup, +1 daily login, +log2(❤️+1) but max 10 | Currency for placing bets |
 | **TP** | Truth Points | for each winning bet: + (t<sub>win</sub> / t<sub>bet</sub>) | Tracks forecasting accuracy |
 | **SP** | Spice Points | Winnings from pairwise real-money bets (coming soon) | Skin-in-the-game signal |
 

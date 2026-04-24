@@ -492,7 +492,7 @@ export default function MarketDetailPage() {
                 className="shrink-0 flex flex-col items-center transition-colors disabled:opacity-50 px-2"
               >
                 <span className={`text-2xl leading-none ${market.user_has_liked ? "text-red-500" : "text-gray-400 dark:text-gray-500"}`}>
-                  {market.user_has_liked ? "♥" : "♡"}
+                  {market.user_has_liked ? "❤️" : "♡"}
                 </span>
                 <span className="text-xs font-medium text-gray-500 dark:text-gray-400">{market.upvote_count}</span>
               </button>
@@ -1278,7 +1278,7 @@ export default function MarketDetailPage() {
                         }
                         className={`flex items-center gap-1 transition-colors ${comment.user_has_liked ? "text-red-500" : "text-gray-400 hover:text-red-500"}`}
                       >
-                        <span className="text-sm leading-none">{comment.user_has_liked ? "♥" : "♡"}</span>
+                        <span className="text-sm leading-none">{comment.user_has_liked ? "❤️" : "♡"}</span>
                         <span>{comment.upvote_count}</span>
                       </button>
                       {depth < MAX_COMMENT_DEPTH && (

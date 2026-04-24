@@ -15,10 +15,10 @@ Implemented the requested profile and navigation changes.
 - Own-profile mission editing now uses an inline input. Empty missions show an input with `Add mission statement` placeholder; typing reveals `Accept`; accepted text becomes clickable mission text with a `Change mission` tooltip.
 - Own-profile settings affordance is now a text `Settings` button/link instead of a cogwheel.
 - Top navigation settings links were removed from desktop and mobile menus.
-- Top navigation balances now render in order: `♥ <x> · BP <y> · TP <z>`.
-- Profile stats now render five boxes: `♥`, `BP`, `TP`, `Total Bets`, and `Win Rate`.
-- Profile stats format `♥` and `Total Bets` as integers; `BP`, `TP`, and `Win Rate` render with one decimal.
-- The `♥` stats label is larger and red.
+- Top navigation balances now render in order: `❤️ <x> · BP <y> · TP <z>`.
+- Profile stats now render five boxes: `❤️`, `BP`, `TP`, `Total Bets`, and `Win Rate`.
+- Profile stats format `❤️` and `Total Bets` as integers; `BP`, `TP`, and `Win Rate` render with one decimal.
+- The `❤️` stats label is larger and red.
 - Own-profile tabs render as `Points`, `Bets`, `Markets`.
 - Other-user tabs remain username-scoped and their bets tab is now visible.
 - Backend `GET /api/bets/positions` accepts optional `user_id` so profiles can display another user's bets.

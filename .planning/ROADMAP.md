@@ -226,7 +226,7 @@ Plans:
 - LP→BP conversion capped at 10.0 BP; bet cap changed to flat 10 BP
 - TP formula: raw t_win/t_bet (no floor); binary/multichoice payout capped at 10x per winner
 - Numeric market payout: span-based waterfall bands (2%, 4%, 8%, 16% of market range); first non-empty band takes the full pool; 10x cap surplus tracked in bp_fund_entries
-- Heart UI (♥) for upvotes; unlike (toggle) for comments and markets
+- Heart UI (❤️) for upvotes; unlike (toggle) for comments and markets
 - ECON-01–04 requirements defined
 
 **Requirements:** ECON-01–04

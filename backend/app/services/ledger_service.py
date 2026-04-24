@@ -169,7 +169,7 @@ async def get_user_transactions(
             description=(
                 row.date.date().isoformat()
                 if row.tx_type == "daily_bonus" and row.date
-                else f"{int(row.lp_delta)} ♥"
+                else f"{int(row.lp_delta)} ❤️"
                 if row.tx_type == "lp_allocation" and row.lp_delta
                 else title_map.get(row.bet_id, "")
             ),

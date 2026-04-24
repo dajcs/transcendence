@@ -193,7 +193,7 @@ const de = {
   "ledger.type_withdrawal": "Auszahlung",
   "ledger.type_bet_refund": "Wett-Erstattung",
   "ledger.type_daily_bonus": "Tagesbonus",
-  "ledger.type_lp_allocation": "♥→BP",
+  "ledger.type_lp_allocation": "❤️→BP",
   "ledger.type_payout": "Auszahlung",
   "ledger.no_transactions": "Noch keine Transaktionen.",
   "ledger.load_more": "Mehr laden",
@@ -276,7 +276,7 @@ const de = {
   "notif.bet_disputed": "Wette angefochten",
   "notif.resolution_proposed": "Auflösung vorgeschlagen",
   "notif.resolution_due": "Auflösung erforderlich",
-  "notif.lp_converted": "♥ Umgewandelt",
+  "notif.lp_converted": "❤️ Umgewandelt",
   "notif.new": "Neue Benachrichtigung",
 
   // Markets page extra

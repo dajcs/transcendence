@@ -142,7 +142,7 @@ async def test_lp_conversion_transaction_description_uses_converted_lp(
         if tx["type"] == "lp_allocation" and tx["bp_delta"] > 0
     ]
     assert lp_rows, "Expected an LP conversion row in the ledger"
-    assert lp_rows[0]["description"] == "21 ♥"
+    assert lp_rows[0]["description"] == "21 ❤️"
 
 
 @pytest.mark.asyncio

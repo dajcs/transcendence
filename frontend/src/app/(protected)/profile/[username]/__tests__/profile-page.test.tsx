@@ -62,7 +62,7 @@ const transactions = {
       id: "tx-2",
       date: "2026-01-03T12:00:00.000Z",
       type: "lp_allocation",
-      description: "21 ♥",
+      description: "21 ❤️",
       market_id: null,
       market_title: null,
       bp_delta: 4.5,
@@ -159,7 +159,7 @@ describe("ProfilePage", () => {
     expect(screen.getByRole("button", { name: "profile.tab_bets_own" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "profile.tab_markets_own" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "profile.add_friend" })).not.toBeInTheDocument();
-    expect(screen.getByText("♥")).toHaveClass("text-red-500");
+    expect(screen.getByText("❤️")).toHaveClass("text-red-500");
     expect(screen.getByText("14")).toBeInTheDocument();
     expect(screen.getByText("BP")).toBeInTheDocument();
     expect(screen.getByText("12.3")).toBeInTheDocument();
@@ -167,7 +167,7 @@ describe("ProfilePage", () => {
     expect(screen.getByText("3.4")).toBeInTheDocument();
     expect(screen.getByText("5")).toBeInTheDocument();
     expect(screen.getByText("60.0%")).toBeInTheDocument();
-    expect(await screen.findByText("21 ♥")).toBeInTheDocument();
+    expect(await screen.findByText("21 ❤️")).toBeInTheDocument();
   });
 
   it("accepts a new mission statement inline", async () => {
