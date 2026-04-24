@@ -1,3 +1,21 @@
 @import "tailwindcss";
 
 @custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --font-sans: var(--font-dm-sans), system-ui, sans-serif;
+}
+
+:root {
+  --accent: oklch(52% 0.22 264);
+  --accent-soft: oklch(95% 0.04 264);
+}
+
+.dark {
+  --accent: oklch(60% 0.22 264);
+  --accent-soft: oklch(24% 0.06 264);
+}
+
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: oklch(80% 0.005 250); border-radius: 3px; }
