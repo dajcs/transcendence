@@ -58,7 +58,7 @@ async def test_get_bet_odds_binary_uses_participant_counts_not_bp_stake(db_sessi
     from datetime import datetime, timezone
     import uuid
 
-    from app.db.models.bet import Bet, BetPosition
+    from app.db.models.market import Market, MarketPosition
     from app.db.models.user import User
     from app.services.economy_service import get_bet_odds
 
@@ -73,7 +73,7 @@ async def test_get_bet_odds_binary_uses_participant_counts_not_bp_stake(db_sessi
         User(id=yes_user, email="yes@test.com", username="yesuser", password_hash="x"),
         User(id=no_user_1, email="no1@test.com", username="nouser1", password_hash="x"),
         User(id=no_user_2, email="no2@test.com", username="nouser2", password_hash="x"),
-        Bet(
+        Market(
             id=bet_id,
             proposer_id=proposer_id,
             title="Binary odds test",
@@ -83,9 +83,9 @@ async def test_get_bet_odds_binary_uses_participant_counts_not_bp_stake(db_sessi
             market_type="binary",
             status="open",
         ),
-        BetPosition(id=uuid.uuid4(), bet_id=bet_id, user_id=yes_user, side="yes", bp_staked=10),
-        BetPosition(id=uuid.uuid4(), bet_id=bet_id, user_id=no_user_1, side="no", bp_staked=1),
-        BetPosition(id=uuid.uuid4(), bet_id=bet_id, user_id=no_user_2, side="no", bp_staked=1),
+        MarketPosition(id=uuid.uuid4(), bet_id=bet_id, user_id=yes_user, side="yes", bp_staked=10),
+        MarketPosition(id=uuid.uuid4(), bet_id=bet_id, user_id=no_user_1, side="no", bp_staked=1),
+        MarketPosition(id=uuid.uuid4(), bet_id=bet_id, user_id=no_user_2, side="no", bp_staked=1),
     ])
     await db_session.commit()
 

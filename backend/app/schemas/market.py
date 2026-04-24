@@ -1,4 +1,4 @@
-"""Pydantic schemas for market (Bet) endpoints."""
+"""Pydantic schemas for market endpoints."""
 import uuid
 from datetime import datetime, timezone
 from typing import Any, Literal

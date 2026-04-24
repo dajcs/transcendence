@@ -143,10 +143,10 @@ async def test_create_market_schedules_eta_at_exact_deadline(db_session):
 
 @pytest.mark.asyncio
 async def test_create_market_stores_celery_task_id(db_session):
-    """create_market stores the Celery task_id on Bet.celery_task_id for future revocation."""
+    """create_market stores the Celery task_id on Market.celery_task_id for future revocation."""
     from sqlalchemy import select
     from app.db.models.user import User
-    from app.db.models.bet import Bet
+    from app.db.models.market import Market
     from app.db.models.transaction import BpTransaction
     from app.schemas.market import MarketCreate
     from app.services.market_service import create_market
@@ -168,7 +168,7 @@ async def test_create_market_stores_celery_task_id(db_session):
             deadline=datetime(2030, 1, 1, tzinfo=timezone.utc),
         ))
 
-    bet = (await db_session.execute(select(Bet).where(Bet.id == response.id))).scalar_one()
+    bet = (await db_session.execute(select(Market).where(Market.id == response.id))).scalar_one()
     assert bet.celery_task_id == task_id, (
         f"Expected celery_task_id={task_id!r}, got {bet.celery_task_id!r}"
     )
@@ -177,7 +177,7 @@ async def test_create_market_stores_celery_task_id(db_session):
 @pytest.mark.asyncio
 async def test_upvote_market_disallows_self_like(db_session):
     """ECON-02: proposer cannot like their own market or award themselves LP."""
-    from app.db.models.bet import Bet, BetUpvote
+    from app.db.models.market import Market, MarketUpvote
     from app.db.models.transaction import BpTransaction, LpEvent
     from app.db.models.user import User
     from app.services.market_service import upvote_market
@@ -186,7 +186,7 @@ async def test_upvote_market_disallows_self_like(db_session):
     market_id = uuid.uuid4()
     db_session.add(User(id=user_id, email="selflike@test.com", username="selflike", password_hash="x"))
     db_session.add(BpTransaction(user_id=user_id, amount=5.0, reason="signup"))
-    db_session.add(Bet(
+    db_session.add(Market(
         id=market_id,
         proposer_id=user_id,
         title="Own market",
@@ -202,7 +202,7 @@ async def test_upvote_market_disallows_self_like(db_session):
 
     upvote_count = (
         await db_session.execute(
-            select(func.count()).select_from(BetUpvote).where(BetUpvote.bet_id == market_id)
+            select(func.count()).select_from(MarketUpvote).where(MarketUpvote.bet_id == market_id)
         )
     ).scalar_one()
     lp_events = (

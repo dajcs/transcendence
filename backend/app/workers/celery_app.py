@@ -16,6 +16,7 @@ celery_app.conf.update(
     result_serializer="json",
     timezone="UTC",
     enable_utc=True,
+    broker_connection_timeout=0.2,
     beat_schedule={
         "check-dispute-deadlines-every-15min": {
             "task": "app.workers.tasks.resolution.check_dispute_deadlines",

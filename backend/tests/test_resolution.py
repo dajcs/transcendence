@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 import pytest
 from sqlalchemy import select
 
-from app.db.models.bet import Bet, BetPosition, PositionHistory
+from app.db.models.market import Market, MarketPosition, MarketPositionHistory
 from app.db.models.transaction import BpFundEntry, BpTransaction, TpTransaction
 from app.db.models.user import User
 
@@ -159,7 +159,7 @@ async def test_compute_t_win_uses_latest_switch_to_winning_side(db_session):
         [
             User(id=proposer_id, email="prop@win.test", username="prop_win", password_hash="x"),
             User(id=user_id, email="winner@win.test", username="winner_win", password_hash="x"),
-            Bet(
+            Market(
                 id=bet_id,
                 proposer_id=proposer_id,
                 title="Switching sides",
@@ -170,14 +170,14 @@ async def test_compute_t_win_uses_latest_switch_to_winning_side(db_session):
                 status="open",
                 created_at=datetime(2030, 1, 1, 8, 0, tzinfo=timezone.utc),
             ),
-            PositionHistory(
+            MarketPositionHistory(
                 id=uuid.uuid4(),
                 bet_id=bet_id,
                 user_id=user_id,
                 side="no",
                 changed_at=datetime(2030, 1, 1, 9, 0, tzinfo=timezone.utc),
             ),
-            PositionHistory(
+            MarketPositionHistory(
                 id=uuid.uuid4(),
                 bet_id=bet_id,
                 user_id=user_id,
@@ -209,7 +209,7 @@ async def test_trigger_payout_closes_binary_market_and_records_surplus_and_tp(db
             User(id=loser_id, email="loser@pay.test", username="loser_pay", password_hash="x"),
             BpTransaction(user_id=winner_id, amount=1.0, reason="signup"),
             BpTransaction(user_id=loser_id, amount=99.0, reason="signup"),
-            Bet(
+            Market(
                 id=bet_id,
                 proposer_id=proposer_id,
                 title="Binary payout",
@@ -220,9 +220,9 @@ async def test_trigger_payout_closes_binary_market_and_records_surplus_and_tp(db
                 market_type="binary",
                 status="open",
             ),
-            BetPosition(id=uuid.uuid4(), bet_id=bet_id, user_id=winner_id, side="yes", bp_staked=1.0),
-            BetPosition(id=uuid.uuid4(), bet_id=bet_id, user_id=loser_id, side="no", bp_staked=99.0),
-            PositionHistory(
+            MarketPosition(id=uuid.uuid4(), bet_id=bet_id, user_id=winner_id, side="yes", bp_staked=1.0),
+            MarketPosition(id=uuid.uuid4(), bet_id=bet_id, user_id=loser_id, side="no", bp_staked=99.0),
+            MarketPositionHistory(
                 id=uuid.uuid4(),
                 bet_id=bet_id,
                 user_id=winner_id,
@@ -239,7 +239,7 @@ async def test_trigger_payout_closes_binary_market_and_records_surplus_and_tp(db
     assert result["outcome"] == "yes"
     assert result["payout_count"] == 1
 
-    bet = (await db_session.execute(select(Bet).where(Bet.id == bet_id))).scalar_one()
+    bet = (await db_session.execute(select(Market).where(Market.id == bet_id))).scalar_one()
     assert bet.status == "closed"
     assert bet.winning_side == "yes"
 

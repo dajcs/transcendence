@@ -17,7 +17,7 @@ from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_db
-from app.db.models.bet import Bet, BetPosition, Dispute, DisputeVote, Resolution, ResolutionReview
+from app.db.models.market import Market, MarketPosition, Dispute, DisputeVote, Resolution, ResolutionReview
 from app.db.models.user import User
 from app.services import auth_service
 from app.services.economy_service import deduct_bp
@@ -42,22 +42,22 @@ async def _get_review_counts(db: AsyncSession, bet_id: uuid.UUID) -> dict:
     """Return accept/dispute vote counts, total participants, and threshold for a bet."""
     accept_count = (await db.execute(
         select(func.count(ResolutionReview.id)).where(
-            ResolutionReview.bet_id == bet_id,
+            ResolutionReview.market_id == bet_id,
             ResolutionReview.vote == "accept",
         )
     )).scalar_one()
 
     dispute_count = (await db.execute(
         select(func.count(ResolutionReview.id)).where(
-            ResolutionReview.bet_id == bet_id,
+            ResolutionReview.market_id == bet_id,
             ResolutionReview.vote == "dispute",
         )
     )).scalar_one()
 
     total_participants = (await db.execute(
-        select(func.count(func.distinct(BetPosition.user_id))).where(
-            BetPosition.bet_id == bet_id,
-            BetPosition.withdrawn_at.is_(None),
+        select(func.count(func.distinct(MarketPosition.user_id))).where(
+            MarketPosition.market_id == bet_id,
+            MarketPosition.withdrawn_at.is_(None),
         )
     )).scalar_one()
 
@@ -93,15 +93,15 @@ async def proposer_resolve(
     """
     current_user = await _get_current_user(request, db)
 
-    bet = (await db.execute(select(Bet).where(Bet.id == bet_id))).scalar_one_or_none()
+    bet = (await db.execute(select(Market).where(Market.id == bet_id))).scalar_one_or_none()
     if bet is None:
-        raise HTTPException(status_code=404, detail="Bet not found")
+        raise HTTPException(status_code=404, detail="Market not found")
     if bet.proposer_id != current_user.id:
         raise HTTPException(status_code=403, detail="Only the proposer can resolve this bet")
     if bet.status != "pending_resolution":
         raise HTTPException(
             status_code=400,
-            detail=f"Bet is not pending resolution (current status: {bet.status})"
+            detail=f"Market is not pending resolution (current status: {bet.status})"
         )
 
     seven_days = bet.deadline + timedelta(days=7)
@@ -112,7 +112,7 @@ async def proposer_resolve(
     bet.winning_side = body.outcome
 
     resolution = Resolution(
-        bet_id=bet_id,
+        market_id=bet_id,
         tier=2,
         resolved_by=current_user.id,
         outcome=body.outcome,
@@ -126,10 +126,10 @@ async def proposer_resolve(
     try:
         from app.services.notification_service import notify_resolution_proposed
         participant_ids = (await db.execute(
-            select(func.distinct(BetPosition.user_id)).where(
-                BetPosition.bet_id == bet_id,
-                BetPosition.user_id != current_user.id,
-                BetPosition.withdrawn_at.is_(None),
+            select(func.distinct(MarketPosition.user_id)).where(
+                MarketPosition.market_id == bet_id,
+                MarketPosition.user_id != current_user.id,
+                MarketPosition.withdrawn_at.is_(None),
             )
         )).scalars().all()
         for participant_id in participant_ids:
@@ -162,16 +162,16 @@ async def accept_resolution(
     """Record an accept vote during the 48h review window. Free. One vote per user per bet."""
     current_user = await _get_current_user(request, db)
 
-    bet = (await db.execute(select(Bet).where(Bet.id == bet_id))).scalar_one_or_none()
+    bet = (await db.execute(select(Market).where(Market.id == bet_id))).scalar_one_or_none()
     if bet is None:
-        raise HTTPException(status_code=404, detail="Bet not found")
+        raise HTTPException(status_code=404, detail="Market not found")
     if bet.proposer_id == current_user.id:
         raise HTTPException(status_code=403, detail="Proposer cannot vote on their own resolution")
     if bet.status != "proposer_resolved":
-        raise HTTPException(status_code=400, detail="Bet is not in proposer_resolved status")
+        raise HTTPException(status_code=400, detail="Market is not in proposer_resolved status")
 
     resolution = (await db.execute(
-        select(Resolution).where(Resolution.bet_id == bet_id)
+        select(Resolution).where(Resolution.market_id == bet_id)
     )).scalar_one_or_none()
     if resolution is None:
         raise HTTPException(status_code=400, detail="No resolution found")
@@ -184,14 +184,14 @@ async def accept_resolution(
 
     existing = (await db.execute(
         select(ResolutionReview).where(
-            ResolutionReview.bet_id == bet_id,
+            ResolutionReview.market_id == bet_id,
             ResolutionReview.user_id == current_user.id,
         )
     )).scalar_one_or_none()
     if existing is not None:
         raise HTTPException(status_code=400, detail="You have already voted on this resolution")
 
-    db.add(ResolutionReview(bet_id=bet_id, user_id=current_user.id, vote="accept"))
+    db.add(ResolutionReview(market_id=bet_id, user_id=current_user.id, vote="accept"))
     await db.commit()
 
     counts = await _get_review_counts(db, bet_id)
@@ -199,10 +199,10 @@ async def accept_resolution(
     # Auto-accept: >90% of *eligible* voters (non-proposer participants) accepted.
     # Proposer is excluded because they cannot vote on their own resolution.
     eligible_voters = (await db.execute(
-        select(func.count(func.distinct(BetPosition.user_id))).where(
-            BetPosition.bet_id == bet_id,
-            BetPosition.user_id != bet.proposer_id,
-            BetPosition.withdrawn_at.is_(None),
+        select(func.count(func.distinct(MarketPosition.user_id))).where(
+            MarketPosition.market_id == bet_id,
+            MarketPosition.user_id != bet.proposer_id,
+            MarketPosition.withdrawn_at.is_(None),
         )
     )).scalar_one()
 
@@ -241,16 +241,16 @@ async def vote_dispute(
     """
     current_user = await _get_current_user(request, db)
 
-    bet = (await db.execute(select(Bet).where(Bet.id == bet_id))).scalar_one_or_none()
+    bet = (await db.execute(select(Market).where(Market.id == bet_id))).scalar_one_or_none()
     if bet is None:
-        raise HTTPException(status_code=404, detail="Bet not found")
+        raise HTTPException(status_code=404, detail="Market not found")
     if bet.proposer_id == current_user.id:
         raise HTTPException(status_code=403, detail="Proposer cannot dispute their own resolution")
     if bet.status != "proposer_resolved":
-        raise HTTPException(status_code=400, detail="Bet is not in proposer_resolved status")
+        raise HTTPException(status_code=400, detail="Market is not in proposer_resolved status")
 
     resolution = (await db.execute(
-        select(Resolution).where(Resolution.bet_id == bet_id)
+        select(Resolution).where(Resolution.market_id == bet_id)
     )).scalar_one_or_none()
     if resolution is None:
         raise HTTPException(status_code=400, detail="No resolution found")
@@ -263,10 +263,10 @@ async def vote_dispute(
 
     # Check user has active position
     position = (await db.execute(
-        select(BetPosition).where(
-            BetPosition.bet_id == bet_id,
-            BetPosition.user_id == current_user.id,
-            BetPosition.withdrawn_at.is_(None),
+        select(MarketPosition).where(
+            MarketPosition.market_id == bet_id,
+            MarketPosition.user_id == current_user.id,
+            MarketPosition.withdrawn_at.is_(None),
         )
     )).scalar_one_or_none()
     if position is None:
@@ -274,7 +274,7 @@ async def vote_dispute(
 
     existing = (await db.execute(
         select(ResolutionReview).where(
-            ResolutionReview.bet_id == bet_id,
+            ResolutionReview.market_id == bet_id,
             ResolutionReview.user_id == current_user.id,
         )
     )).scalar_one_or_none()
@@ -282,7 +282,7 @@ async def vote_dispute(
         raise HTTPException(status_code=400, detail="You have already voted on this resolution")
 
     await deduct_bp(db, current_user.id, 1.0, "dispute_vote", bet_id=bet_id)
-    db.add(ResolutionReview(bet_id=bet_id, user_id=current_user.id, vote="dispute"))
+    db.add(ResolutionReview(market_id=bet_id, user_id=current_user.id, vote="dispute"))
     await db.flush()
 
     counts = await _get_review_counts(db, bet_id)
@@ -292,7 +292,7 @@ async def vote_dispute(
     if counts["dispute_count"] >= counts["threshold"]:
         closes_at = datetime.now(timezone.utc) + timedelta(hours=48)
         dispute = Dispute(
-            bet_id=bet_id,
+            market_id=bet_id,
             opened_by=current_user.id,
             closes_at=closes_at,
             status="open",
@@ -340,7 +340,7 @@ async def cast_vote(
 
     dispute = (await db.execute(
         select(Dispute).where(
-            Dispute.bet_id == bet_id,
+            Dispute.market_id == bet_id,
             Dispute.status == "open",
         )
     )).scalar_one_or_none()
@@ -351,16 +351,16 @@ async def cast_vote(
         raise HTTPException(status_code=400, detail="Dispute voting window has closed")
 
     resolution = (await db.execute(
-        select(Resolution).where(Resolution.bet_id == bet_id)
+        select(Resolution).where(Resolution.market_id == bet_id)
     )).scalar_one_or_none()
     if resolution is None:
         raise HTTPException(status_code=400, detail="No resolution found")
 
     position = (await db.execute(
-        select(BetPosition.side).where(
-            BetPosition.bet_id == bet_id,
-            BetPosition.user_id == current_user.id,
-            BetPosition.withdrawn_at.is_(None),
+        select(MarketPosition.side).where(
+            MarketPosition.market_id == bet_id,
+            MarketPosition.user_id == current_user.id,
+            MarketPosition.withdrawn_at.is_(None),
         )
     )).scalar_one_or_none()
 
@@ -417,11 +417,11 @@ async def get_resolution(
     current_user = await _get_current_user(request, db)
 
     resolution = (await db.execute(
-        select(Resolution).where(Resolution.bet_id == bet_id)
+        select(Resolution).where(Resolution.market_id == bet_id)
     )).scalar_one_or_none()
 
     dispute = (await db.execute(
-        select(Dispute).where(Dispute.bet_id == bet_id)
+        select(Dispute).where(Dispute.market_id == bet_id)
     )).scalar_one_or_none()
 
     dispute_data = None
@@ -452,7 +452,7 @@ async def get_resolution(
         counts = await _get_review_counts(db, bet_id)
         user_review = (await db.execute(
             select(ResolutionReview.vote).where(
-                ResolutionReview.bet_id == bet_id,
+                ResolutionReview.market_id == bet_id,
                 ResolutionReview.user_id == current_user.id,
             )
         )).scalar_one_or_none()

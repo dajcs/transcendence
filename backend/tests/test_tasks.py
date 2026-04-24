@@ -21,12 +21,12 @@ def test_daily_task_module_is_a_stub_after_lp_login_conversion():
 async def _make_bet(db_session, *, deadline: datetime, status: str = "open"):
     """Helper: insert a minimal bet and return its id."""
     from app.db.models.user import User
-    from app.db.models.bet import Bet
+    from app.db.models.market import Market
 
     user_id = uuid.uuid4()
     bet_id = uuid.uuid4()
     db_session.add(User(id=user_id, email=f"{user_id}@t.com", username=str(user_id), password_hash="x"))
-    db_session.add(Bet(
+    db_session.add(Market(
         id=bet_id, proposer_id=user_id, title="T", description="D",
         resolution_criteria="C", status=status, market_type="binary",
         deadline=deadline,
@@ -39,7 +39,7 @@ async def _make_bet(db_session, *, deadline: datetime, status: str = "open"):
 async def test_sweep_picks_up_bet_at_deadline(db_session):
     """_process_auto_resolution transitions a bet whose deadline == now to pending_resolution."""
     from sqlalchemy import select
-    from app.db.models.bet import Bet
+    from app.db.models.market import Market
     from app.workers.tasks.resolution import _process_auto_resolution
 
     past = datetime.now(timezone.utc) - timedelta(seconds=1)
@@ -47,7 +47,7 @@ async def test_sweep_picks_up_bet_at_deadline(db_session):
 
     await _process_auto_resolution(db_session)
 
-    bet = (await db_session.execute(select(Bet).where(Bet.id == bet_id))).scalar_one()
+    bet = (await db_session.execute(select(Market).where(Market.id == bet_id))).scalar_one()
     assert bet.status == "pending_resolution"
 
 
@@ -55,7 +55,7 @@ async def test_sweep_picks_up_bet_at_deadline(db_session):
 async def test_sweep_ignores_future_bets(db_session):
     """_process_auto_resolution leaves bets with future deadlines untouched."""
     from sqlalchemy import select
-    from app.db.models.bet import Bet
+    from app.db.models.market import Market
     from app.workers.tasks.resolution import _process_auto_resolution
 
     future = datetime.now(timezone.utc) + timedelta(hours=1)
@@ -63,7 +63,7 @@ async def test_sweep_ignores_future_bets(db_session):
 
     await _process_auto_resolution(db_session)
 
-    bet = (await db_session.execute(select(Bet).where(Bet.id == bet_id))).scalar_one()
+    bet = (await db_session.execute(select(Market).where(Market.id == bet_id))).scalar_one()
     assert bet.status == "open"
 
 

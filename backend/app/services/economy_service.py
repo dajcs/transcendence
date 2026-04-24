@@ -7,7 +7,7 @@ from fastapi import HTTPException
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.models.bet import BetPosition
+from app.db.models.market import MarketPosition
 from app.db.models.transaction import BpTransaction, LpEvent, TpTransaction
 from app.db.models.user import User
 
@@ -122,9 +122,9 @@ async def get_bet_odds(db: AsyncSession, bet_id: uuid.UUID) -> dict:
     """D-12: Compute binary winning probability from participant counts, not stake size.
     Returns {"yes_pct", "no_pct", "yes_pool", "no_pool", "yes_count", "no_count", "total_votes"}."""
     result = await db.execute(
-        select(BetPosition.side, func.sum(BetPosition.bp_staked), func.count(BetPosition.id))
-        .where(BetPosition.bet_id == bet_id, BetPosition.withdrawn_at.is_(None))
-        .group_by(BetPosition.side)
+        select(MarketPosition.side, func.sum(MarketPosition.bp_staked), func.count(MarketPosition.id))
+        .where(MarketPosition.market_id == bet_id, MarketPosition.withdrawn_at.is_(None))
+        .group_by(MarketPosition.side)
     )
     pools: dict[str, dict] = {}
     for side, staked, count in result:

@@ -11,7 +11,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_db
-from app.db.models.bet import Bet, Comment
+from app.db.models.market import Market, Comment
 from app.db.models.user import User
 from app.services import auth_service
 from app.services.llm_service import (
@@ -52,14 +52,14 @@ async def create_summary(
     if current_user.llm_mode == "disabled":
         raise HTTPException(status_code=403, detail="LLM features disabled in your settings")
 
-    bet = (await db.execute(select(Bet).where(Bet.id == bet_id))).scalar_one_or_none()
+    bet = (await db.execute(select(Market).where(Market.id == bet_id))).scalar_one_or_none()
     if bet is None:
-        raise HTTPException(status_code=404, detail="Bet not found")
+        raise HTTPException(status_code=404, detail="Market not found")
 
     # Fetch recent comments (latest 20 for context)
     comments_result = await db.execute(
         select(Comment.content)
-        .where(Comment.bet_id == bet_id, Comment.deleted_at.is_(None))
+        .where(Comment.market_id == bet_id, Comment.deleted_at.is_(None))
         .order_by(Comment.created_at.desc())
         .limit(20)
     )
@@ -108,9 +108,9 @@ async def create_resolution_hint(
     if current_user.llm_mode == "disabled":
         raise HTTPException(status_code=403, detail="LLM features disabled in your settings")
 
-    bet = (await db.execute(select(Bet).where(Bet.id == bet_id))).scalar_one_or_none()
+    bet = (await db.execute(select(Market).where(Market.id == bet_id))).scalar_one_or_none()
     if bet is None:
-        raise HTTPException(status_code=404, detail="Bet not found")
+        raise HTTPException(status_code=404, detail="Market not found")
     if bet.proposer_id != current_user.id:
         raise HTTPException(status_code=403, detail="Only the proposer can request a resolution hint")
 

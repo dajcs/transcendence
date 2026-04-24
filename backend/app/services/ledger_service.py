@@ -6,7 +6,7 @@ from sqlalchemy import and_, case, cast, func, literal, select, union_all
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.types import Float, String, Uuid
 
-from app.db.models.bet import Bet
+from app.db.models.market import Market
 from app.db.models.transaction import BpTransaction, LpEvent, TpTransaction
 from app.db.models.user import User
 from app.schemas.ledger import TransactionEntry, TransactionListResponse
@@ -157,7 +157,7 @@ async def get_user_transactions(
     title_map: dict[uuid.UUID, str] = {}
     if bet_ids:
         bet_rows = (await db.execute(
-            select(Bet.id, Bet.title).where(Bet.id.in_(bet_ids))
+            select(Market.id, Market.title).where(Market.id.in_(bet_ids))
         )).all()
         title_map = {bid: title for bid, title in bet_rows}
 

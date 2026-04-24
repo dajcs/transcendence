@@ -5,9 +5,9 @@ from datetime import datetime, timezone
 from sqlalchemy import select, update, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.models.bet import (
-    Bet, BetPosition, BetUpvote, Comment, CommentUpvote,
-    Dispute, DisputeVote, PositionHistory, Resolution, ResolutionReview,
+from app.db.models.market import (
+    Market, MarketPosition, MarketUpvote, Comment, CommentUpvote,
+    Dispute, DisputeVote, MarketPositionHistory, Resolution, ResolutionReview,
 )
 from app.db.models.social import FriendRequest, Message, Notification
 from app.db.models.transaction import BpTransaction, LpEvent, TpTransaction
@@ -37,11 +37,11 @@ async def export_user_data(db: AsyncSession, user: User) -> dict:
     oauth = [{"provider": r.provider, "provider_user_id": r.provider_user_id} for r in rows]
 
     # Markets created
-    rows = (await db.execute(select(Bet).where(Bet.proposer_id == uid))).scalars().all()
+    rows = (await db.execute(select(Market).where(Market.proposer_id == uid))).scalars().all()
     markets = [{"id": str(r.id), "title": r.title, "status": r.status, "created_at": _iso(r.created_at)} for r in rows]
 
     # Positions / bets placed
-    rows = (await db.execute(select(BetPosition).where(BetPosition.user_id == uid))).scalars().all()
+    rows = (await db.execute(select(MarketPosition).where(MarketPosition.user_id == uid))).scalars().all()
     positions = [{"bet_id": str(r.bet_id), "side": r.side, "bp_staked": float(r.bp_staked), "placed_at": _iso(r.placed_at)} for r in rows]
 
     # Comments
@@ -144,19 +144,19 @@ async def delete_account(db: AsyncSession, user: User) -> None:
 
     # Delete comment upvotes by this user
     await db.execute(delete(CommentUpvote).where(CommentUpvote.user_id == uid))
-    await db.execute(delete(BetUpvote).where(BetUpvote.user_id == uid))
+    await db.execute(delete(MarketUpvote).where(MarketUpvote.user_id == uid))
 
     # Pseudonymize bet positions
     await db.execute(
-        update(BetPosition).where(BetPosition.user_id == uid).values(user_id=anon_id)
+        update(MarketPosition).where(MarketPosition.user_id == uid).values(user_id=anon_id)
     )
     await db.execute(
-        update(PositionHistory).where(PositionHistory.user_id == uid).values(user_id=anon_id)
+        update(MarketPositionHistory).where(MarketPositionHistory.user_id == uid).values(user_id=anon_id)
     )
 
     # Pseudonymize bets proposed by this user
     await db.execute(
-        update(Bet).where(Bet.proposer_id == uid).values(proposer_id=anon_id)
+        update(Market).where(Market.proposer_id == uid).values(proposer_id=anon_id)
     )
 
     # Pseudonymize resolutions

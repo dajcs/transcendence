@@ -16,7 +16,7 @@ from sqlalchemy import delete, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.base import Base
-from app.db.models.bet import Bet, BetPosition, Resolution
+from app.db.models.market import Market, MarketPosition, Resolution
 from app.db.models.social import Notification
 from app.db.models.transaction import BpTransaction
 from app.db.models.user import User
@@ -72,7 +72,7 @@ async def _seed_open_market(db: AsyncSession) -> ScenarioResponse:
     proposer = await _ensure_user(db, email="proposer@example.com", username="proposer")
     bettor = await _ensure_user(db, email="bettor@example.com", username="bettor")
 
-    market = Bet(
+    market = Market(
         id=uuid.uuid4(),
         proposer_id=proposer.id,
         title="Will CI stay green this week?",
@@ -99,7 +99,7 @@ async def _seed_dispute_market(db: AsyncSession) -> ScenarioResponse:
     bettor = await _ensure_user(db, email="bettor@example.com", username="bettor")
     reviewer = await _ensure_user(db, email="reviewer@example.com", username="reviewer")
 
-    market = Bet(
+    market = Market(
         id=uuid.uuid4(),
         proposer_id=proposer.id,
         title="Will the release ship before Friday?",
@@ -115,12 +115,12 @@ async def _seed_dispute_market(db: AsyncSession) -> ScenarioResponse:
 
     db.add_all(
         [
-            BetPosition(id=uuid.uuid4(), bet_id=market.id, user_id=proposer.id, side="yes", bp_staked=2.0),
-            BetPosition(id=uuid.uuid4(), bet_id=market.id, user_id=bettor.id, side="no", bp_staked=3.0),
-            BetPosition(id=uuid.uuid4(), bet_id=market.id, user_id=reviewer.id, side="yes", bp_staked=1.0),
+            MarketPosition(id=uuid.uuid4(), market_id=market.id, user_id=proposer.id, side="yes", bp_staked=2.0),
+            MarketPosition(id=uuid.uuid4(), market_id=market.id, user_id=bettor.id, side="no", bp_staked=3.0),
+            MarketPosition(id=uuid.uuid4(), market_id=market.id, user_id=reviewer.id, side="yes", bp_staked=1.0),
             Resolution(
                 id=uuid.uuid4(),
-                bet_id=market.id,
+                market_id=market.id,
                 tier=2,
                 resolved_by=proposer.id,
                 outcome="yes",
@@ -146,7 +146,7 @@ async def _seed_notification_market(db: AsyncSession) -> ScenarioResponse:
     proposer = await _ensure_user(db, email="proposer@example.com", username="proposer")
     bettor = await _ensure_user(db, email="bettor@example.com", username="bettor")
 
-    market = Bet(
+    market = Market(
         id=uuid.uuid4(),
         proposer_id=proposer.id,
         title="Will the alert badge clear correctly?",
