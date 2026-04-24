@@ -9,20 +9,6 @@ from sqlalchemy.orm import Mapped, mapped_column, synonym
 from app.db.base import Base
 
 
-class _BetIdAlias:
-    """Compatibility alias for existing API schemas that still expose bet_id."""
-
-    market_id: uuid.UUID
-
-    @property
-    def bet_id(self) -> uuid.UUID:
-        return self.market_id
-
-    @bet_id.setter
-    def bet_id(self, value: uuid.UUID) -> None:
-        self.market_id = value
-
-
 class Market(Base):
     __tablename__ = "markets"
 
@@ -44,7 +30,7 @@ class Market(Base):
     closed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
 
-class MarketPosition(_BetIdAlias, Base):
+class MarketPosition(Base):
     __tablename__ = "market_positions"
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
@@ -61,7 +47,7 @@ class MarketPosition(_BetIdAlias, Base):
     # Application logic enforces at most one active position (withdrawn_at IS NULL).
 
 
-class MarketPositionHistory(_BetIdAlias, Base):
+class MarketPositionHistory(Base):
     __tablename__ = "market_position_history"
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
@@ -72,7 +58,7 @@ class MarketPositionHistory(_BetIdAlias, Base):
     changed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
 
-class Resolution(_BetIdAlias, Base):
+class Resolution(Base):
     __tablename__ = "resolutions"
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
@@ -86,7 +72,7 @@ class Resolution(_BetIdAlias, Base):
     overturned: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
 
-class Dispute(_BetIdAlias, Base):
+class Dispute(Base):
     __tablename__ = "disputes"
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
@@ -112,7 +98,7 @@ class DisputeVote(Base):
     __table_args__ = (UniqueConstraint("dispute_id", "user_id"),)
 
 
-class ResolutionReview(_BetIdAlias, Base):
+class ResolutionReview(Base):
     """Tracks per-user accept/dispute votes during the proposer_resolved 48h window."""
 
     __tablename__ = "resolution_reviews"
@@ -127,7 +113,7 @@ class ResolutionReview(_BetIdAlias, Base):
     __table_args__ = (UniqueConstraint("market_id", "user_id"),)
 
 
-class Comment(_BetIdAlias, Base):
+class Comment(Base):
     __tablename__ = "comments"
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
@@ -149,7 +135,7 @@ class CommentUpvote(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
 
-class MarketUpvote(_BetIdAlias, Base):
+class MarketUpvote(Base):
     __tablename__ = "market_upvotes"
 
     market_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("markets.id"), primary_key=True)

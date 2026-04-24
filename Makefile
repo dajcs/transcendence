@@ -20,6 +20,18 @@ e2e:
 e2e-list:
 	cd frontend && npm run test:e2e:list
 
+# phase7-frontend-install
+#         │
+#         ├──> phase7-e2e-install
+#         │
+#         ├──> phase7-proof-frontend
+#         │
+#         ├──> phase7-proof-e2e-list
+#         │
+#         └──> phase7-proof ──> phase7-proof-backend
+#                           ──> phase7-proof-frontend
+#                           ──> phase7-proof-e2e-list
+
 # Install frontend dependencies for the Phase 7 proof path
 phase7-frontend-install:
 	cd frontend && npm ci
