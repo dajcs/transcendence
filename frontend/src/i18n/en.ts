@@ -193,7 +193,7 @@ const en = {
   "ledger.type_withdrawal": "Withdrawal",
   "ledger.type_bet_refund": "Bet Refund",
   "ledger.type_daily_bonus": "Daily Bonus",
-  "ledger.type_lp_allocation": "❤️→BP",
+  "ledger.type_lp_allocation": "❤️→ BP",
   "ledger.type_payout": "Payout",
   "ledger.no_transactions": "No transactions yet.",
   "ledger.load_more": "Load more",

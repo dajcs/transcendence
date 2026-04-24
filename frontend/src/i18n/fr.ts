@@ -193,7 +193,7 @@ const fr = {
   "ledger.type_withdrawal": "Retrait",
   "ledger.type_bet_refund": "Remboursement de pari",
   "ledger.type_daily_bonus": "Bonus quotidien",
-  "ledger.type_lp_allocation": "❤️→BP",
+  "ledger.type_lp_allocation": "❤️→ BP",
   "ledger.type_payout": "Gain",
   "ledger.no_transactions": "Aucune transaction pour le moment.",
   "ledger.load_more": "Charger plus",
