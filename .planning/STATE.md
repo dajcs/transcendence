@@ -167,6 +167,7 @@ See: `.planning/PROJECT.md` (updated 2026-03-24)
 | fast | Clear stale Next generated route types before frontend type-check | 2026-04-23 | pending | Verified | `frontend/package.json` |
 | fast | Remove duplicate Privacy Policy and Terms of Service links from home page | 2026-04-23 | pending | Verified | `frontend/src/app/page.tsx` |
 | quick | Protect `/settings` behind frontend proxy guard and add regression test | 2026-04-23 | pending | Verified | `frontend/src/proxy.ts` |
+| 260424-i6c | Left navigation bar redesign | 2026-04-24 | pending | Verified | [260424-i6c-left-navigation-bar-redesign](./quick/260424-i6c-left-navigation-bar-redesign/) |
 
 ### Blockers/Concerns
 

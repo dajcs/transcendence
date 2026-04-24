@@ -110,23 +110,10 @@ export default function Sidebar() {
         </span>
       </Link>
 
-      {/* 2. Points pills */}
-      <div className="px-3 pb-2 flex flex-wrap gap-1 shrink-0">
-        {/* LP — light pink */}
-        <span className="text-[11px] font-semibold px-2 py-1 rounded-full bg-rose-100 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 whitespace-nowrap">
-          ❤️ {Math.round(user?.lp ?? 0)}
-        </span>
-        {/* BP — light green */}
-        <span className="text-[11px] font-semibold px-2 py-1 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 whitespace-nowrap">
-          ♦ {(user?.bp ?? 0).toFixed(1)} BP
-        </span>
-        {/* TP — light blue */}
-        <span className="text-[11px] font-semibold px-2 py-1 rounded-full bg-sky-100 dark:bg-sky-900/30 text-sky-700 dark:text-sky-400 whitespace-nowrap">
-          ✦ {(user?.tp ?? 0).toFixed(1)} TP
-        </span>
-      </div>
+      {/* 2. Spacer */}
+      <div className="h-2 shrink-0" />
 
-      {/* 3. Username */}
+      {/* 3. Username + logout row */}
       <div className="px-4 pb-1 shrink-0 flex items-center justify-between">
         <span className="text-[13px] font-semibold text-gray-700 dark:text-gray-300 truncate">
           @{user?.username}
@@ -140,7 +127,25 @@ export default function Sidebar() {
         </button>
       </div>
 
-      {/* 4. Profile link */}
+      {/* 4. Point balances row */}
+      <div className="px-3 pb-2 flex items-center gap-1 shrink-0">
+        {/* LP — light pink */}
+        <span className="text-[11px] font-semibold px-2 py-1 rounded-full bg-rose-100 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 whitespace-nowrap">
+          ❤️ {Math.round(user?.lp ?? 0)}
+        </span>
+        <span className="text-gray-400 dark:text-gray-600 text-[11px]">♦</span>
+        {/* BP — light green */}
+        <span className="text-[11px] font-semibold px-2 py-1 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 whitespace-nowrap">
+          {(user?.bp ?? 0).toFixed(1)} BP
+        </span>
+        <span className="text-gray-400 dark:text-gray-600 text-[11px]">♦</span>
+        {/* TP — light blue */}
+        <span className="text-[11px] font-semibold px-2 py-1 rounded-full bg-sky-100 dark:bg-sky-900/30 text-sky-700 dark:text-sky-400 whitespace-nowrap">
+          {(user?.tp ?? 0).toFixed(1)} TP
+        </span>
+      </div>
+
+      {/* 5. Profile link */}
       <div className="px-2 pb-1 shrink-0">
         <Link
           href={profileHref}
@@ -155,38 +160,43 @@ export default function Sidebar() {
         </Link>
       </div>
 
-      {/* 5. User search */}
+      {/* 6. Search Users */}
       <div className="px-3 pb-2 shrink-0">
         <UserSearch />
       </div>
 
-      {/* 6. Controls: language + theme + notifications */}
+      {/* 7. Spacer */}
+      <div className="h-2 shrink-0" />
+
+      {/* 8. Controls row: language left | theme center | bell right */}
       <div className="px-3 pb-2 flex items-center gap-1 shrink-0">
         <select
           value={mounted ? locale : "en"}
           onChange={(e) => setLocale(e.target.value as Locale)}
-          className="flex-1 text-[12px] rounded-md border border-gray-200 dark:border-[oklch(26%_0.015_250)] bg-transparent text-gray-500 dark:text-gray-400 px-2 py-1.5 focus:outline-none cursor-pointer"
+          className="w-12 text-[12px] rounded-md border border-gray-200 dark:border-[oklch(26%_0.015_250)] bg-transparent text-gray-500 dark:text-gray-400 px-1 py-1.5 focus:outline-none cursor-pointer"
           aria-label={t("nav.language")}
           suppressHydrationWarning
         >
-          <option value="en">English</option>
-          <option value="fr">Français</option>
-          <option value="de">Deutsch</option>
+          <option value="en">EN</option>
+          <option value="fr">FR</option>
+          <option value="de">DE</option>
         </select>
-        <button
-          onClick={toggle}
-          className="p-1.5 rounded-md text-gray-400 dark:text-gray-500 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors shrink-0"
-          title={isDark ? t("nav.theme_light") : t("nav.theme_dark")}
-          suppressHydrationWarning
-        >
-          {isDark ? <IconSun /> : <IconMoon />}
-        </button>
-        <div className="shrink-0">
+        <div className="flex-1 flex justify-center">
+          <button
+            onClick={toggle}
+            className="p-1.5 rounded-md text-gray-400 dark:text-gray-500 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors shrink-0"
+            title={isDark ? t("nav.theme_light") : t("nav.theme_dark")}
+            suppressHydrationWarning
+          >
+            {isDark ? <IconSun /> : <IconMoon />}
+          </button>
+        </div>
+        <div className="ml-auto shrink-0">
           <NotificationBell dropdownAlign="left" />
         </div>
       </div>
 
-      {/* 7. Create Market button */}
+      {/* 9. Create Market button */}
       <div className="px-3 pb-3 shrink-0">
         <Link
           href="/markets/new"
@@ -199,7 +209,7 @@ export default function Sidebar() {
       {/* Divider */}
       <div className="mx-3 border-t border-gray-100 dark:border-[oklch(22%_0.015_250)] mb-1 shrink-0" />
 
-      {/* 8–11. Nav links */}
+      {/* 10. Nav links: Markets, Friends, Chat, Hall of Fame */}
       <nav className="flex-1 overflow-y-auto px-2 space-y-0.5" aria-label="Main navigation">
         {navLinks.map((n) => {
           const active = isActive(n.href);
@@ -225,12 +235,10 @@ export default function Sidebar() {
         })}
       </nav>
 
-      {/* Bottom: privacy/terms */}
-      <div className="border-t border-gray-100 dark:border-[oklch(22%_0.015_250)] px-3 py-2 shrink-0 flex items-center justify-end">
-        <div className="flex gap-2 text-[10px] text-gray-400 dark:text-gray-500">
-          <Link href="/privacy" className="hover:underline">{t("footer.privacy")}</Link>
-          <Link href="/terms" className="hover:underline">{t("footer.terms")}</Link>
-        </div>
+      {/* 11. Footer: Privacy Policy left, Terms of Service right */}
+      <div className="border-t border-gray-100 dark:border-[oklch(22%_0.015_250)] px-3 py-2 shrink-0 flex items-center justify-between">
+        <Link href="/privacy" className="text-[10px] text-gray-400 dark:text-gray-500 hover:underline">{t("footer.privacy")}</Link>
+        <Link href="/terms" className="text-[10px] text-gray-400 dark:text-gray-500 hover:underline">{t("footer.terms")}</Link>
       </div>
     </aside>
   );
