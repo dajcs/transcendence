@@ -204,7 +204,7 @@ export default function ProfilePage() {
 
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between gap-2 flex-wrap">
-                  <span className="text-[16px] font-bold text-gray-900 dark:text-gray-100">{profile.username}</span>
+                  <h1 className="text-[16px] font-bold text-gray-900 dark:text-gray-100">{profile.username}</h1>
                   {isOwnProfile && (
                     <Link
                       href="/settings"

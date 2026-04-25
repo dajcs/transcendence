@@ -872,12 +872,12 @@ export default function MarketDetailPage() {
 
           {/* Review window: proposer_resolved — accept/dispute voting */}
           {market.status === "proposer_resolved" && (
-            <section className="rounded border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20 p-4 space-y-3">
-              <h2 className="text-lg font-semibold text-blue-900 dark:text-blue-300">{t("market.resolution_proposed")}</h2>
+            <section className="rounded-[10px] border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20 p-4 space-y-3">
+              <p className="text-[12px] font-semibold uppercase tracking-wider text-blue-600 dark:text-blue-400">{t("market.resolution_proposed")}</p>
 
               {resolutionQuery.data?.review && (
                 <>
-                  <p className="text-sm text-blue-800 dark:text-blue-300">
+                  <p className="text-[13px] text-blue-800 dark:text-blue-300">
                     {t("market.time_to_finalize")}{" "}
                     <span className="font-medium">
                       {(() => {
@@ -889,7 +889,7 @@ export default function MarketDetailPage() {
                       })()}
                     </span>
                   </p>
-                  <p className="text-xs text-blue-600 dark:text-blue-400">
+                  <p className="text-[12px] text-blue-500 dark:text-blue-400">
                     {resolutionQuery.data.review.accept_count} {t("market.accepted")} ·{" "}
                     {resolutionQuery.data.review.dispute_count} {t("market.disputed")} ·{" "}
                     {t("market.threshold_of", { threshold: resolutionQuery.data.review.threshold, total: resolutionQuery.data.review.total_participants })}
@@ -897,38 +897,37 @@ export default function MarketDetailPage() {
                 </>
               )}
 
-              {/* Proposer: no voting buttons */}
               {currentUser?.id === market.proposer_id ? (
-                <p className="text-sm text-blue-700 dark:text-blue-300 italic">{t("market.awaiting_review")}</p>
+                <p className="text-[13px] text-blue-700 dark:text-blue-300 italic">{t("market.awaiting_review")}</p>
               ) : !myPosition ? (
-                <p className="text-sm text-blue-700 dark:text-blue-300 italic">{t("market.only_participants")}</p>
+                <p className="text-[13px] text-blue-700 dark:text-blue-300 italic">{t("market.only_participants")}</p>
               ) : resolutionQuery.data?.review?.user_vote ? (
-                <p className="text-sm text-blue-700 dark:text-blue-300">
+                <p className="text-[13px] text-blue-700 dark:text-blue-300">
                   {t("market.you_voted")} <span className="font-semibold capitalize">{resolutionQuery.data.review.user_vote}</span>
                 </p>
               ) : (
                 <div className="space-y-2">
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 flex-wrap">
                     <button
                       onClick={() => acceptResolution.mutate()}
                       disabled={acceptResolution.isPending || openDispute.isPending}
-                      className="rounded bg-green-600 px-4 py-2 text-sm text-white hover:bg-green-700 disabled:opacity-50"
+                      className="text-[12px] px-2.5 py-[5px] rounded-md bg-green-600 text-white hover:opacity-90 disabled:opacity-40 transition-opacity"
                     >
                       {acceptResolution.isPending ? t("market.accepting") : t("market.accept_resolution")}
                     </button>
                     {confirmDisputeOpen ? (
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm text-violet-700 dark:text-violet-300">{t("market.dispute_confirm")}</span>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-[13px] text-violet-700 dark:text-violet-300">{t("market.dispute_confirm")}</span>
                         <button
                           onClick={() => { openDispute.mutate(); setConfirmDisputeOpen(false); }}
                           disabled={openDispute.isPending}
-                          className="rounded bg-violet-700 px-3 py-2 text-sm text-white hover:bg-violet-800 disabled:opacity-50"
+                          className="text-[12px] px-2.5 py-[5px] rounded-md bg-violet-700 text-white hover:opacity-90 disabled:opacity-40 transition-opacity"
                         >
                           {openDispute.isPending ? t("market.disputing") : t("common.yes")}
                         </button>
                         <button
                           onClick={() => setConfirmDisputeOpen(false)}
-                          className="rounded bg-gray-500 px-3 py-2 text-sm text-white hover:bg-gray-600"
+                          className="text-[12px] px-2.5 py-[5px] rounded-md bg-[oklch(91%_0.006_250)] dark:bg-[oklch(24%_0.015_250)] text-gray-700 dark:text-gray-300 hover:opacity-80 transition-opacity"
                         >
                           {t("common.cancel")}
                         </button>
@@ -937,17 +936,17 @@ export default function MarketDetailPage() {
                       <button
                         onClick={() => setConfirmDisputeOpen(true)}
                         disabled={openDispute.isPending || acceptResolution.isPending}
-                        className="rounded bg-violet-700 px-4 py-2 text-sm text-white hover:bg-violet-800 disabled:opacity-50"
+                        className="text-[12px] px-2.5 py-[5px] rounded-md bg-violet-700 text-white hover:opacity-90 disabled:opacity-40 transition-opacity"
                       >
                         {t("market.dispute_resolution")}
                       </button>
                     )}
                   </div>
                   {acceptResolution.isError && (
-                    <p className="text-sm text-red-600 dark:text-red-400">{t("market.vote_failed")}</p>
+                    <p className="text-[13px] text-red-500 dark:text-red-400">{t("market.vote_failed")}</p>
                   )}
                   {openDispute.isError && (
-                    <p className="text-sm text-red-600 dark:text-red-400">{t("market.action_failed")}</p>
+                    <p className="text-[13px] text-red-500 dark:text-red-400">{t("market.action_failed")}</p>
                   )}
                 </div>
               )}
@@ -956,11 +955,11 @@ export default function MarketDetailPage() {
 
           {/* Tier 3 community dispute vote */}
           {market.status === "disputed" && (
-            <section className="rounded border border-violet-200 dark:border-violet-800 bg-violet-50 dark:bg-violet-900/20 p-4 space-y-3">
-              <h2 className="text-lg font-semibold text-violet-900 dark:text-violet-300">{t("market.community_vote")}</h2>
+            <section className="rounded-[10px] border border-violet-200 dark:border-violet-800 bg-violet-50 dark:bg-violet-900/20 p-4 space-y-3">
+              <p className="text-[12px] font-semibold uppercase tracking-wider text-violet-600 dark:text-violet-400">{t("market.community_vote")}</p>
               {resolutionQuery.data?.dispute ? (
                 <>
-                  <p className="text-sm text-violet-800 dark:text-violet-300">
+                  <p className="text-[13px] text-violet-800 dark:text-violet-300">
                     {t("market.window_closes")} {new Date(resolutionQuery.data.dispute.closes_at).toLocaleString()}
                   </p>
                   {/* Vote tally */}
@@ -1037,10 +1036,10 @@ export default function MarketDetailPage() {
                   })()}
                   {resolutionQuery.data.dispute.status === "open" && (
                     <div className="space-y-2">
-                      <p className="text-sm font-medium text-violet-800 dark:text-violet-300">
+                      <p className="text-[13px] font-medium text-violet-800 dark:text-violet-300">
                         {t("market.my_opinion")}
                         {resolutionQuery.data.dispute.user_vote && (
-                          <span className="ml-2 text-xs text-violet-500 font-normal">
+                          <span className="ml-2 text-[11px] text-violet-500 font-normal">
                             ({t("market.voted_change", { vote: resolutionQuery.data.dispute.user_vote.toUpperCase() })})
                           </span>
                         )}
@@ -1051,7 +1050,7 @@ export default function MarketDetailPage() {
                           <div className="flex gap-2">
                             {["yes", "no"].map((choice) => (
                               <button key={choice} onClick={() => castVote.mutate(choice)} disabled={castVote.isPending}
-                                className={`rounded px-3 py-1 text-sm text-white disabled:opacity-50 ${uv === choice ? "bg-green-700 border-2 border-green-300 font-bold" : "bg-violet-600 hover:bg-violet-700"}`}>
+                                className={`text-[12px] px-2.5 py-[5px] rounded-md text-white disabled:opacity-40 transition-opacity ${uv === choice ? "bg-green-700 ring-2 ring-green-300 font-bold" : "bg-violet-600 hover:opacity-90"}`}>
                                 {choice.toUpperCase()}
                               </button>
                             ))}
@@ -1064,7 +1063,7 @@ export default function MarketDetailPage() {
                           <div className="flex gap-2 flex-wrap">
                             {(market.choices ?? []).map((choice) => (
                               <button key={choice} onClick={() => castVote.mutate(choice)} disabled={castVote.isPending}
-                                className={`rounded px-3 py-1 text-sm text-white disabled:opacity-50 ${uv === choice ? "bg-green-700 border-2 border-green-300 font-bold" : "bg-violet-600 hover:bg-violet-700"}`}>
+                                className={`text-[12px] px-2.5 py-[5px] rounded-md text-white disabled:opacity-40 transition-opacity ${uv === choice ? "bg-green-700 ring-2 ring-green-300 font-bold" : "bg-violet-600 hover:opacity-90"}`}>
                                 {choice}
                               </button>
                             ))}
@@ -1081,12 +1080,12 @@ export default function MarketDetailPage() {
                             value={voteOpinion}
                             onChange={(e) => setVoteOpinion(e.target.value)}
                             placeholder={resolutionQuery.data.dispute.user_vote ?? `${market.numeric_min ?? ""}–${market.numeric_max ?? ""}`}
-                            className="w-32 rounded border border-violet-300 dark:border-violet-700 px-2 py-1 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                            className="w-32 px-2 py-1.5 rounded-md text-[13px] bg-[oklch(97%_0.005_250)] dark:bg-[oklch(20%_0.015_250)] border border-violet-300 dark:border-violet-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:border-violet-500 transition-colors"
                           />
                           <button
                             onClick={() => { if (voteOpinion) castVote.mutate(voteOpinion); }}
                             disabled={castVote.isPending || !voteOpinion}
-                            className="rounded bg-violet-600 px-3 py-1 text-sm text-white hover:bg-violet-700 disabled:opacity-50"
+                            className="text-[12px] px-2.5 py-[5px] rounded-md bg-violet-600 text-white hover:opacity-90 disabled:opacity-40 transition-opacity"
                           >
                             {resolutionQuery.data.dispute.user_vote ? t("market.change") : t("market.submit")}
                           </button>
@@ -1094,50 +1093,50 @@ export default function MarketDetailPage() {
                       )}
                     </div>
                   )}
-                  {castVote.isError && <p className="text-sm text-red-600 dark:text-red-400">{t("market.vote_failed")}</p>}
+                  {castVote.isError && <p className="text-[13px] text-red-500 dark:text-red-400">{t("market.vote_failed")}</p>}
                 </>
               ) : (
-                <p className="text-sm text-violet-700 dark:text-violet-400">{t("market.loading_dispute")}</p>
+                <p className="text-[13px] text-violet-600 dark:text-violet-400">{t("market.loading_dispute")}</p>
               )}
             </section>
           )}
 
-          {/* Payout Breakdown — D-10, closed markets only */}
+          {/* Payout Breakdown */}
           {market?.status === "closed" && (
-            <section className="rounded border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20 p-4 space-y-3">
-              <h2 className="text-lg font-semibold text-green-800 dark:text-green-300">{t("market.payout_breakdown")}</h2>
+            <section className="rounded-[10px] border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20 p-4 space-y-3">
+              <p className="text-[12px] font-semibold uppercase tracking-wider text-green-600 dark:text-green-400">{t("market.payout_breakdown")}</p>
               {payoutsQuery.isLoading ? (
                 <div className="space-y-2 animate-pulse">
                   {[0, 1, 2].map((i) => (
-                    <div key={i} className="h-8 rounded bg-green-200 dark:bg-green-800" />
+                    <div key={i} className="h-7 rounded-md bg-green-200/50 dark:bg-green-800/30" />
                   ))}
                 </div>
               ) : payoutsQuery.isError ? (
-                <p className="text-sm text-red-600 dark:text-red-400">{t("market.payouts_error")}</p>
+                <p className="text-[13px] text-red-500 dark:text-red-400">{t("market.payouts_error")}</p>
               ) : !payoutsQuery.data?.payouts.length ? (
-                <p className="text-sm text-green-700 dark:text-green-400">{t("market.no_payouts")}</p>
+                <p className="text-[13px] text-green-700 dark:text-green-400">{t("market.no_payouts")}</p>
               ) : (
-                <div className="overflow-auto max-h-64 rounded border border-green-100 dark:border-green-900">
-                  <table className="w-full text-sm">
+                <div className="overflow-auto max-h-64 rounded-[8px] border border-green-200 dark:border-green-800">
+                  <table className="w-full">
                     <thead className="sticky top-0 bg-green-50 dark:bg-green-900/20 z-10">
-                      <tr className="border-b border-green-200 dark:border-green-800 text-xs text-green-700 dark:text-green-400">
-                        <th className="pb-2 pt-1 px-2 text-left cursor-pointer select-none hover:text-green-900 dark:hover:text-green-200" onClick={() => toggleSort(payoutSort, setPayoutSort, "username")}>
+                      <tr className="border-b border-green-200 dark:border-green-800">
+                        <th className="pb-2 pt-1 px-2 text-left text-[11px] font-semibold text-green-600 dark:text-green-400 uppercase tracking-wider cursor-pointer select-none hover:text-green-800 dark:hover:text-green-200" onClick={() => toggleSort(payoutSort, setPayoutSort, "username")}>
                           {t("market.winner_user")}{sortIndicator(payoutSort, "username")}
                         </th>
-                        <th className="pb-2 pt-1 px-2 text-right cursor-pointer select-none hover:text-green-900 dark:hover:text-green-200" onClick={() => toggleSort(payoutSort, setPayoutSort, "bp_won")}>
+                        <th className="pb-2 pt-1 px-2 text-right text-[11px] font-semibold text-green-600 dark:text-green-400 uppercase tracking-wider cursor-pointer select-none hover:text-green-800 dark:hover:text-green-200" onClick={() => toggleSort(payoutSort, setPayoutSort, "bp_won")}>
                           {t("market.winner_bp")}{sortIndicator(payoutSort, "bp_won")}
                         </th>
-                        <th className="pb-2 pt-1 px-2 text-right cursor-pointer select-none hover:text-green-900 dark:hover:text-green-200" onClick={() => toggleSort(payoutSort, setPayoutSort, "tp_won")}>
+                        <th className="pb-2 pt-1 px-2 text-right text-[11px] font-semibold text-green-600 dark:text-green-400 uppercase tracking-wider cursor-pointer select-none hover:text-green-800 dark:hover:text-green-200" onClick={() => toggleSort(payoutSort, setPayoutSort, "tp_won")}>
                           {t("market.winner_tp")}{sortIndicator(payoutSort, "tp_won")}
                         </th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-green-100 dark:divide-green-900">
+                    <tbody className="divide-y divide-green-100 dark:divide-green-800/50">
                       {sortedRows(payoutsQuery.data.payouts, payoutSort).map((p) => (
-                        <tr key={p.user_id}>
-                          <td className="py-2 px-2"><UserLink username={p.username} /></td>
-                          <td className="py-2 px-2 text-right font-medium text-green-600 dark:text-green-400">+{p.bp_won} BP</td>
-                          <td className="py-2 px-2 text-right font-medium text-blue-600 dark:text-blue-400">+{p.tp_won} TP</td>
+                        <tr key={p.user_id} className="hover:bg-green-100/50 dark:hover:bg-green-900/30 transition-colors duration-100">
+                          <td className="py-2 px-2 text-[13px]"><UserLink username={p.username} className="text-[var(--accent)]" /></td>
+                          <td className="py-2 px-2 text-right text-[13px] font-medium tabular-nums text-green-600 dark:text-green-400">+{p.bp_won} BP</td>
+                          <td className="py-2 px-2 text-right text-[13px] font-medium tabular-nums text-[var(--accent)]">+{p.tp_won} TP</td>
                         </tr>
                       ))}
                     </tbody>
@@ -1147,18 +1146,18 @@ export default function MarketDetailPage() {
             </section>
           )}
 
-          {!myPosition && market.status === "open" && <section className="rounded border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
-            <h2 className="mb-3 text-lg font-semibold">{t("market.place_your_bet")}</h2>
+          {!myPosition && market.status === "open" && <section className="rounded-[10px] bg-white dark:bg-[oklch(18%_0.015_250)] border border-[oklch(91%_0.006_250)] dark:border-[oklch(22%_0.015_250)] p-4">
+            <p className="mb-3 text-[12px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">{t("market.place_your_bet")}</p>
             {market.market_type === "binary" && (
               <div className="mb-3 flex gap-2">
                 <button
-                  className={`rounded px-3 py-1 text-sm ${side === "yes" ? "bg-green-600 text-white" : "bg-gray-200 dark:bg-gray-700 dark:text-gray-300"}`}
+                  className={`text-[12px] px-2.5 py-[5px] rounded-md transition-colors ${side === "yes" ? "bg-green-600 text-white" : "bg-[oklch(91%_0.006_250)] dark:bg-[oklch(24%_0.015_250)] text-gray-700 dark:text-gray-300"}`}
                   onClick={() => setSide("yes")}
                 >
                   YES
                 </button>
                 <button
-                  className={`rounded px-3 py-1 text-sm ${side === "no" ? "bg-red-600 text-white" : "bg-gray-200 dark:bg-gray-700 dark:text-gray-300"}`}
+                  className={`text-[12px] px-2.5 py-[5px] rounded-md transition-colors ${side === "no" ? "bg-red-600 text-white" : "bg-[oklch(91%_0.006_250)] dark:bg-[oklch(24%_0.015_250)] text-gray-700 dark:text-gray-300"}`}
                   onClick={() => setSide("no")}
                 >
                   NO
@@ -1170,7 +1169,7 @@ export default function MarketDetailPage() {
                 {(market.choices ?? []).map((choice) => (
                   <button
                     key={choice}
-                    className={`rounded px-3 py-1 text-sm ${side === choice ? "bg-blue-600 text-white" : "bg-gray-200 dark:bg-gray-700 dark:text-gray-300"}`}
+                    className={`text-[12px] px-2.5 py-[5px] rounded-md transition-colors ${side === choice ? "bg-[var(--accent)] text-white" : "bg-[oklch(91%_0.006_250)] dark:bg-[oklch(24%_0.015_250)] text-gray-700 dark:text-gray-300"}`}
                     onClick={() => setSide(choice)}
                   >
                     {choice}
@@ -1180,7 +1179,7 @@ export default function MarketDetailPage() {
             )}
             {market.market_type === "numeric" && (
               <div className="mb-3">
-                <label className="block text-sm mb-1">
+                <label className="block text-[13px] text-gray-500 dark:text-gray-400 mb-1">
                   {t("market.your_estimate", { min: market.numeric_min ?? 0, max: market.numeric_max ?? 100 })}
                 </label>
                 <input
@@ -1190,17 +1189,17 @@ export default function MarketDetailPage() {
                   step="any"
                   value={side}
                   onChange={(e) => setSide(e.target.value)}
-                  className="rounded border border-gray-300 dark:border-gray-600 px-3 py-1 text-sm w-40 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                  className="w-40 px-3 py-1.5 rounded-md text-[13px] bg-[oklch(97%_0.005_250)] dark:bg-[oklch(20%_0.015_250)] border border-[oklch(91%_0.006_250)] dark:border-[oklch(24%_0.015_250)] text-gray-900 dark:text-gray-100 focus:outline-none focus:border-[var(--accent)] transition-colors"
                 />
               </div>
             )}
             {maxBetAmount > 0 ? (
               <div className="mb-3 flex items-center gap-2">
-                <label className="text-sm text-gray-600 dark:text-gray-400">{t("market.bet_amount_label")}</label>
+                <label className="text-[13px] text-gray-500 dark:text-gray-400">{t("market.bet_amount_label")}</label>
                 <select
                   value={clampedBetAmount}
                   onChange={(e) => setBetAmount(Number(e.target.value))}
-                  className="rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-2 py-1 text-sm"
+                  className="px-2 py-1.5 rounded-md text-[13px] bg-[oklch(97%_0.005_250)] dark:bg-[oklch(20%_0.015_250)] border border-[oklch(91%_0.006_250)] dark:border-[oklch(24%_0.015_250)] text-gray-900 dark:text-gray-100 focus:outline-none focus:border-[var(--accent)] transition-colors"
                 >
                   {Array.from({ length: maxBetAmount }, (_, i) => i + 1).map((n) => (
                     <option key={n} value={n}>{n} BP</option>
@@ -1208,27 +1207,26 @@ export default function MarketDetailPage() {
                 </select>
               </div>
             ) : (
-              <p className="mb-3 text-sm text-red-600 dark:text-red-400">{t("market.need_min_1bp")}</p>
+              <p className="mb-3 text-[13px] text-red-500 dark:text-red-400">{t("market.need_min_1bp")}</p>
             )}
             <button
               onClick={() => placeBet.mutate()}
               disabled={placeBet.isPending || maxBetAmount < 1}
-              className="rounded bg-blue-600 px-4 py-2 text-sm text-white hover:bg-blue-700 disabled:opacity-60"
+              className="text-[13px] px-3 py-2 rounded-md bg-[var(--accent)] text-white hover:opacity-90 disabled:opacity-40 transition-opacity"
             >
               {placeBet.isPending ? t("market.placing") : t("market.place_1bp")}
             </button>
-            {placeBet.isError && <p className="mt-2 text-sm text-red-600 dark:text-red-400">{t("market.bet_error")}</p>}
+            {placeBet.isError && <p className="mt-2 text-[13px] text-red-500 dark:text-red-400">{t("market.bet_error")}</p>}
           </section>}
 
-          <section className="rounded border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
-            <h2 className="mb-3 text-lg font-semibold">{t("market.comments")}</h2>
-            {/* LLM summary button — D-13 */}
+          <section className="rounded-[10px] bg-white dark:bg-[oklch(18%_0.015_250)] border border-[oklch(91%_0.006_250)] dark:border-[oklch(22%_0.015_250)] p-4">
+            <p className="mb-3 text-[12px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">{t("market.comments")}</p>
             {aiEnabled && <div className="mb-3">
               {summary ? (
-                <div className="rounded bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 p-3 text-sm text-gray-800 dark:text-gray-200 space-y-1">
-                  <p className="text-xs font-medium text-gray-500 dark:text-gray-400">{t("market.ai_summary")}</p>
+                <div className="rounded-[8px] bg-[oklch(97%_0.005_250)] dark:bg-[oklch(20%_0.015_250)] border border-[oklch(91%_0.006_250)] dark:border-[oklch(24%_0.015_250)] p-3 text-[13px] text-gray-800 dark:text-gray-200 space-y-1">
+                  <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">{t("market.ai_summary")}</p>
                   <div className="prose prose-sm max-w-none"><ReactMarkdown>{summary}</ReactMarkdown></div>
-                  <button onClick={() => setSummary(null)} className="text-xs text-blue-600 dark:text-blue-400 hover:underline">
+                  <button onClick={() => setSummary(null)} className="text-[12px] text-[var(--accent)] hover:underline">
                     {t("market.refresh")}
                   </button>
                 </div>
@@ -1236,7 +1234,7 @@ export default function MarketDetailPage() {
                 <button
                   onClick={handleGetSummary}
                   disabled={summaryLoading}
-                  className="rounded border border-gray-300 dark:border-gray-600 px-3 py-1 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50"
+                  className="text-[12px] px-2.5 py-[5px] rounded-md border border-[oklch(88%_0.005_250)] dark:border-[oklch(28%_0.015_250)] text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 disabled:opacity-40 transition-colors"
                 >
                   {summaryLoading ? t("market.summarizing") : t("market.summarize_discussion")}
                 </button>
@@ -1246,13 +1244,13 @@ export default function MarketDetailPage() {
               <input
                 value={commentText}
                 onChange={(event) => setCommentText(event.target.value)}
-                className="flex-1 rounded border border-gray-300 dark:border-gray-600 px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                className="flex-1 px-3 py-2 rounded-md text-[13px] bg-[oklch(97%_0.005_250)] dark:bg-[oklch(20%_0.015_250)] border border-[oklch(91%_0.006_250)] dark:border-[oklch(24%_0.015_250)] text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-600 focus:outline-none focus:border-[var(--accent)] transition-colors"
                 placeholder={t("market.share_reasoning")}
               />
               <button
                 type="submit"
                 disabled={postComment.isPending}
-                className="rounded bg-gray-900 px-4 py-2 text-sm text-white"
+                className="text-[13px] px-3 py-2 rounded-md bg-[var(--accent)] text-white hover:opacity-90 disabled:opacity-40 transition-opacity"
               >
                 {t("market.post")}
               </button>
@@ -1264,12 +1262,12 @@ export default function MarketDetailPage() {
                 return (
                   <div
                     key={comment.id}
-                    style={{ marginLeft: `${depth * 24}px` }}
-                    className="rounded border border-gray-200 dark:border-gray-700 p-3"
+                    style={{ marginLeft: `${depth * 20}px` }}
+                    className="rounded-[8px] border border-[oklch(91%_0.006_250)] dark:border-[oklch(22%_0.015_250)] p-3"
                   >
-                    <UserLink username={comment.author_username} className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1 block" />
-                    <p className="text-sm text-gray-800 dark:text-gray-200">{comment.content}</p>
-                    <div className="mt-2 flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
+                    <UserLink username={comment.author_username} className="text-[12px] font-medium text-[var(--accent)] mb-1 block" />
+                    <p className="text-[13px] text-gray-800 dark:text-gray-200">{comment.content}</p>
+                    <div className="mt-2 flex items-center gap-3 text-[12px] text-gray-400 dark:text-gray-500">
                       <span>{new Date(comment.created_at).toLocaleString()}</span>
                       <button
                         onClick={() => comment.user_has_liked
@@ -1278,7 +1276,7 @@ export default function MarketDetailPage() {
                         }
                         className={`flex items-center gap-1 transition-colors ${comment.user_has_liked ? "text-red-500" : "text-gray-400 hover:text-red-500"}`}
                       >
-                        <span className="text-sm leading-none">{comment.user_has_liked ? "❤️" : "♡"}</span>
+                        <span className="text-[13px] leading-none">{comment.user_has_liked ? "❤️" : "♡"}</span>
                         <span>{comment.upvote_count}</span>
                       </button>
                       {depth < MAX_COMMENT_DEPTH && (
@@ -1287,7 +1285,7 @@ export default function MarketDetailPage() {
                             setReplyText("");
                             setReplyingTo(replyingTo === comment.id ? null : comment.id);
                           }}
-                          className="rounded border border-gray-300 dark:border-gray-600 px-2 py-0.5 hover:bg-gray-100 dark:hover:bg-gray-700"
+                          className="text-[11px] px-2 py-0.5 rounded-md border border-[oklch(88%_0.005_250)] dark:border-[oklch(28%_0.015_250)] text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
                         >
                           {t("market.reply")}
                         </button>
@@ -1305,11 +1303,11 @@ export default function MarketDetailPage() {
                         <input
                           value={replyText}
                           onChange={(e) => setReplyText(e.target.value)}
-                          className="flex-1 rounded border border-gray-300 dark:border-gray-600 px-3 py-1 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                          className="flex-1 px-3 py-1.5 rounded-md text-[13px] bg-[oklch(97%_0.005_250)] dark:bg-[oklch(20%_0.015_250)] border border-[oklch(91%_0.006_250)] dark:border-[oklch(24%_0.015_250)] text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-600 focus:outline-none focus:border-[var(--accent)] transition-colors"
                           placeholder={t("market.write_reply")}
                           autoFocus
                         />
-                        <button type="submit" className="rounded bg-gray-900 px-3 py-1 text-sm text-white">
+                        <button type="submit" className="text-[12px] px-2.5 py-[5px] rounded-md bg-[var(--accent)] text-white hover:opacity-90 disabled:opacity-40 transition-opacity">
                           {t("market.post")}
                         </button>
                       </form>
@@ -1317,7 +1315,7 @@ export default function MarketDetailPage() {
                   </div>
                 );
               })}
-              {commentsQuery.isLoading && <p className="text-sm text-gray-500 dark:text-gray-400">{t("market.loading_comments")}</p>}
+              {commentsQuery.isLoading && <p className="text-[13px] text-gray-400 dark:text-gray-500">{t("market.loading_comments")}</p>}
             </div>
           </section>
         </>

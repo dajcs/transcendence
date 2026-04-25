@@ -159,7 +159,7 @@ describe("ProfilePage", () => {
     expect(screen.getByRole("button", { name: "profile.tab_bets_own" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "profile.tab_markets_own" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "profile.add_friend" })).not.toBeInTheDocument();
-    expect(screen.getByText("❤️")).toHaveClass("text-red-500");
+    expect(screen.getByText("❤️")).toHaveClass("text-gray-400");
     expect(screen.getByText("14")).toBeInTheDocument();
     expect(screen.getByText("BP")).toBeInTheDocument();
     expect(screen.getByText("12.3")).toBeInTheDocument();
@@ -253,7 +253,7 @@ describe("ProfilePage", () => {
     renderPage();
 
     expect(await screen.findByRole("heading", { name: "bob" })).toBeInTheDocument();
-    expect(screen.getByText("profile.no_blurb")).toHaveClass("text-gray-500");
+    expect(screen.getByText("profile.no_blurb")).toHaveClass("text-gray-400");
     expect(screen.getByRole("button", { name: 'profile.tab_points:{"username":"bob"}' })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: 'profile.tab_bets:{"username":"bob"}' })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: 'profile.tab_markets:{"username":"bob"}' })).toBeInTheDocument();
