@@ -295,9 +295,7 @@ const fr = {
   "markets.loading": "Chargement des marchés...",
   "markets.load_error": "Échec du chargement des marchés.",
   "markets.no_match": "Aucun marché ne correspond à vos critères.",
-  "markets.page_of": "Page {page} / {pages}",
-  "markets.prev": "Préc",
-  "markets.next": "Suiv",
+
   "markets.votes": "votes",
   "markets.comments": "commentaires",
   "markets.choices": "choix",

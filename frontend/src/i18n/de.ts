@@ -295,9 +295,7 @@ const de = {
   "markets.loading": "Märkte werden geladen...",
   "markets.load_error": "Märkte konnten nicht geladen werden.",
   "markets.no_match": "Keine Märkte entsprechen Ihren Kriterien.",
-  "markets.page_of": "Seite {page} / {pages}",
-  "markets.prev": "Zurück",
-  "markets.next": "Weiter",
+
   "markets.votes": "Stimmen",
   "markets.comments": "Kommentare",
   "markets.choices": "Optionen",

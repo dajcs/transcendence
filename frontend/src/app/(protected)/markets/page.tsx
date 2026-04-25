@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useRef, useState } from "react";
+import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { api } from "@/lib/api";
 import { getMarketPath } from "@/lib/markets";
@@ -299,8 +299,8 @@ function MarketRow({ market, isLast }: { market: Market; isLast: boolean }) {
 export default function MarketsPage() {
   const t = useT();
   const {
-    sort, sortDir, filter, search, includeDesc, page,
-    setSort, setFilter, setSearch, setIncludeDesc, setPage,
+    sort, sortDir, filter, search, includeDesc,
+    setSort, setFilter, setSearch, setIncludeDesc,
   } = useMarketStore();
 
   const queryClient = useQueryClient();
@@ -317,9 +317,18 @@ export default function MarketsPage() {
     };
   }, [socket, queryClient]);
 
-  const { data, isLoading, isError } = useQuery<MarketListResponse>({
-    queryKey: ["markets", sort, sortDir, filter, search, includeDesc, page],
-    queryFn: async () => {
+  const sentinelRef = useRef<HTMLDivElement>(null);
+
+  const {
+    data,
+    isLoading,
+    isError,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useInfiniteQuery<MarketListResponse>({
+    queryKey: ["markets", sort, sortDir, filter, search, includeDesc],
+    queryFn: async ({ pageParam }) => {
       const params = new URLSearchParams({
         sort,
         sort_dir: sortDir,
@@ -327,12 +336,27 @@ export default function MarketsPage() {
         my_bets: String(filter === "my_bets"),
         q: search,
         include_desc: String(includeDesc),
-        page: String(page),
+        page: String(pageParam),
         limit: "20",
       });
       return (await api.get<MarketListResponse>(`/api/markets?${params}`)).data;
     },
+    initialPageParam: 1,
+    getNextPageParam: (last) => last.page < last.pages ? last.page + 1 : undefined,
   });
+
+  const allMarkets = data?.pages.flatMap((p) => p.items) ?? [];
+
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => { if (entry.isIntersecting && hasNextPage && !isFetchingNextPage) fetchNextPage(); },
+      { rootMargin: "200px" }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   const sortOptions = [
     { key: "active" as const, label: t("markets.sort_hot") },
@@ -458,16 +482,16 @@ export default function MarketsPage() {
       )}
 
       {/* Market rows card */}
-      {data && (
+      {!isLoading && (
         <div className="bg-white dark:bg-[oklch(18%_0.015_250)] border border-[oklch(91%_0.006_250)] dark:border-[oklch(22%_0.015_250)] rounded-[10px] overflow-hidden">
-          {data.items.map((market, i) => (
+          {allMarkets.map((market, i) => (
             <MarketRow
               key={market.id}
               market={market}
-              isLast={i === data.items.length - 1}
+              isLast={i === allMarkets.length - 1}
             />
           ))}
-          {data.items.length === 0 && (
+          {allMarkets.length === 0 && (
             <div className="py-10 text-center text-[13px] text-gray-400 dark:text-gray-500">
               {t("markets.no_match")}
             </div>
@@ -475,29 +499,12 @@ export default function MarketsPage() {
         </div>
       )}
 
-      {/* Pagination */}
-      {!!data && data.pages > 1 && (
-        <div className="flex items-center justify-between mt-4 text-[13px]">
-          <span className="text-gray-400 dark:text-gray-500">
-            {t("markets.page_of", { page: data.page, pages: data.pages })}
-          </span>
-          <div className="flex gap-2">
-            <button
-              onClick={() => setPage(Math.max(1, page - 1))}
-              disabled={page <= 1}
-              className="px-3 py-1.5 rounded-lg border border-[oklch(91%_0.006_250)] dark:border-[oklch(24%_0.015_250)] text-gray-600 dark:text-gray-400 disabled:opacity-40 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors"
-            >
-              {t("markets.prev")}
-            </button>
-            <button
-              onClick={() => setPage(Math.min(data.pages, page + 1))}
-              disabled={page >= data.pages}
-              className="px-3 py-1.5 rounded-lg border border-[oklch(91%_0.006_250)] dark:border-[oklch(24%_0.015_250)] text-gray-600 dark:text-gray-400 disabled:opacity-40 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors"
-            >
-              {t("markets.next")}
-            </button>
-          </div>
-        </div>
+      {/* Infinite scroll sentinel + loading indicator */}
+      <div ref={sentinelRef} className="h-1" />
+      {isFetchingNextPage && (
+        <p className="text-[13px] text-gray-400 dark:text-gray-500 py-4 text-center">
+          {t("markets.loading")}
+        </p>
       )}
     </div>
   );

@@ -295,9 +295,7 @@ const en = {
   "markets.loading": "Loading markets...",
   "markets.load_error": "Failed to load markets.",
   "markets.no_match": "No markets match your criteria.",
-  "markets.page_of": "Page {page} / {pages}",
-  "markets.prev": "Prev",
-  "markets.next": "Next",
+
   "markets.votes": "votes",
   "markets.comments": "comments",
   "markets.choices": "choices",
