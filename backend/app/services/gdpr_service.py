@@ -24,7 +24,7 @@ async def export_user_data(db: AsyncSession, user: User) -> dict:
         "email": user.email,
         "username": user.username,
         "avatar_url": user.avatar_url,
-        "bio": user.bio,
+        "mission": user.mission,
         "created_at": _iso(user.created_at),
         "last_login": _iso(user.last_login),
         "llm_mode": user.llm_mode,
@@ -191,7 +191,7 @@ async def delete_account(db: AsyncSession, user: User) -> None:
     user.email = f"deleted-{uid}@deleted.local"
     user.password_hash = None
     user.avatar_url = None
-    user.bio = None
+    user.mission = None
     user.is_active = False
     user.llm_api_key = None
     user.llm_mode = "disabled"

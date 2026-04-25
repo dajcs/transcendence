@@ -32,7 +32,7 @@ interface Profile {
   id: string;
   username: string;
   avatar_url: string | null;
-  bio: string | null;
+  mission: string | null;
   created_at: string;
   lp: number;
   bp: number;
@@ -82,7 +82,7 @@ export default function ProfilePage() {
 
   const [activeTab, setActiveTab] = useState<Tab>("points");
   const [editing, setEditing] = useState(false);
-  const [bio, setBio] = useState("");
+  const [mission, setBio] = useState("");
   const [txOffset, setTxOffset] = useState(0);
   const [sortBy, setSortBy] = useState<"date" | "bp" | "tp" | "type">("date");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
@@ -148,19 +148,19 @@ export default function ProfilePage() {
     if (n === 0) return "—";
     return (n > 0 ? "+" : "") + n.toFixed(1);
   };
-  const trimmedBio = bio.trim();
-  const savedBio = profile?.bio ?? "";
+  const trimmedBio = mission.trim();
+  const savedBio = profile?.mission ?? "";
   const canAcceptMission = isOwnProfile && trimmedBio.length > 0 && trimmedBio !== savedBio;
 
   useEffect(() => {
-    if (profile && !editing) setBio(profile.bio || "");
-  }, [profile?.bio, editing]);
+    if (profile && !editing) setBio(profile.mission || "");
+  }, [profile?.mission, editing]);
 
   const updateProfile = useMutation({
-    mutationFn: async (data: { bio?: string }) => api.put("/api/users/me", data),
+    mutationFn: async (data: { mission?: string }) => api.put("/api/users/me", data),
     onSuccess: async (_result, data) => {
       queryClient.setQueryData<Profile>(["profile", params.username], (current) =>
-        current ? { ...current, bio: data.bio ?? current.bio } : current
+        current ? { ...current, mission: data.mission ?? current.mission } : current
       );
       setEditing(false);
     },
@@ -240,10 +240,10 @@ export default function ProfilePage() {
                 </p>
 
                 <div className="mt-2">
-                  {isOwnProfile && (!profile.bio || editing) ? (
+                  {isOwnProfile && (!profile.mission || editing) ? (
                     <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
                       <input
-                        value={bio}
+                        value={mission}
                         onChange={(e) => setBio(e.target.value)}
                         maxLength={500}
                         className="flex-1 px-3 py-1.5 rounded-md text-[13px] bg-[oklch(97%_0.005_250)] dark:bg-[oklch(20%_0.015_250)] border border-[oklch(91%_0.006_250)] dark:border-[oklch(24%_0.015_250)] text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-600 focus:outline-none focus:border-[var(--accent)] transition-colors sm:max-w-md"
@@ -251,7 +251,7 @@ export default function ProfilePage() {
                       />
                       {canAcceptMission && (
                         <button
-                          onClick={() => updateProfile.mutate({ bio: trimmedBio })}
+                          onClick={() => updateProfile.mutate({ mission: trimmedBio })}
                           disabled={updateProfile.isPending}
                           className="w-fit text-[12px] px-2.5 py-[5px] rounded-md bg-[var(--accent)] text-white hover:opacity-90 disabled:opacity-40 transition-opacity"
                         >
@@ -265,12 +265,12 @@ export default function ProfilePage() {
                       title={t("profile.change_mission")}
                       className="text-left text-[13px] text-gray-700 dark:text-gray-300 hover:text-[var(--accent)] transition-colors"
                     >
-                      {profile.bio}
+                      {profile.mission}
                     </button>
-                  ) : !profile.bio ? (
+                  ) : !profile.mission ? (
                     <p className="text-[13px] text-gray-400 dark:text-gray-500">{t("profile.no_blurb")}</p>
                   ) : (
-                    <p className="text-[13px] text-gray-700 dark:text-gray-300">{profile.bio}</p>
+                    <p className="text-[13px] text-gray-700 dark:text-gray-300">{profile.mission}</p>
                   )}
                 </div>
               </div>

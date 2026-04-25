@@ -83,6 +83,8 @@ class MarketResponse(BaseModel):
     status: str
     proposer_id: uuid.UUID
     proposer_username: str = ""
+    proposer_mission: str | None = None
+    proposer_created_at: datetime | None = None
     created_at: datetime
     market_type: str = "binary"
     choices: list[str] | None = None

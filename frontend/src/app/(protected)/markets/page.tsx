@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { api } from "@/lib/api";
@@ -28,6 +29,43 @@ function Avatar({ username }: { username: string }) {
       className="w-[26px] h-[26px] rounded-full shrink-0 flex items-center justify-center text-white font-bold text-[12px]"
     >
       {(username[0] ?? "?").toUpperCase()}
+    </div>
+  );
+}
+
+function AvatarWithTooltip({
+  username,
+  mission,
+  createdAt,
+  profileHref,
+}: {
+  username: string;
+  mission: string | null;
+  createdAt: string | null;
+  profileHref: string;
+}) {
+  const joined = createdAt
+    ? new Date(createdAt).toLocaleDateString(undefined, { year: "numeric", month: "short" })
+    : null;
+  return (
+    <div className="relative group/avatar shrink-0">
+      <Link
+        href={profileHref}
+        onClick={(e) => e.stopPropagation()}
+        className="block"
+        tabIndex={0}
+      >
+        <Avatar username={username} />
+      </Link>
+      <div className="pointer-events-none absolute left-0 top-full mt-1.5 z-50 w-44 rounded-lg shadow-lg border border-gray-100 dark:border-[oklch(26%_0.015_250)] bg-white dark:bg-[oklch(18%_0.015_250)] p-2.5 opacity-0 group-hover/avatar:opacity-100 transition-opacity duration-150">
+        <p className="text-[12px] font-semibold text-gray-900 dark:text-gray-100 truncate">@{username}</p>
+        {mission && (
+          <p className="text-[11px] text-gray-700 dark:text-gray-300 mt-0.5 line-clamp-2">{mission}</p>
+        )}
+        {joined && (
+          <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-1">Joined {joined}</p>
+        )}
+      </div>
     </div>
   );
 }
@@ -186,6 +224,7 @@ function StatusBadge({ status, isOwn }: { status: string; isOwn: boolean }) {
 // --- Individual market row ---
 function MarketRow({ market, isLast }: { market: Market; isLast: boolean }) {
   const t = useT();
+  const router = useRouter();
   const queryClient = useQueryClient();
   const bootstrap = useAuthStore((s) => s.bootstrap);
   const currentUser = useAuthStore((s) => s.user);
@@ -207,17 +246,24 @@ function MarketRow({ market, isLast }: { market: Market; isLast: boolean }) {
 
   const isOwn = currentUser?.id === market.proposer_id;
 
+  const profileHref = `/profile/${encodeURIComponent(market.proposer_username || "")}`;
+
   return (
-    <Link
-      href={getMarketPath(market)}
-      className={`grid gap-x-3 px-3 py-2.5 items-center hover:bg-[oklch(97%_0.008_264)] dark:hover:bg-[oklch(20%_0.015_250)] transition-colors duration-100 ${
+    <div
+      onClick={() => router.push(getMarketPath(market))}
+      className={`grid gap-x-3 px-3 py-2.5 items-center cursor-pointer hover:bg-[oklch(97%_0.008_264)] dark:hover:bg-[oklch(20%_0.015_250)] transition-colors duration-100 ${
         !isLast ? "border-b border-gray-100 dark:border-[oklch(22%_0.015_250)]" : ""
       }`}
       style={{ gridTemplateColumns: "1fr 110px 84px 44px" }}
     >
       {/* Col 1: avatar + title + stat pills */}
       <div className="flex gap-2.5 items-start min-w-0">
-        <Avatar username={market.proposer_username || "?"} />
+        <AvatarWithTooltip
+          username={market.proposer_username || "?"}
+          mission={market.proposer_mission ?? null}
+          createdAt={market.proposer_created_at ?? null}
+          profileHref={profileHref}
+        />
         <div className="flex-1 min-w-0">
           <div className="text-[13px] font-medium text-gray-900 dark:text-gray-100 leading-[1.35] mb-1">
             {market.title}
@@ -291,7 +337,7 @@ function MarketRow({ market, isLast }: { market: Market; isLast: boolean }) {
       <div className="flex justify-center">
         <TimeClock createdAt={market.created_at} deadline={market.deadline} />
       </div>
-    </Link>
+    </div>
   );
 }
 
@@ -332,8 +378,9 @@ export default function MarketsPage() {
       const params = new URLSearchParams({
         sort,
         sort_dir: sortDir,
-        status: filter === "my_bets" ? "all" : filter,
+        status: filter === "my_bets" || filter === "liked" ? "all" : filter,
         my_bets: String(filter === "my_bets"),
+        liked: String(filter === "liked"),
         q: search,
         include_desc: String(includeDesc),
         page: String(pageParam),
@@ -370,6 +417,7 @@ export default function MarketsPage() {
     { key: "open" as const, label: t("markets.filter_open") },
     { key: "disputed" as const, label: t("markets.filter_disputed") },
     { key: "resolved" as const, label: t("markets.filter_resolved") },
+    { key: "liked" as const, label: t("markets.filter_liked") },
   ];
 
   return (

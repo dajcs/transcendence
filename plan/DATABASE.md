@@ -290,7 +290,7 @@ CREATE UNIQUE INDEX uq_friend_pair_symmetric
 | 005 | `005_friend_request_unique_constraint.py` | Directional unique constraint (superseded) |
 | 006 | `006_symmetric_friend_constraint.py` | Replace with symmetric LEAST/GREATEST unique index |
 | 007 | `007_friend_request_query_indexes.py` | Composite indexes on `(from_user_id, status)` and `(to_user_id, status)` |
-| 008 | `008_add_user_bio.py` | `users.bio` (Text, nullable) |
+| 008 | `008_add_user_bio.py` | `users.mission` (Text, nullable) |
 | 009 | `009_add_llm_opt_out.py` | `users.llm_opt_out` (Boolean, server_default false) |
 | 010 | `010_llm_user_config.py` | Replace `llm_opt_out` with `llm_mode` (Text, default 'default'), `llm_provider` (Text, nullable), `llm_api_key` (Text, nullable) |
 

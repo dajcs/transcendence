@@ -4,7 +4,7 @@ import { create } from "zustand";
 
 type SortOption = "deadline" | "active" | "newest";
 type SortDir = "asc" | "desc";
-type FilterOption = "all" | "my_bets" | "open" | "disputed" | "resolved";
+type FilterOption = "all" | "my_bets" | "open" | "disputed" | "resolved" | "liked";
 
 const DEFAULT_DIRS: Record<SortOption, SortDir> = {
   deadline: "asc",

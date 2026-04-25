@@ -107,6 +107,7 @@ async def list_markets(
     status: str = "all",
     my_bets: bool = False,
     my_markets: bool = False,
+    liked: bool = False,
     user_id: uuid.UUID | None = None,
     proposer_id: uuid.UUID | None = None,
     q: str = "",
@@ -153,6 +154,14 @@ async def list_markets(
     if my_markets and user_id:
         query = query.where(Market.proposer_id == user_id)
 
+    # Liked filter — markets the current user has upvoted
+    if liked and user_id:
+        query = query.where(
+            Market.id.in_(
+                select(MarketUpvote.market_id).where(MarketUpvote.user_id == user_id)
+            )
+        )
+
     # Public proposer filter — for profile page "My Markets" tab
     if proposer_id:
         query = query.where(Market.proposer_id == proposer_id)
@@ -195,11 +204,15 @@ async def list_markets(
 
     proposer_ids = {row.proposer_id for row in rows}
     username_map: dict[uuid.UUID, str] = {}
+    bio_map: dict[uuid.UUID, str | None] = {}
+    created_at_map: dict[uuid.UUID, object] = {}
     if proposer_ids:
         uname_rows = (await db.execute(
-            select(User.id, User.username).where(User.id.in_(proposer_ids))
+            select(User.id, User.username, User.mission, User.created_at).where(User.id.in_(proposer_ids))
         )).all()
-        username_map = {uid: uname for uid, uname in uname_rows}
+        username_map = {uid: uname for uid, uname, _m, _cat in uname_rows}
+        mission_map = {uid: m for uid, _uname, m, _cat in uname_rows}
+        created_at_map = {uid: cat for uid, _uname, _m, cat in uname_rows}
 
     items: list[MarketResponse] = []
     for row in rows:
@@ -246,6 +259,8 @@ async def list_markets(
                 status=row.status,
                 proposer_id=row.proposer_id,
                 proposer_username=username_map.get(row.proposer_id, ""),
+                proposer_mission=mission_map.get(row.proposer_id),
+                proposer_created_at=created_at_map.get(row.proposer_id),
                 created_at=row.created_at,
                 market_type=row.market_type,
                 choices=row.choices,

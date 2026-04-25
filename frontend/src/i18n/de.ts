@@ -289,6 +289,7 @@ const de = {
   "markets.filter_closed": "Geschlossen",
   "markets.filter_disputed": "Angefochten",
   "markets.filter_resolved": "Aufgelöst",
+  "markets.filter_liked": "Geliked",
   "markets.sort_by": "Sortieren",
   "markets.filter": "Filtern",
   "markets.include_desc_search": "Beschreibung und Kriterien in Suche einbeziehen",

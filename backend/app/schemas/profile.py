@@ -10,7 +10,7 @@ class PublicProfileResponse(BaseModel):
     id: uuid.UUID
     username: str
     avatar_url: str | None
-    bio: str | None
+    mission: str | None
     created_at: datetime
     lp: int = 0
     bp: float = 0.0
@@ -25,7 +25,7 @@ class PublicProfileResponse(BaseModel):
 
 class UpdateProfileRequest(BaseModel):
     username: str | None = None
-    bio: str | None = None
+    mission: str | None = None
     avatar_url: str | None = None
 
     @field_validator("username")
@@ -39,9 +39,9 @@ class UpdateProfileRequest(BaseModel):
             raise ValueError("Username may only contain letters, digits, underscores, and hyphens")
         return v
 
-    @field_validator("bio")
+    @field_validator("mission")
     @classmethod
-    def bio_length(cls, v: str | None) -> str | None:
+    def mission_length(cls, v: str | None) -> str | None:
         if v is not None and len(v) > 500:
             raise ValueError("Bio must be under 500 characters")
         return v

@@ -77,7 +77,7 @@ async def get_public_profile(
         id=user.id,
         username=user.username,
         avatar_url=user.avatar_url,
-        bio=user.bio,
+        mission=user.mission,
         created_at=user.created_at,
         lp=int(balances["lp"]),
         bp=float(balances["bp"]),
@@ -101,8 +101,8 @@ async def update_profile(db: AsyncSession, user_id: uuid.UUID, data: UpdateProfi
             raise HTTPException(status_code=409, detail="Username already taken")
         user.username = data.username
 
-    if data.bio is not None:
-        user.bio = data.bio
+    if data.mission is not None:
+        user.mission = data.mission
 
     if data.avatar_url is not None:
         user.avatar_url = data.avatar_url

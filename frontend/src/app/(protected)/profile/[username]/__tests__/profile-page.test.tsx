@@ -33,7 +33,7 @@ const profile = {
   id: "user-1",
   username: "alice",
   avatar_url: null,
-  bio: null,
+  mission: null,
   created_at: "2026-01-02T00:00:00.000Z",
   lp: 14,
   bp: 12.25,
@@ -179,7 +179,7 @@ describe("ProfilePage", () => {
     await userEvent.click(screen.getByRole("button", { name: "profile.accept_mission" }));
 
     await waitFor(() => {
-      expect(mockPut).toHaveBeenCalledWith("/api/users/me", { bio: "Predict carefully" });
+      expect(mockPut).toHaveBeenCalledWith("/api/users/me", { mission: "Predict carefully" });
     });
     expect(await screen.findByRole("button", { name: "Predict carefully" })).toHaveAttribute(
       "title",
@@ -191,7 +191,7 @@ describe("ProfilePage", () => {
   it("turns an existing mission statement into an inline editor when clicked", async () => {
     mockGet.mockImplementation((url: string) => {
       if (url === "/api/users/alice") {
-        return Promise.resolve({ data: { ...profile, bio: "Existing mission" } });
+        return Promise.resolve({ data: { ...profile, mission: "Existing mission" } });
       }
       if (url.startsWith("/api/users/alice/transactions")) {
         return Promise.resolve({ data: transactions });

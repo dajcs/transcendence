@@ -60,6 +60,7 @@ async def list_markets(
     status: str = Query(default="all", pattern="^(all|open|closed|disputed|resolved)$"),
     my_bets: bool = Query(default=False),
     my_markets: bool = Query(default=False),
+    liked: bool = Query(default=False),
     proposer_id: uuid.UUID | None = Query(default=None),
     q: str = Query(default=""),
     include_desc: bool = Query(default=False),
@@ -69,7 +70,7 @@ async def list_markets(
 ):
     current_user = await _get_current_user_optional(request, db)
     user_id = current_user.id if current_user else None
-    if my_bets or my_markets:
+    if my_bets or my_markets or liked:
         if user_id is None:
             raise HTTPException(status_code=401, detail="Login required for this filter")
 
@@ -80,6 +81,7 @@ async def list_markets(
         status=status,
         my_bets=my_bets,
         my_markets=my_markets,
+        liked=liked,
         user_id=user_id,
         proposer_id=proposer_id,
         q=q,
