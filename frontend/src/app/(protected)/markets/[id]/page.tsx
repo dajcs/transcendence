@@ -477,43 +477,43 @@ export default function MarketDetailPage() {
   }
 
   return (
-    <div className="space-y-6">
-      {marketQuery.isLoading && <p className="text-sm text-gray-500 dark:text-gray-400">{t("market.loading")}</p>}
-      {marketQuery.isError && <p className="text-sm text-red-600 dark:text-red-400">{t("market.load_error")}</p>}
+    <div className="space-y-3">
+      {marketQuery.isLoading && <p className="text-[13px] text-gray-400 dark:text-gray-500">{t("market.loading")}</p>}
+      {marketQuery.isError && <p className="text-[13px] text-red-500 dark:text-red-400">{t("market.load_error")}</p>}
 
       {market && (
         <>
-          <header className="space-y-2">
+          <header className="bg-white dark:bg-[oklch(18%_0.015_250)] border border-[oklch(91%_0.006_250)] dark:border-[oklch(22%_0.015_250)] rounded-[10px] p-4 space-y-2">
             <div className="flex items-start justify-between gap-4">
-              <h1 className="text-2xl font-bold">{market.title}</h1>
+              <p className="text-[16px] font-bold text-gray-900 dark:text-gray-100">{market.title}</p>
               <button
                 onClick={() => market.user_has_liked ? unlikeMarket.mutate() : upvoteMarket.mutate()}
                 disabled={upvoteMarket.isPending || unlikeMarket.isPending}
                 className="shrink-0 flex flex-col items-center transition-colors disabled:opacity-50 px-2"
               >
-                <span className={`text-2xl leading-none ${market.user_has_liked ? "text-red-500" : "text-gray-400 dark:text-gray-500"}`}>
+                <span className={`text-xl leading-none ${market.user_has_liked ? "text-red-500" : "text-gray-400 dark:text-gray-500"}`}>
                   {market.user_has_liked ? "❤️" : "♡"}
                 </span>
-                <span className="text-xs font-medium text-gray-500 dark:text-gray-400">{market.upvote_count}</span>
+                <span className="text-[11px] font-medium text-gray-400 dark:text-gray-500">{market.upvote_count}</span>
               </button>
             </div>
             <UserLink
               username={market.proposer_username || "unknown"}
               label={`@${market.proposer_username || "unknown"}`}
-              className="block text-sm font-medium text-blue-600 dark:text-blue-400"
+              className="block text-[13px] font-medium text-[var(--accent)]"
             />
-            <p className="text-sm text-gray-600 dark:text-gray-400">{market.description}</p>
-            <p className="text-sm text-gray-500 dark:text-gray-400">{t("market.resolution_label")} {market.resolution_criteria}</p>
+            <p className="text-[13px] text-gray-600 dark:text-gray-400">{market.description}</p>
+            <p className="text-[13px] text-gray-500 dark:text-gray-400">{t("market.resolution_label")} {market.resolution_criteria}</p>
           </header>
 
-          <section className="rounded border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
-            <h2 className="mb-2 text-lg font-semibold">{t("market.live_odds")}</h2>
+          <section className="rounded-[10px] bg-white dark:bg-[oklch(18%_0.015_250)] border border-[oklch(91%_0.006_250)] dark:border-[oklch(22%_0.015_250)] p-4">
+            <p className="mb-2 text-[12px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">{t("market.live_odds")}</p>
             {market.market_type === "binary" && (
               <>
-                <div className="mb-2 h-3 overflow-hidden rounded bg-gray-200 dark:bg-gray-700">
-                  <div className="h-full bg-green-500" style={{ width: `${market.yes_pct}%` }} />
+                <div className="mb-2 h-2 overflow-hidden rounded-full bg-[oklch(91%_0.006_250)] dark:bg-[oklch(22%_0.015_250)]">
+                  <div className="h-full bg-green-500 transition-all" style={{ width: `${market.yes_pct}%` }} />
                 </div>
-                <div className="flex justify-between text-sm">
+                <div className="flex justify-between text-[13px]">
                   <span className="font-semibold text-green-600 dark:text-green-400">YES {market.yes_pct}% ({market.yes_count})</span>
                   <span className="font-semibold text-red-600 dark:text-red-400">NO {market.no_pct}% ({market.no_count})</span>
                 </div>
@@ -526,17 +526,17 @@ export default function MarketDetailPage() {
                   const pct = market.position_count > 0 ? Math.round((count / market.position_count) * 100) : 0;
                   return (
                     <div key={choice}>
-                      <div className="flex justify-between text-sm mb-1">
-                        <span>{choice}</span>
-                        <span className="text-gray-500 dark:text-gray-400">{t("market.votes_count", { count, pct })}</span>
+                      <div className="flex justify-between text-[13px] mb-1">
+                        <span className="text-gray-700 dark:text-gray-300">{choice}</span>
+                        <span className="text-gray-400 dark:text-gray-500">{t("market.votes_count", { count, pct })}</span>
                       </div>
-                      <div className="h-3 overflow-hidden rounded bg-gray-200 dark:bg-gray-700">
-                        <div className="h-full bg-blue-500 transition-all" style={{ width: `${pct}%` }} />
+                      <div className="h-2 overflow-hidden rounded-full bg-[oklch(91%_0.006_250)] dark:bg-[oklch(22%_0.015_250)]">
+                        <div className="h-full bg-[var(--accent)] transition-all" style={{ width: `${pct}%` }} />
                       </div>
                     </div>
                   );
                 })}
-                <p className="text-xs text-gray-500 dark:text-gray-400 pt-1">{t("market.total_votes_count", { count: market.position_count })}</p>
+                <p className="text-[12px] text-gray-400 dark:text-gray-500 pt-1">{t("market.total_votes_count", { count: market.position_count })}</p>
               </div>
             )}
             {market.market_type === "numeric" && (() => {
@@ -589,71 +589,71 @@ export default function MarketDetailPage() {
             })()}
           </section>
 
-          {/* Participants Section — D-08, D-09 */}
-          <section className="rounded border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 space-y-3">
-            <h2 className="text-lg font-semibold">{t("market.participants")}</h2>
+          {/* Participants Section */}
+          <section className="rounded-[10px] bg-white dark:bg-[oklch(18%_0.015_250)] border border-[oklch(91%_0.006_250)] dark:border-[oklch(22%_0.015_250)] p-4 space-y-3">
+            <p className="text-[12px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">{t("market.participants")}</p>
             {participantsQuery.isLoading ? (
               <div className="space-y-2 animate-pulse">
                 {[0, 1, 2].map((i) => (
-                  <div key={i} className="h-8 rounded bg-gray-200 dark:bg-gray-700" />
+                  <div key={i} className="h-7 rounded-md bg-gray-100 dark:bg-[oklch(22%_0.015_250)]" />
                 ))}
               </div>
             ) : participantsQuery.isError ? (
-              <p className="text-sm text-red-600 dark:text-red-400">{t("market.participants_error")}</p>
+              <p className="text-[13px] text-red-500 dark:text-red-400">{t("market.participants_error")}</p>
             ) : (
               <>
                 {participantsQuery.data && (
-                  <div className={`grid gap-2 text-center text-sm mb-3 ${market?.market_type === "numeric" ? "grid-cols-2" : "grid-cols-3"}`}>
+                  <div className={`grid gap-2 text-center mb-3 ${market?.market_type === "numeric" ? "grid-cols-2" : "grid-cols-3"}`}>
                     <div>
-                      <p className="text-lg font-semibold">{participantsQuery.data.aggregate.total_bp} BP</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">{t("market.total_staked")}</p>
+                      <p className="text-[15px] font-semibold text-gray-900 dark:text-gray-100 tabular-nums">{participantsQuery.data.aggregate.total_bp} BP</p>
+                      <p className="text-[11px] text-gray-400 dark:text-gray-500">{t("market.total_staked")}</p>
                     </div>
                     {market?.market_type !== "numeric" && (
                       <div>
-                        <p className="text-lg font-semibold">
+                        <p className="text-[15px] font-semibold text-gray-900 dark:text-gray-100">
                           {Object.entries(participantsQuery.data.aggregate.by_side)
                             .map(([side, cnt]) => `${cnt} ${side.toUpperCase()}`)
                             .join(" / ") || "0"}
                         </p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">{t("market.participants_count")}</p>
+                        <p className="text-[11px] text-gray-400 dark:text-gray-500">{t("market.participants_count")}</p>
                       </div>
                     )}
                     <div>
-                      <p className="text-lg font-semibold">{participantsQuery.data.aggregate.avg_bp} BP</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">{t("market.avg_stake")}</p>
+                      <p className="text-[15px] font-semibold text-gray-900 dark:text-gray-100 tabular-nums">{participantsQuery.data.aggregate.avg_bp} BP</p>
+                      <p className="text-[11px] text-gray-400 dark:text-gray-500">{t("market.avg_stake")}</p>
                     </div>
                   </div>
                 )}
                 {allParticipants.length === 0 ? (
-                  <p className="text-sm text-gray-500 dark:text-gray-400">{t("market.no_participants")}</p>
+                  <p className="text-[13px] text-gray-400 dark:text-gray-500">{t("market.no_participants")}</p>
                 ) : (
-                  <div className="overflow-auto max-h-64 rounded border border-gray-100 dark:border-gray-700">
-                    <table className="w-full text-sm">
-                      <thead className="sticky top-0 bg-white dark:bg-gray-800 z-10">
-                        <tr className="border-b border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">
-                          <th className="pb-2 pt-1 px-2 text-left cursor-pointer select-none hover:text-gray-700 dark:hover:text-gray-200" onClick={() => toggleSort(participantSort, setParticipantSort, "username")}>
+                  <div className="overflow-auto max-h-64 rounded-[8px] border border-[oklch(91%_0.006_250)] dark:border-[oklch(22%_0.015_250)]">
+                    <table className="w-full">
+                      <thead className="sticky top-0 bg-white dark:bg-[oklch(18%_0.015_250)] z-10">
+                        <tr className="border-b border-gray-100 dark:border-[oklch(22%_0.015_250)]">
+                          <th className="pb-2 pt-1 px-2 text-left text-[11px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider cursor-pointer select-none hover:text-gray-600 dark:hover:text-gray-300" onClick={() => toggleSort(participantSort, setParticipantSort, "username")}>
                             {t("market.participant_user")}{sortIndicator(participantSort, "username")}
                           </th>
-                          <th className="pb-2 pt-1 px-2 text-left cursor-pointer select-none hover:text-gray-700 dark:hover:text-gray-200" onClick={() => toggleSort(participantSort, setParticipantSort, "side")}>
+                          <th className="pb-2 pt-1 px-2 text-left text-[11px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider cursor-pointer select-none hover:text-gray-600 dark:hover:text-gray-300" onClick={() => toggleSort(participantSort, setParticipantSort, "side")}>
                             {t("market.participant_side")}{sortIndicator(participantSort, "side")}
                           </th>
-                          <th className="pb-2 pt-1 px-2 text-right cursor-pointer select-none hover:text-gray-700 dark:hover:text-gray-200" onClick={() => toggleSort(participantSort, setParticipantSort, "bp_staked")}>
+                          <th className="pb-2 pt-1 px-2 text-right text-[11px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider cursor-pointer select-none hover:text-gray-600 dark:hover:text-gray-300" onClick={() => toggleSort(participantSort, setParticipantSort, "bp_staked")}>
                             {t("market.participant_stake")}{sortIndicator(participantSort, "bp_staked")}
                           </th>
-                          <th className="pb-2 pt-1 px-2 text-right cursor-pointer select-none hover:text-gray-700 dark:hover:text-gray-200" onClick={() => toggleSort(participantSort, setParticipantSort, "created_at")}>
+                          <th className="pb-2 pt-1 px-2 text-right text-[11px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider cursor-pointer select-none hover:text-gray-600 dark:hover:text-gray-300" onClick={() => toggleSort(participantSort, setParticipantSort, "created_at")}>
                             {t("market.participant_time")}{sortIndicator(participantSort, "created_at")}
                           </th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
+                      <tbody className="divide-y divide-gray-100 dark:divide-[oklch(22%_0.015_250)]">
                         {sortedRows(allParticipants, participantSort).map((p) => (
-                          <tr key={`${p.user_id}-${p.created_at}`}>
-                            <td className="py-2 px-2"><UserLink username={p.username} /></td>
-                            <td className={`py-2 px-2 font-medium ${p.side === "yes" ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
+                          <tr key={`${p.user_id}-${p.created_at}`} className="hover:bg-[oklch(97%_0.008_264)] dark:hover:bg-[oklch(20%_0.015_250)] transition-colors duration-100">
+                            <td className="py-2 px-2 text-[13px]"><UserLink username={p.username} className="text-[var(--accent)]" /></td>
+                            <td className={`py-2 px-2 text-[13px] font-medium ${p.side === "yes" ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
                               {p.side.toUpperCase()}
                             </td>
-                            <td className="py-2 px-2 text-right">{p.bp_staked} BP</td>
-                            <td className="py-2 px-2 text-right text-xs text-gray-500 dark:text-gray-400">
+                            <td className="py-2 px-2 text-right text-[13px] tabular-nums">{p.bp_staked} BP</td>
+                            <td className="py-2 px-2 text-right text-[12px] tabular-nums text-gray-400 dark:text-gray-500">
                               {new Date(p.created_at).toLocaleString()}
                             </td>
                           </tr>
@@ -665,7 +665,7 @@ export default function MarketDetailPage() {
                 {participantsQuery.data && allParticipants.length < participantsQuery.data.total && (
                   <button
                     onClick={() => setParticipantOffset((o) => o + 20)}
-                    className="text-sm text-blue-600 hover:underline"
+                    className="text-[12px] text-[var(--accent)] hover:underline"
                   >
                     {participantsQuery.isFetching ? t("common.loading") : t("market.show_more_participants")}
                   </button>
@@ -675,9 +675,9 @@ export default function MarketDetailPage() {
           </section>
 
           {myPosition && market && (
-            <section className="rounded border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20 p-4">
-              <h2 className="mb-2 text-lg font-semibold text-blue-900 dark:text-blue-300">{t("market.your_position")}</h2>
-              <p className="text-sm text-blue-800 dark:text-blue-300">
+            <section className="rounded-[10px] border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20 p-4">
+              <p className="mb-2 text-[12px] font-semibold uppercase tracking-wider text-blue-600 dark:text-blue-400">{t("market.your_position")}</p>
+              <p className="text-[13px] text-blue-800 dark:text-blue-300">
                 {market.market_type === "numeric" ? (
                   <>{t("market.estimate_label")} <span className="font-medium">{myPosition.side}</span></>
                 ) : market.market_type === "multiple_choice" ? (
@@ -692,13 +692,13 @@ export default function MarketDetailPage() {
                   {!showWithdrawConfirm ? (
                     <button
                       onClick={() => setShowWithdrawConfirm(true)}
-                      className="mt-3 rounded border border-red-300 dark:border-red-700 px-3 py-1 text-sm text-red-700 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20"
+                      className="mt-3 text-[12px] px-2.5 py-[5px] rounded-md border border-red-300 dark:border-red-700 text-red-700 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
                     >
                       {t("market.withdraw")}
                     </button>
                   ) : (
                     <div className="mt-3 flex items-center gap-3 flex-wrap">
-                      <p className="text-sm text-red-700 dark:text-red-400">
+                      <p className="text-[13px] text-red-700 dark:text-red-400">
                         {t("market.refund_bp", {
                           stake: myPosition.bp_staked,
                           prob: refundEstimate!.rate,
@@ -709,20 +709,20 @@ export default function MarketDetailPage() {
                       <button
                         onClick={() => withdrawBet.mutate(myPosition.id)}
                         disabled={withdrawBet.isPending}
-                        className="rounded bg-red-600 px-3 py-1 text-sm text-white hover:bg-red-700 disabled:opacity-50"
+                        className="text-[12px] px-2.5 py-[5px] rounded-md bg-red-600 text-white hover:opacity-90 disabled:opacity-40 transition-opacity"
                       >
                         {withdrawBet.isPending ? t("market.withdrawing") : t("market.withdraw_confirm")}
                       </button>
                       <button
                         onClick={() => setShowWithdrawConfirm(false)}
-                        className="text-sm text-gray-600 dark:text-gray-400 hover:underline"
+                        className="text-[13px] text-gray-500 dark:text-gray-400 hover:underline"
                       >
                         {t("common.cancel")}
                       </button>
                     </div>
                   )}
                   {withdrawBet.isError && (
-                    <p className="mt-2 text-sm text-red-600 dark:text-red-400">{t("market.withdraw_failed")}</p>
+                    <p className="mt-2 text-[13px] text-red-500 dark:text-red-400">{t("market.withdraw_failed")}</p>
                   )}
                 </>
               )}
@@ -731,25 +731,25 @@ export default function MarketDetailPage() {
 
           {/* ResolutionSection: visible when deadline passed or status is in resolution */}
           {(deadlinePassed || market.status !== "open") && (
-            <section className="rounded border border-yellow-200 dark:border-yellow-700 bg-yellow-50 dark:bg-yellow-900/20 p-4 space-y-3">
-              <h2 className="text-lg font-semibold text-yellow-900 dark:text-yellow-300">{t("market.resolution")}</h2>
+            <section className="rounded-[10px] border border-yellow-200 dark:border-yellow-700 bg-yellow-50 dark:bg-yellow-900/20 p-4 space-y-3">
+              <p className="text-[12px] font-semibold uppercase tracking-wider text-yellow-700 dark:text-yellow-400">{t("market.resolution")}</p>
 
               {/* Payout banner */}
               {payoutBanner && (
-                <div className="rounded bg-green-100 dark:bg-green-900/20 border border-green-300 dark:border-green-700 p-3 text-sm text-green-800 dark:text-green-300">
+                <div className="rounded-[8px] bg-green-100 dark:bg-green-900/20 border border-green-300 dark:border-green-700 p-3 text-[13px] text-green-800 dark:text-green-300">
                   {payoutBanner}
                 </div>
               )}
 
               {/* Status display */}
-              <p className="text-sm text-yellow-800 dark:text-yellow-300">
+              <p className="text-[13px] text-yellow-800 dark:text-yellow-300">
                 {t("market.status_label")} <span className="font-medium capitalize">{market.status.replace(/_/g, " ")}</span>
               </p>
 
               {/* Proposer resolution form: visible to proposer when deadline passed and not yet closed */}
               {(market.status === "pending_resolution" || (deadlinePassed && market.status === "open")) && currentUser?.id === market.proposer_id && (
                 <div className="space-y-3 border-t border-yellow-200 dark:border-yellow-700 pt-3">
-                  <p className="text-sm font-medium text-yellow-900 dark:text-yellow-300">{t("market.submit_resolution")}</p>
+                  <p className="text-[13px] font-medium text-yellow-900 dark:text-yellow-300">{t("market.submit_resolution")}</p>
 
                   {/* binary */}
                   {market.market_type === "binary" && (
@@ -758,7 +758,7 @@ export default function MarketDetailPage() {
                         <button
                           key={opt}
                           onClick={() => setResolutionOutcome(opt)}
-                          className={`rounded px-3 py-1 text-sm ${resolutionOutcome === opt ? "bg-green-600 text-white" : "bg-gray-200 dark:bg-gray-700 dark:text-gray-300"}`}
+                          className={`text-[12px] px-2.5 py-[5px] rounded-md transition-colors ${resolutionOutcome === opt ? "bg-green-600 text-white" : "bg-[oklch(91%_0.006_250)] dark:bg-[oklch(24%_0.015_250)] text-gray-700 dark:text-gray-300"}`}
                         >
                           {opt.toUpperCase()}
                         </button>
@@ -773,7 +773,7 @@ export default function MarketDetailPage() {
                         <button
                           key={opt}
                           onClick={() => setResolutionOutcome(opt)}
-                          className={`rounded px-3 py-1 text-sm ${resolutionOutcome === opt ? "bg-green-600 text-white" : "bg-gray-200 dark:bg-gray-700 dark:text-gray-300"}`}
+                          className={`text-[12px] px-2.5 py-[5px] rounded-md transition-colors ${resolutionOutcome === opt ? "bg-green-600 text-white" : "bg-[oklch(91%_0.006_250)] dark:bg-[oklch(24%_0.015_250)] text-gray-700 dark:text-gray-300"}`}
                         >
                           {opt}
                         </button>
@@ -792,10 +792,10 @@ export default function MarketDetailPage() {
                         max={market.numeric_max ?? undefined}
                         step="any"
                         placeholder={t("market.enter_value")}
-                        className="w-36 rounded border border-gray-300 dark:border-gray-600 px-3 py-1 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                        className="w-36 px-3 py-1.5 rounded-md text-[13px] bg-[oklch(97%_0.005_250)] dark:bg-[oklch(20%_0.015_250)] border border-[oklch(91%_0.006_250)] dark:border-[oklch(24%_0.015_250)] text-gray-900 dark:text-gray-100 focus:outline-none focus:border-[var(--accent)] transition-colors"
                       />
                       {(market.numeric_min != null || market.numeric_max != null) && (
-                        <span className="text-xs text-gray-500 dark:text-gray-400">
+                        <span className="text-[12px] text-gray-400 dark:text-gray-500">
                           {t("market.range_bounds", { min: market.numeric_min ?? "−∞", max: market.numeric_max ?? "+∞" })}
                         </span>
                       )}
@@ -805,7 +805,7 @@ export default function MarketDetailPage() {
                     value={resolutionJustification}
                     onChange={(e) => setResolutionJustification(e.target.value)}
                     placeholder={t("market.justification_placeholder")}
-                    className="w-full rounded border border-gray-300 dark:border-gray-600 px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                    className="w-full px-3 py-2 rounded-md text-[13px] bg-[oklch(97%_0.005_250)] dark:bg-[oklch(20%_0.015_250)] border border-[oklch(91%_0.006_250)] dark:border-[oklch(24%_0.015_250)] text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-600 focus:outline-none focus:border-[var(--accent)] transition-colors"
                     rows={3}
                   />
 
@@ -816,18 +816,18 @@ export default function MarketDetailPage() {
                         value={evidenceText}
                         onChange={(e) => setEvidenceText(e.target.value.slice(0, 500))}
                         placeholder={t("market.evidence_placeholder")}
-                        className="w-full rounded border border-gray-300 dark:border-gray-600 px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                        className="w-full px-3 py-2 rounded-md text-[13px] bg-[oklch(97%_0.005_250)] dark:bg-[oklch(20%_0.015_250)] border border-[oklch(91%_0.006_250)] dark:border-[oklch(24%_0.015_250)] text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-600 focus:outline-none focus:border-[var(--accent)] transition-colors"
                         rows={2}
                       />
                       <button
                         onClick={handleGetHint}
                         disabled={hintLoading || !evidenceText.trim()}
-                        className="rounded border border-blue-300 dark:border-blue-700 px-3 py-1 text-sm text-blue-700 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 disabled:opacity-50"
+                        className="text-[12px] px-2.5 py-[5px] rounded-md border border-[oklch(88%_0.005_250)] dark:border-[oklch(28%_0.015_250)] text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 disabled:opacity-40 transition-colors"
                       >
                         {hintLoading ? t("market.getting_suggestion") : t("market.get_ai_suggestion")}
                       </button>
                       {hint && (
-                        <div className="rounded bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 p-2 text-sm text-blue-900 dark:text-blue-300">
+                        <div className="rounded-[8px] bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 p-3 text-[13px] text-blue-900 dark:text-blue-300">
                           <div className="prose prose-sm max-w-none"><ReactMarkdown>{hint}</ReactMarkdown></div>
                         </div>
                       )}
@@ -837,12 +837,12 @@ export default function MarketDetailPage() {
                   <button
                     onClick={() => submitResolution.mutate()}
                     disabled={submitResolution.isPending || resolutionJustification.length < 20}
-                    className="rounded bg-yellow-700 px-4 py-2 text-sm text-white hover:bg-yellow-800 disabled:opacity-50"
+                    className="text-[13px] px-3 py-2 rounded-md bg-yellow-700 text-white hover:opacity-90 disabled:opacity-40 transition-opacity"
                   >
                     {submitResolution.isPending ? t("market.submitting") : t("market.submit_resolution")}
                   </button>
                   {submitResolution.isError && (
-                    <p className="text-sm text-red-600 dark:text-red-400">
+                    <p className="text-[13px] text-red-500 dark:text-red-400">
                       {(() => {
                         const d = (submitResolution.error as { response?: { data?: { detail?: unknown } } })?.response?.data?.detail;
                         if (!d) return t("market.failed_submit");
@@ -857,13 +857,13 @@ export default function MarketDetailPage() {
 
               {/* Show existing resolution */}
               {resolutionQuery.data?.resolution && (
-                <div className="border-t border-yellow-200 dark:border-yellow-700 pt-3 text-sm text-yellow-800 dark:text-yellow-300 space-y-1">
+                <div className="border-t border-yellow-200 dark:border-yellow-700 pt-3 text-[13px] text-yellow-800 dark:text-yellow-300 space-y-1">
                   <p>{t("market.outcome_label")} <span className="font-bold uppercase">{resolutionQuery.data.resolution.outcome}</span></p>
                   {resolutionQuery.data.resolution.justification && (
-                    <p className="text-xs text-yellow-700 dark:text-yellow-400">{resolutionQuery.data.resolution.justification}</p>
+                    <p className="text-[12px] text-yellow-700 dark:text-yellow-400">{resolutionQuery.data.resolution.justification}</p>
                   )}
                   {resolutionQuery.data.resolution.overturned && (
-                    <p className="text-xs text-red-600 dark:text-red-400 font-medium">{t("market.overturned")}</p>
+                    <p className="text-[12px] text-red-500 dark:text-red-400 font-medium">{t("market.overturned")}</p>
                   )}
                 </div>
               )}

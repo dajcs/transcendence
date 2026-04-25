@@ -65,6 +65,14 @@ const TYPE_COLORS: Record<string, string> = {
   payout: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
 };
 
+const AVATAR_HUES = [40, 145, 160, 205, 264, 270, 310, 25, 320, 180];
+
+function avatarColor(username: string): string {
+  let hash = 0;
+  for (const c of username) hash = (hash * 31 + c.charCodeAt(0)) >>> 0;
+  return `oklch(56% 0.2 ${AVATAR_HUES[hash % AVATAR_HUES.length]})`;
+}
+
 export default function ProfilePage() {
   const params = useParams<{ username: string }>();
   const { user: currentUser } = useAuthStore();
@@ -166,39 +174,42 @@ export default function ProfilePage() {
   });
 
   const tabClass = (tab: Tab) =>
-    `px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+    `text-[12px] px-2.5 py-[5px] rounded-md cursor-pointer whitespace-nowrap border transition-colors ${
       activeTab === tab
-        ? "border-blue-600 text-blue-600 dark:text-blue-400 dark:border-blue-400"
-        : "border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+        ? "bg-[oklch(91%_0.006_250)] dark:bg-[oklch(24%_0.015_250)] border-[oklch(88%_0.005_250)] dark:border-[oklch(28%_0.015_250)] text-gray-900 dark:text-gray-100 font-semibold"
+        : "border-transparent text-gray-400 dark:text-gray-500 font-medium"
     }`;
 
   return (
-    <div className="space-y-6">
-      {profileQuery.isLoading && <p className="text-sm text-gray-500 dark:text-gray-400">{t("profile.loading")}</p>}
-      {profileQuery.isError && <p className="text-sm text-red-600">{t("profile.not_found")}</p>}
+    <div className="space-y-3">
+      {profileQuery.isLoading && <p className="text-[13px] text-gray-400 dark:text-gray-500">{t("profile.loading")}</p>}
+      {profileQuery.isError && <p className="text-[13px] text-red-500 dark:text-red-400">{t("profile.not_found")}</p>}
 
       {profile && (
         <>
           {/* Profile header */}
-          <div className="rounded border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-6">
-            <div className="flex items-start gap-6">
-              <div className="h-20 w-20 shrink-0 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center text-2xl font-bold text-gray-700 dark:text-gray-300">
+          <div className="bg-white dark:bg-[oklch(18%_0.015_250)] border border-[oklch(91%_0.006_250)] dark:border-[oklch(22%_0.015_250)] rounded-[10px] p-4">
+            <div className="flex items-start gap-4">
+              <div
+                style={{ background: profile.avatar_url ? undefined : avatarColor(profile.username) }}
+                className="h-16 w-16 shrink-0 rounded-full flex items-center justify-center text-white font-bold text-xl overflow-hidden"
+              >
                 {profile.avatar_url ? (
-                  <img src={profile.avatar_url} alt={profile.username} className="h-full w-full rounded-full object-cover" />
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={profile.avatar_url} alt={profile.username} className="h-full w-full object-cover" />
                 ) : (
                   profile.username[0].toUpperCase()
                 )}
               </div>
 
-              <div className="flex-1">
-                <div className="flex items-center justify-between">
-                  <h1 className="text-2xl font-bold">{profile.username}</h1>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between gap-2 flex-wrap">
+                  <span className="text-[16px] font-bold text-gray-900 dark:text-gray-100">{profile.username}</span>
                   {isOwnProfile && (
                     <Link
                       href="/settings"
                       title={t("profile.settings")}
-                      className="rounded border border-gray-300 dark:border-gray-600 px-3 py-1 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-gray-100"
-                      aria-label="Settings"
+                      className="text-[12px] px-2.5 py-[5px] rounded-md border border-[oklch(88%_0.005_250)] dark:border-[oklch(28%_0.015_250)] text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors"
                     >
                       {t("profile.settings")}
                     </Link>
@@ -206,16 +217,16 @@ export default function ProfilePage() {
                   {!isOwnProfile && (
                     <div className="flex gap-2">
                       {profile.friendship_status === "accepted" && (
-                        <span className="rounded bg-green-100 dark:bg-green-900/20 px-3 py-1 text-sm text-green-700 dark:text-green-400">{t("profile.friends")}</span>
+                        <span className="text-[12px] px-2.5 py-[5px] rounded-md bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-400">{t("profile.friends")}</span>
                       )}
                       {profile.friendship_status === "pending" && (
-                        <span className="rounded bg-yellow-100 dark:bg-yellow-900/20 px-3 py-1 text-sm text-yellow-700 dark:text-yellow-400">{t("profile.request_pending")}</span>
+                        <span className="text-[12px] px-2.5 py-[5px] rounded-md bg-yellow-100 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-400">{t("profile.request_pending")}</span>
                       )}
                       {!profile.friendship_status && (
                         <button
                           onClick={() => sendFriendRequest.mutate(profile.id)}
                           disabled={sendFriendRequest.isPending}
-                          className="rounded bg-blue-600 px-3 py-1 text-sm text-white hover:bg-blue-700 disabled:opacity-50"
+                          className="text-[12px] px-2.5 py-[5px] rounded-md bg-[var(--accent)] text-white hover:opacity-90 disabled:opacity-40 transition-opacity"
                         >
                           {t("profile.add_friend")}
                         </button>
@@ -224,25 +235,25 @@ export default function ProfilePage() {
                   )}
                 </div>
 
-                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                <p className="mt-1 text-[12px] text-gray-400 dark:text-gray-500">
                   {t("profile.joined")} {new Date(profile.created_at).toLocaleDateString()}
                 </p>
 
-                <div className="mt-3">
+                <div className="mt-2">
                   {isOwnProfile && (!profile.bio || editing) ? (
                     <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
                       <input
                         value={bio}
                         onChange={(e) => setBio(e.target.value)}
                         maxLength={500}
-                        className="w-full rounded border border-gray-300 dark:border-gray-600 px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 sm:max-w-md"
+                        className="flex-1 px-3 py-1.5 rounded-md text-[13px] bg-[oklch(97%_0.005_250)] dark:bg-[oklch(20%_0.015_250)] border border-[oklch(91%_0.006_250)] dark:border-[oklch(24%_0.015_250)] text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-600 focus:outline-none focus:border-[var(--accent)] transition-colors sm:max-w-md"
                         placeholder={t("profile.add_mission")}
                       />
                       {canAcceptMission && (
                         <button
                           onClick={() => updateProfile.mutate({ bio: trimmedBio })}
                           disabled={updateProfile.isPending}
-                          className="w-fit rounded bg-blue-600 px-3 py-1.5 text-sm text-white hover:bg-blue-700 disabled:opacity-50"
+                          className="w-fit text-[12px] px-2.5 py-[5px] rounded-md bg-[var(--accent)] text-white hover:opacity-90 disabled:opacity-40 transition-opacity"
                         >
                           {t("profile.accept_mission")}
                         </button>
@@ -252,14 +263,14 @@ export default function ProfilePage() {
                     <button
                       onClick={() => setEditing(true)}
                       title={t("profile.change_mission")}
-                      className="text-left text-sm text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:underline"
+                      className="text-left text-[13px] text-gray-700 dark:text-gray-300 hover:text-[var(--accent)] transition-colors"
                     >
                       {profile.bio}
                     </button>
                   ) : !profile.bio ? (
-                    <p className="text-sm text-gray-500 dark:text-gray-400">{t("profile.no_blurb")}</p>
+                    <p className="text-[13px] text-gray-400 dark:text-gray-500">{t("profile.no_blurb")}</p>
                   ) : (
-                    <p className="text-sm text-gray-700 dark:text-gray-300">{profile.bio}</p>
+                    <p className="text-[13px] text-gray-700 dark:text-gray-300">{profile.bio}</p>
                   )}
                 </div>
               </div>
@@ -267,121 +278,119 @@ export default function ProfilePage() {
           </div>
 
           {/* Stats */}
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-5">
-            <div className="rounded border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 text-center">
-              <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{profile.lp}</p>
-              <p className="text-lg font-bold text-red-500">❤️</p>
-            </div>
-            <div className="rounded border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 text-center">
-              <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{profile.bp.toFixed(1)}</p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">BP</p>
-            </div>
-            <div className="rounded border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 text-center">
-              <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{profile.tp.toFixed(1)}</p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">TP</p>
-            </div>
-            <div className="rounded border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 text-center">
-              <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{profile.total_bets}</p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">{t("profile.total_bets")}</p>
-            </div>
-            <div className="rounded border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 text-center">
-              <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{profile.win_rate.toFixed(1)}%</p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">{t("profile.win_rate")}</p>
-            </div>
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
+            {[
+              { value: profile.lp, label: "❤️" },
+              { value: profile.bp.toFixed(1), label: "BP" },
+              { value: profile.tp.toFixed(1), label: "TP" },
+              { value: profile.total_bets, label: t("profile.total_bets") },
+              { value: `${profile.win_rate.toFixed(1)}%`, label: t("profile.win_rate") },
+            ].map(({ value, label }) => (
+              <div key={label} className="bg-white dark:bg-[oklch(18%_0.015_250)] border border-[oklch(91%_0.006_250)] dark:border-[oklch(22%_0.015_250)] rounded-[10px] p-3 text-center">
+                <p className="text-[18px] font-bold text-gray-900 dark:text-gray-100 tabular-nums">{value}</p>
+                <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-0.5">{label}</p>
+              </div>
+            ))}
           </div>
 
-          {sendFriendRequest.isError && <p className="text-sm text-red-600">{t("profile.friend_error")}</p>}
+          {sendFriendRequest.isError && <p className="text-[13px] text-red-500 dark:text-red-400">{t("profile.friend_error")}</p>}
 
-          {/* Tabs */}
-          <div className="rounded border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-            <div className="flex border-b border-gray-200 dark:border-gray-700">
-              <button className={tabClass("points")} onClick={() => setActiveTab("points")}>
-                {isOwnProfile ? t("profile.tab_points_own") : t("profile.tab_points", { username: profile.username })}
+          {/* Tab filter row */}
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {(["points", "bets", "markets"] as Tab[]).map((tab) => (
+              <button
+                key={tab}
+                type="button"
+                onClick={() => setActiveTab(tab)}
+                className={tabClass(tab)}
+              >
+                {tab === "points"
+                  ? (isOwnProfile ? t("profile.tab_points_own") : t("profile.tab_points", { username: profile.username }))
+                  : tab === "bets"
+                  ? (isOwnProfile ? t("profile.tab_bets_own") : t("profile.tab_bets", { username: profile.username }))
+                  : (isOwnProfile ? t("profile.tab_markets_own") : t("profile.tab_markets", { username: profile.username }))}
               </button>
-              <button className={tabClass("bets")} onClick={() => setActiveTab("bets")}>
-                {isOwnProfile ? t("profile.tab_bets_own") : t("profile.tab_bets", { username: profile.username })}
-              </button>
-              <button className={tabClass("markets")} onClick={() => setActiveTab("markets")}>
-                {isOwnProfile ? t("profile.tab_markets_own") : t("profile.tab_markets", { username: profile.username })}
-              </button>
-            </div>
+            ))}
+          </div>
 
+          {/* Tab content card */}
+          <div className="bg-white dark:bg-[oklch(18%_0.015_250)] border border-[oklch(91%_0.006_250)] dark:border-[oklch(22%_0.015_250)] rounded-[10px] overflow-hidden">
             <div className="p-4">
-              {/* My Points tab */}
+              {/* Points tab */}
               {activeTab === "points" && (
                 <div className="space-y-3">
                   {transactionsQuery.isLoading && txOffset === 0 ? (
                     <div className="space-y-2 animate-pulse">
-                      {[0, 1, 2].map((i) => <div key={i} className="h-8 rounded bg-gray-200 dark:bg-gray-700" />)}
+                      {[0, 1, 2].map((i) => <div key={i} className="h-7 rounded-md bg-gray-100 dark:bg-[oklch(22%_0.015_250)]" />)}
                     </div>
                   ) : transactionsQuery.isError ? (
-                    <p className="text-sm text-red-600 dark:text-red-400">{t("ledger.error")}</p>
+                    <p className="text-[13px] text-red-500 dark:text-red-400">{t("ledger.error")}</p>
                   ) : allTx.length === 0 ? (
-                    <p className="text-sm text-gray-500 dark:text-gray-400">{t("ledger.no_transactions")}</p>
+                    <p className="text-[13px] text-gray-400 dark:text-gray-500">{t("ledger.no_transactions")}</p>
                   ) : (
                     <>
                       <div className="overflow-x-auto">
-                        <table className="w-full text-sm">
+                        <table className="w-full">
                           <thead>
-                            <tr className="border-b border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">
-                              <th className="pb-2 text-left cursor-pointer select-none hover:text-gray-700 dark:hover:text-gray-200" onClick={() => handleSort("date")}>
+                            <tr className="border-b border-gray-100 dark:border-[oklch(22%_0.015_250)]">
+                              <th className="pb-2 text-left text-[11px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider cursor-pointer select-none hover:text-gray-600 dark:hover:text-gray-300" onClick={() => handleSort("date")}>
                                 {t("ledger.date")}{sortIcon("date")}
                               </th>
-                              <th className="pb-2 text-left cursor-pointer select-none hover:text-gray-700 dark:hover:text-gray-200" onClick={() => handleSort("type")}>
+                              <th className="pb-2 text-left text-[11px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider cursor-pointer select-none hover:text-gray-600 dark:hover:text-gray-300" onClick={() => handleSort("type")}>
                                 {t("ledger.type")}{sortIcon("type")}
                               </th>
-                              <th className="pb-2 text-left">{t("ledger.description")}</th>
-                              <th className="pb-2 text-right cursor-pointer select-none hover:text-gray-700 dark:hover:text-gray-200" onClick={() => handleSort("bp")}>
+                              <th className="pb-2 text-left text-[11px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">{t("ledger.description")}</th>
+                              <th className="pb-2 text-right text-[11px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider cursor-pointer select-none hover:text-gray-600 dark:hover:text-gray-300" onClick={() => handleSort("bp")}>
                                 {t("ledger.bp_delta")}{sortIcon("bp")}
                               </th>
-                              <th className="pb-2 text-right text-gray-400 dark:text-gray-500">{t("ledger.bp_balance")}</th>
-                              <th className="pb-2 text-right cursor-pointer select-none hover:text-gray-700 dark:hover:text-gray-200" onClick={() => handleSort("tp")}>
+                              <th className="pb-2 text-right text-[11px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">{t("ledger.bp_balance")}</th>
+                              <th className="pb-2 text-right text-[11px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider cursor-pointer select-none hover:text-gray-600 dark:hover:text-gray-300" onClick={() => handleSort("tp")}>
                                 {t("ledger.tp_delta")}{sortIcon("tp")}
                               </th>
-                              <th className="pb-2 text-right text-gray-400 dark:text-gray-500">{t("ledger.tp_balance")}</th>
+                              <th className="pb-2 text-right text-[11px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">{t("ledger.tp_balance")}</th>
                             </tr>
                           </thead>
-                          <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
+                          <tbody className="divide-y divide-gray-100 dark:divide-[oklch(22%_0.015_250)]">
                             {allTx.filter((tx) => tx.bp_delta !== 0 || tx.tp_delta !== 0).map((tx) => {
                               const lpDesc = tx.type === "lp_allocation" && tx.bp_delta > 0
                                 ? tx.description || `${Math.round(Math.pow(2, tx.bp_delta) - 1)} ❤️`
                                 : null;
                               return (
-                              <tr key={tx.id}>
-                                <td className="py-2 text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
-                                  {new Date(tx.date).toLocaleString()}
-                                </td>
-                                <td className="py-2">
-                                  <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${TYPE_COLORS[tx.type] ?? TYPE_COLORS.daily_bonus}`}>
-                                    {t(`ledger.type_${tx.type}` as Parameters<typeof t>[0]) || tx.type}
-                                  </span>
-                                </td>
-                                <td className="py-2 text-gray-700 dark:text-gray-300 max-w-[180px] truncate">
-                                  {lpDesc ? (
-                                    <span className="text-purple-600 dark:text-purple-400">{lpDesc}</span>
-                                  ) : tx.market_title && tx.market_id ? (
-                                    <Link href={getMarketPath(tx.market_id, tx.market_title)} className="hover:underline text-blue-600 dark:text-blue-400">
-                                      {tx.market_title}
-                                    </Link>
-                                  ) : tx.description ? (
-                                    <span>{tx.description}</span>
-                                  ) : (
-                                    <span className="text-gray-400">—</span>
-                                  )}
-                                </td>
-                                <td className={`py-2 text-right font-medium tabular-nums ${tx.bp_delta > 0 ? "text-green-600 dark:text-green-400" : tx.bp_delta < 0 ? "text-red-600 dark:text-red-400" : "text-gray-400"}`}>
-                                  {tx.bp_delta !== 0 ? fmt(tx.bp_delta) : "—"}
-                                </td>
-                                <td className="py-2 text-right tabular-nums text-xs text-gray-500 dark:text-gray-400">
-                                  {tx.bp_balance.toFixed(1)}
-                                </td>
-                                <td className={`py-2 text-right font-medium tabular-nums ${tx.tp_delta > 0 ? "text-blue-600 dark:text-blue-400" : tx.tp_delta < 0 ? "text-gray-500" : "text-gray-400"}`}>
-                                  {tx.tp_delta !== 0 ? fmt(tx.tp_delta) : "—"}
-                                </td>
-                                <td className="py-2 text-right tabular-nums text-xs text-gray-500 dark:text-gray-400">
-                                  {tx.tp_balance.toFixed(1)}
-                                </td>
-                              </tr>
+                                <tr key={tx.id} className="hover:bg-[oklch(97%_0.008_264)] dark:hover:bg-[oklch(20%_0.015_250)] transition-colors duration-100">
+                                  <td className="py-2 text-[12px] text-gray-400 dark:text-gray-500 whitespace-nowrap">
+                                    {new Date(tx.date).toLocaleString()}
+                                  </td>
+                                  <td className="py-2">
+                                    <span className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${TYPE_COLORS[tx.type] ?? TYPE_COLORS.daily_bonus}`}>
+                                      {t(`ledger.type_${tx.type}` as Parameters<typeof t>[0]) || tx.type}
+                                    </span>
+                                  </td>
+                                  <td className="py-2 text-[13px] text-gray-700 dark:text-gray-300 max-w-[180px] truncate">
+                                    {lpDesc ? (
+                                      <span className="text-purple-600 dark:text-purple-400">{lpDesc}</span>
+                                    ) : tx.market_title && tx.market_id ? (
+                                      <Link href={getMarketPath(tx.market_id, tx.market_title)} className="hover:underline text-[var(--accent)]">
+                                        {tx.market_title}
+                                      </Link>
+                                    ) : tx.description ? (
+                                      <span>{tx.description}</span>
+                                    ) : (
+                                      <span className="text-gray-400">—</span>
+                                    )}
+                                  </td>
+                                  <td className={`py-2 text-right text-[13px] font-medium tabular-nums ${tx.bp_delta > 0 ? "text-green-600 dark:text-green-400" : tx.bp_delta < 0 ? "text-red-600 dark:text-red-400" : "text-gray-400"}`}>
+                                    {tx.bp_delta !== 0 ? fmt(tx.bp_delta) : "—"}
+                                  </td>
+                                  <td className="py-2 text-right text-[12px] tabular-nums text-gray-400 dark:text-gray-500">
+                                    {tx.bp_balance.toFixed(1)}
+                                  </td>
+                                  <td className={`py-2 text-right text-[13px] font-medium tabular-nums ${tx.tp_delta > 0 ? "text-[var(--accent)]" : tx.tp_delta < 0 ? "text-gray-500" : "text-gray-400"}`}>
+                                    {tx.tp_delta !== 0 ? fmt(tx.tp_delta) : "—"}
+                                  </td>
+                                  <td className="py-2 text-right text-[12px] tabular-nums text-gray-400 dark:text-gray-500">
+                                    {tx.tp_balance.toFixed(1)}
+                                  </td>
+                                </tr>
                               );
                             })}
                           </tbody>
@@ -390,7 +399,7 @@ export default function ProfilePage() {
                       {transactionsQuery.data && allTx.length < transactionsQuery.data.total && (
                         <button
                           onClick={() => setTxOffset((o) => o + 25)}
-                          className="rounded border border-gray-300 dark:border-gray-600 px-3 py-1 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700"
+                          className="text-[12px] px-2.5 py-[5px] rounded-md border border-[oklch(88%_0.005_250)] dark:border-[oklch(28%_0.015_250)] text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors"
                         >
                           {transactionsQuery.isFetching ? t("common.loading") : t("ledger.load_more")}
                         </button>
@@ -404,37 +413,37 @@ export default function ProfilePage() {
               {activeTab === "bets" && (
                 <div className="space-y-4">
                   {positionsQuery.isLoading ? (
-                    <div className="space-y-2 animate-pulse">{[0, 1, 2].map((i) => <div key={i} className="h-8 rounded bg-gray-200 dark:bg-gray-700" />)}</div>
+                    <div className="space-y-2 animate-pulse">{[0, 1, 2].map((i) => <div key={i} className="h-7 rounded-md bg-gray-100 dark:bg-[oklch(22%_0.015_250)]" />)}</div>
                   ) : positionsQuery.isError ? (
-                    <p className="text-sm text-red-600 dark:text-red-400">{t("profile.bets_error")}</p>
+                    <p className="text-[13px] text-red-500 dark:text-red-400">{t("profile.bets_error")}</p>
                   ) : (
                     <>
                       {(positionsQuery.data?.active?.length ?? 0) > 0 && (
                         <div>
-                          <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">{t("profile.active_bets")}</h3>
+                          <p className="text-[12px] font-semibold text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wider">{t("profile.active_bets")}</p>
                           <div className="overflow-x-auto">
-                            <table className="w-full text-sm">
+                            <table className="w-full">
                               <thead>
-                                <tr className="border-b border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">
-                                  <th className="pb-2 text-left">{t("profile.market")}</th>
-                                  <th className="pb-2 text-left">{t("profile.side")}</th>
-                                  <th className="pb-2 text-right">{t("profile.bp_staked")}</th>
-                                  <th className="pb-2 text-right">{t("profile.win_prob")}</th>
+                                <tr className="border-b border-gray-100 dark:border-[oklch(22%_0.015_250)]">
+                                  <th className="pb-2 text-left text-[11px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">{t("profile.market")}</th>
+                                  <th className="pb-2 text-left text-[11px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">{t("profile.side")}</th>
+                                  <th className="pb-2 text-right text-[11px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">{t("profile.bp_staked")}</th>
+                                  <th className="pb-2 text-right text-[11px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">{t("profile.win_prob")}</th>
                                 </tr>
                               </thead>
-                              <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
+                              <tbody className="divide-y divide-gray-100 dark:divide-[oklch(22%_0.015_250)]">
                                 {positionsQuery.data!.active.map((p) => (
-                                  <tr key={p.id}>
+                                  <tr key={p.id} className="hover:bg-[oklch(97%_0.008_264)] dark:hover:bg-[oklch(20%_0.015_250)] transition-colors duration-100">
                                     <td className="py-2 max-w-[220px] truncate">
-                                      <Link href={getMarketPath(p.bet_id, p.market_title)} className="hover:underline text-blue-600 dark:text-blue-400">
+                                      <Link href={getMarketPath(p.bet_id, p.market_title)} className="text-[13px] hover:underline text-[var(--accent)]">
                                         {p.market_title}
                                       </Link>
                                     </td>
-                                    <td className={`py-2 font-medium ${p.side === "yes" ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
+                                    <td className={`py-2 text-[13px] font-medium ${p.side === "yes" ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
                                       {typeof p.side === "string" ? p.side.toUpperCase() : p.side}
                                     </td>
-                                    <td className="py-2 text-right tabular-nums">{p.bp_staked.toFixed(1)} BP</td>
-                                    <td className="py-2 text-right tabular-nums text-xs text-gray-500 dark:text-gray-400">
+                                    <td className="py-2 text-right text-[13px] tabular-nums">{p.bp_staked.toFixed(1)} BP</td>
+                                    <td className="py-2 text-right text-[12px] tabular-nums text-gray-400 dark:text-gray-500">
                                       {p.side === "yes" ? p.yes_pct : p.no_pct}%
                                     </td>
                                   </tr>
@@ -446,30 +455,30 @@ export default function ProfilePage() {
                       )}
                       {(positionsQuery.data?.resolved?.length ?? 0) > 0 && (
                         <div>
-                          <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">{t("profile.resolved_bets")}</h3>
+                          <p className="text-[12px] font-semibold text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wider">{t("profile.resolved_bets")}</p>
                           <div className="overflow-x-auto">
-                            <table className="w-full text-sm">
+                            <table className="w-full">
                               <thead>
-                                <tr className="border-b border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">
-                                  <th className="pb-2 text-left">{t("profile.market")}</th>
-                                  <th className="pb-2 text-left">{t("profile.side")}</th>
-                                  <th className="pb-2 text-right">{t("profile.bp_staked")}</th>
-                                  <th className="pb-2 text-left">{t("profile.status")}</th>
+                                <tr className="border-b border-gray-100 dark:border-[oklch(22%_0.015_250)]">
+                                  <th className="pb-2 text-left text-[11px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">{t("profile.market")}</th>
+                                  <th className="pb-2 text-left text-[11px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">{t("profile.side")}</th>
+                                  <th className="pb-2 text-right text-[11px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">{t("profile.bp_staked")}</th>
+                                  <th className="pb-2 text-left text-[11px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">{t("profile.status")}</th>
                                 </tr>
                               </thead>
-                              <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
+                              <tbody className="divide-y divide-gray-100 dark:divide-[oklch(22%_0.015_250)]">
                                 {positionsQuery.data!.resolved.map((p) => (
-                                  <tr key={p.id}>
+                                  <tr key={p.id} className="hover:bg-[oklch(97%_0.008_264)] dark:hover:bg-[oklch(20%_0.015_250)] transition-colors duration-100">
                                     <td className="py-2 max-w-[220px] truncate">
-                                      <Link href={getMarketPath(p.bet_id, p.market_title)} className="hover:underline text-blue-600 dark:text-blue-400">
+                                      <Link href={getMarketPath(p.bet_id, p.market_title)} className="text-[13px] hover:underline text-[var(--accent)]">
                                         {p.market_title}
                                       </Link>
                                     </td>
-                                    <td className={`py-2 font-medium ${p.side === "yes" ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
+                                    <td className={`py-2 text-[13px] font-medium ${p.side === "yes" ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
                                       {typeof p.side === "string" ? p.side.toUpperCase() : p.side}
                                     </td>
-                                    <td className="py-2 text-right tabular-nums">{p.bp_staked.toFixed(1)} BP</td>
-                                    <td className={`py-2 text-xs font-medium ${STATUS_COLORS[p.market_status] ?? ""}`}>
+                                    <td className="py-2 text-right text-[13px] tabular-nums">{p.bp_staked.toFixed(1)} BP</td>
+                                    <td className={`py-2 text-[12px] font-medium ${STATUS_COLORS[p.market_status] ?? ""}`}>
                                       {p.market_status.replace(/_/g, " ")}
                                     </td>
                                   </tr>
@@ -480,48 +489,48 @@ export default function ProfilePage() {
                         </div>
                       )}
                       {(positionsQuery.data?.active?.length ?? 0) === 0 && (positionsQuery.data?.resolved?.length ?? 0) === 0 && (
-                        <p className="text-sm text-gray-500 dark:text-gray-400">{t("profile.no_bets")}</p>
+                        <p className="text-[13px] text-gray-400 dark:text-gray-500">{t("profile.no_bets")}</p>
                       )}
                     </>
                   )}
                 </div>
               )}
 
-              {/* My Markets tab */}
+              {/* Markets tab */}
               {activeTab === "markets" && (
                 <div className="space-y-3">
                   {myMarketsQuery.isLoading ? (
-                    <div className="space-y-2 animate-pulse">{[0, 1, 2].map((i) => <div key={i} className="h-8 rounded bg-gray-200 dark:bg-gray-700" />)}</div>
+                    <div className="space-y-2 animate-pulse">{[0, 1, 2].map((i) => <div key={i} className="h-7 rounded-md bg-gray-100 dark:bg-[oklch(22%_0.015_250)]" />)}</div>
                   ) : myMarketsQuery.isError ? (
-                    <p className="text-sm text-red-600 dark:text-red-400">{t("profile.markets_error")}</p>
+                    <p className="text-[13px] text-red-500 dark:text-red-400">{t("profile.markets_error")}</p>
                   ) : !myMarketsQuery.data?.items.length ? (
-                    <p className="text-sm text-gray-500 dark:text-gray-400">{t("profile.no_markets")}</p>
+                    <p className="text-[13px] text-gray-400 dark:text-gray-500">{t("profile.no_markets")}</p>
                   ) : (
                     <div className="overflow-x-auto">
-                      <table className="w-full text-sm">
+                      <table className="w-full">
                         <thead>
-                          <tr className="border-b border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">
-                            <th className="pb-2 text-left">{t("profile.market")}</th>
-                            <th className="pb-2 text-left">{t("profile.status")}</th>
-                            <th className="pb-2 text-right">{t("profile.participants")}</th>
-                            <th className="pb-2 text-right">{t("profile.deadline")}</th>
+                          <tr className="border-b border-gray-100 dark:border-[oklch(22%_0.015_250)]">
+                            <th className="pb-2 text-left text-[11px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">{t("profile.market")}</th>
+                            <th className="pb-2 text-left text-[11px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">{t("profile.status")}</th>
+                            <th className="pb-2 text-right text-[11px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">{t("profile.participants")}</th>
+                            <th className="pb-2 text-right text-[11px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">{t("profile.deadline")}</th>
                           </tr>
                         </thead>
-                        <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
+                        <tbody className="divide-y divide-gray-100 dark:divide-[oklch(22%_0.015_250)]">
                           {myMarketsQuery.data.items.map((m) => (
-                            <tr key={m.id}>
+                            <tr key={m.id} className="hover:bg-[oklch(97%_0.008_264)] dark:hover:bg-[oklch(20%_0.015_250)] transition-colors duration-100">
                               <td className="py-2 max-w-[220px] truncate">
-                                <Link href={getMarketPath(m)} className="hover:underline text-blue-600 dark:text-blue-400">
+                                <Link href={getMarketPath(m)} className="text-[13px] hover:underline text-[var(--accent)]">
                                   {m.title}
                                 </Link>
                               </td>
-                              <td className={`py-2 text-xs font-medium ${STATUS_COLORS[m.status] ?? ""}`}>
+                              <td className={`py-2 text-[12px] font-medium ${STATUS_COLORS[m.status] ?? ""}`}>
                                 {m.status.replace(/_/g, " ")}
                               </td>
-                              <td className="py-2 text-right tabular-nums text-xs text-gray-500 dark:text-gray-400">
+                              <td className="py-2 text-right text-[12px] tabular-nums text-gray-400 dark:text-gray-500">
                                 {m.position_count}
                               </td>
-                              <td className="py-2 text-right text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                              <td className="py-2 text-right text-[12px] text-gray-400 dark:text-gray-500 whitespace-nowrap">
                                 {new Date(m.deadline).toLocaleDateString()}
                               </td>
                             </tr>
