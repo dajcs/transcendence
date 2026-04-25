@@ -101,7 +101,7 @@ export default function Sidebar() {
 
       {/* 1. Logo */}
       <Link href="/markets" className="flex items-center gap-2.5 px-4 pt-4 pb-3 shrink-0">
-        <Image src="/voxpopuli-logo.png" width={28} height={28} alt="Vox Populi" className="rounded-lg shrink-0" />
+        <Image src="/voxpopuli-logo.png" width={28} height={28} alt="Vox Populi" className="h-7 w-7 rounded-lg shrink-0" />
         <span className="font-bold text-[15px] tracking-tight text-gray-900 dark:text-gray-100">
           Vox Populi
         </span>
