@@ -110,18 +110,14 @@ export default function Sidebar() {
       {/* 2. Spacer */}
       <div className="h-2 shrink-0" />
 
-      {/* 3. Username + logout row */}
-      <div className="px-4 pb-1 shrink-0 flex items-center justify-between">
-        <span className="text-[13px] font-semibold text-gray-700 dark:text-gray-300 truncate">
-          @{user?.username}
-        </span>
-        <button
-          onClick={handleLogout}
-          className="p-1 rounded text-gray-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 transition-colors shrink-0"
-          title={t("nav.logout")}
+      {/* 3. Username row — clickable, links to profile */}
+      <div className="px-4 pb-1 shrink-0">
+        <Link
+          href={profileHref}
+          className="text-[13px] font-semibold text-gray-700 dark:text-gray-300 truncate hover:text-[var(--accent)] transition-colors"
         >
-          <IconLogout />
-        </button>
+          @{user?.username}
+        </Link>
       </div>
 
       {/* 4. Point balances row */}
@@ -193,15 +189,8 @@ export default function Sidebar() {
         </div>
       </div>
 
-      {/* 9. Create Market button */}
-      <div className="px-3 pb-3 shrink-0">
-        <Link
-          href="/markets/new"
-          className="block w-full text-center text-[13px] font-semibold py-2 rounded-lg bg-[var(--accent)] text-white hover:opacity-90 transition-opacity"
-        >
-          + {t("markets.create")}
-        </Link>
-      </div>
+      {/* 9. Spacer (Create Market available on /markets page) */}
+      <div className="h-3 shrink-0" />
 
       {/* Divider */}
       <div className="mx-3 border-t border-gray-100 dark:border-[oklch(22%_0.015_250)] mb-1 shrink-0" />
@@ -231,6 +220,18 @@ export default function Sidebar() {
           );
         })}
       </nav>
+
+      {/* 10.5. Empty row + Logout link after Hall of Fame */}
+      <div className="h-2 shrink-0" />
+      <div className="px-2 pb-2 shrink-0">
+        <button
+          onClick={handleLogout}
+          className="flex items-center gap-2.5 px-3 py-2.5 w-full rounded-lg text-[14px] text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5 transition-all duration-150"
+        >
+          <IconLogout />
+          <span>{t("nav.logout")}</span>
+        </button>
+      </div>
 
       {/* 11. Footer: Privacy Policy left, Terms of Service right */}
       <div className="border-t border-gray-100 dark:border-[oklch(22%_0.015_250)] px-3 py-2 shrink-0 flex items-center justify-between">
