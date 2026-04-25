@@ -301,6 +301,11 @@ const de = {
   "markets.votes": "Stimmen",
   "markets.comments": "Kommentare",
   "markets.choices": "Optionen",
+  "markets.col_question": "Frage",
+  "markets.col_activity": "Aktivität",
+  "markets.col_outcome": "Ergebnis",
+  "markets.col_time": "Zeit",
+  "markets.traders": "Händler",
 
   // Create market extra
   "create.date": "Datum",

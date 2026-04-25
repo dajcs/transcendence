@@ -301,6 +301,11 @@ const en = {
   "markets.votes": "votes",
   "markets.comments": "comments",
   "markets.choices": "choices",
+  "markets.col_question": "Question",
+  "markets.col_activity": "Activity",
+  "markets.col_outcome": "Outcome",
+  "markets.col_time": "Time",
+  "markets.traders": "traders",
 
   // Create market extra
   "create.date": "Date",
