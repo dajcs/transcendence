@@ -12,10 +12,18 @@ interface User {
   tp: number;
 }
 
+interface BalanceChangedPayload {
+  user_id: string;
+  bp: number;
+  lp: number;
+  tp: number;
+}
+
 interface AuthStore {
   user: User | null;
   isAuthenticated: boolean;
   bootstrap: () => Promise<void>;
+  applyBalanceUpdate: (payload: BalanceChangedPayload) => void;
   logout: () => Promise<void>;
 }
 
@@ -30,6 +38,20 @@ export const useAuthStore = create<AuthStore>()((set) => ({
     } catch {
       set({ user: null, isAuthenticated: false });
     }
+  },
+
+  applyBalanceUpdate: (payload) => {
+    set((state) => {
+      if (!state.user || state.user.id !== payload.user_id) return state;
+      return {
+        user: {
+          ...state.user,
+          bp: payload.bp,
+          lp: payload.lp,
+          tp: payload.tp,
+        },
+      };
+    });
   },
 
   logout: async () => {

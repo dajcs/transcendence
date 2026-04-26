@@ -58,12 +58,13 @@ Each position stakes between **1 and 10 BP**.
 
 | Currency | Name | How You Earn It | Purpose |
 |---|---|---|---|
-| **❤️** | Like Points | New upvotes on your comments or proposed markets (resets daily) | Measures community contribution |
+| **❤️** | Like Points | New upvotes on your comments or proposed markets (converted to BP on login) | Measures community contribution |
 | **BP** | Betting Points | +10 at signup, +1 daily login, +log2(❤️+1) but max 10 | Currency for placing bets |
 | **TP** | Truth Points | for each winning bet: + (t<sub>win</sub> / t<sub>bet</sub>) | Tracks forecasting accuracy |
 | **SP** | Spice Points | Winnings from pairwise real-money bets (coming soon) | Skin-in-the-game signal |
 
-- the log2-scale bet cap of max 10 prevents any single user from dominating a market regardless of how active they are
+- LP balance changes are pushed in real time to the recipient's open sessions when their comments or markets are liked/unliked
+- the flat bet cap of max 10 BP prevents any single user from dominating a market regardless of balance
 - the TP amount t<sub>win</sub> / t<sub>bet</sub> is the ratio of time in winning position over the total time of the bet (reduces last minute TP farming)
 
 

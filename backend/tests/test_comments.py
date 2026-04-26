@@ -1,5 +1,7 @@
 """Comment API tests — DISC-01 (list), DISC-02 (upvote +1 kp), DISC-03 (reply depth)."""
 import uuid
+from datetime import datetime, timezone
+from unittest.mock import AsyncMock
 
 import pytest
 from httpx import AsyncClient
@@ -51,6 +53,50 @@ async def test_upvote_comment_earns_kp(client: AsyncClient):
     await client.post("/api/auth/login", json={"identifier": "voter@example.com", "password": "Passw0rd!"})
     upvote_resp = await client.post(f"/api/comments/{comment_id}/upvote")
     assert upvote_resp.status_code == 201
+
+
+@pytest.mark.asyncio
+async def test_upvote_comment_emits_realtime_balance_change(db_session, monkeypatch):
+    """When a comment earns LP, the author's connected tabs get a balance event."""
+    from app.db.models.market import Comment, Market
+    from app.db.models.transaction import BpTransaction
+    from app.db.models.user import User
+    from app.services.comment_service import upvote_comment
+
+    proposer_id = uuid.uuid4()
+    author_id = uuid.uuid4()
+    voter_id = uuid.uuid4()
+    market_id = uuid.uuid4()
+    comment_id = uuid.uuid4()
+    emit = AsyncMock()
+    monkeypatch.setattr("app.socket.server.celery_emit", emit)
+
+    db_session.add_all([
+        User(id=proposer_id, email="rt-comment-proposer@test.com", username="rt_comment_prop", password_hash="x"),
+        User(id=author_id, email="rt-comment-author@test.com", username="rt_comment_author", password_hash="x"),
+        User(id=voter_id, email="rt-comment-voter@test.com", username="rt_comment_voter", password_hash="x"),
+        BpTransaction(user_id=author_id, amount=2.0, reason="signup"),
+        Market(
+            id=market_id,
+            proposer_id=proposer_id,
+            title="Realtime comment LP",
+            description="desc",
+            resolution_criteria="criteria",
+            deadline=datetime(2030, 1, 1, tzinfo=timezone.utc),
+            market_type="binary",
+            status="open",
+        ),
+        Comment(id=comment_id, market_id=market_id, user_id=author_id, content="realtime lp"),
+    ])
+    await db_session.commit()
+
+    await upvote_comment(db_session, voter_id, comment_id)
+
+    emit.assert_awaited_once()
+    event, payload = emit.await_args.args[:2]
+    assert event == "points:balance_changed"
+    assert payload == {"user_id": str(author_id), "bp": 2.0, "lp": 1, "tp": 0.0}
+    assert emit.await_args.kwargs["room"] == f"user:{author_id}"
 
 
 @pytest.mark.asyncio

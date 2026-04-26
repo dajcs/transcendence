@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
@@ -20,6 +20,18 @@ let authState: { user: null | { username: string } } = { user: { username: "alic
 jest.mock("@/store/auth", () => ({
   useAuthStore: (selector?: (state: typeof authState) => unknown) =>
     selector ? selector(authState) : authState,
+}));
+
+let socketHandlers: Record<string, (data: unknown) => void> = {};
+const socketOn = jest.fn((event: string, handler: (data: unknown) => void) => {
+  socketHandlers[event] = handler;
+});
+const socketOff = jest.fn((event: string) => {
+  delete socketHandlers[event];
+});
+jest.mock("@/store/socket", () => ({
+  useSocketStore: (selector: (state: { socket: { on: typeof socketOn; off: typeof socketOff } }) => unknown) =>
+    selector({ socket: { on: socketOn, off: socketOff } }),
 }));
 
 import { api } from "@/lib/api";
@@ -144,6 +156,7 @@ describe("ProfilePage", () => {
   beforeEach(() => {
     params = { username: "alice" };
     authState = { user: { username: "alice" } };
+    socketHandlers = {};
     jest.clearAllMocks();
     setupApi();
   });
@@ -152,7 +165,7 @@ describe("ProfilePage", () => {
     renderPage();
 
     expect(await screen.findByRole("heading", { name: "alice" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Settings" })).toHaveAttribute("href", "/settings");
+    expect(screen.getByRole("link", { name: "profile.settings" })).toHaveAttribute("href", "/settings");
     expect(screen.getByPlaceholderText("profile.add_mission")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "profile.accept_mission" })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "profile.tab_points_own" })).toBeInTheDocument();
@@ -168,6 +181,35 @@ describe("ProfilePage", () => {
     expect(screen.getByText("5")).toBeInTheDocument();
     expect(screen.getByText("60.0%")).toBeInTheDocument();
     expect(await screen.findByText("21 ❤️")).toBeInTheDocument();
+  });
+
+  it("refreshes displayed LP when the viewed user's balance changes in realtime", async () => {
+    renderPage();
+
+    expect(await screen.findByRole("heading", { name: "alice" })).toBeInTheDocument();
+    expect(screen.getByText("14")).toBeInTheDocument();
+
+    mockGet.mockImplementation((url: string) => {
+      if (url === "/api/users/alice") {
+        return Promise.resolve({ data: { ...profile, lp: 15 } });
+      }
+      if (url.startsWith("/api/users/alice/transactions")) {
+        return Promise.resolve({ data: transactions });
+      }
+      if (url === "/api/bets/positions?user_id=user-1") {
+        return Promise.resolve({ data: positions });
+      }
+      if (url.startsWith("/api/markets?proposer_id=user-1")) {
+        return Promise.resolve({ data: markets });
+      }
+      throw new Error(`Unhandled GET ${url}`);
+    });
+
+    await act(async () => {
+      socketHandlers["points:balance_changed"]?.({ user_id: "user-1", bp: 12.25, lp: 15, tp: 3.4 });
+    });
+
+    expect(await screen.findByText("15")).toBeInTheDocument();
   });
 
   it("accepts a new mission statement inline", async () => {

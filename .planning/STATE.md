@@ -4,7 +4,7 @@ milestone: v21.0
 milestone_name: milestone
 current_plan: Not started
 status: Phase 06.1 complete
-last_updated: "2026-04-26T07:22:36.845Z"
+last_updated: "2026-04-26T18:40:34+02:00"
 progress:
   total_phases: 9
   completed_phases: 7
@@ -26,7 +26,7 @@ See: `.planning/PROJECT.md` (updated 2026-03-24)
 
 **Phase:** 07
 **Current Plan:** Not started
-**Last session:** 2026-04-26T07:22:36.845Z
+**Last session:** 2026-04-26T18:40:34+02:00
 **Resume file:** None
 
 ## Decisions
@@ -169,6 +169,7 @@ See: `.planning/PROJECT.md` (updated 2026-03-24)
 | quick | Protect `/settings` behind frontend proxy guard and add regression test | 2026-04-23 | pending | Verified | `frontend/src/proxy.ts` |
 | 260424-i6c | Left navigation bar redesign | 2026-04-24 | pending | Verified | [260424-i6c-left-navigation-bar-redesign](./quick/260424-i6c-left-navigation-bar-redesign/) |
 | 20260426 | Fix login redirect after expired session | 2026-04-26 | pending | Verified | [20260426-auth-login-redirect-after-expiry](./quick/20260426-auth-login-redirect-after-expiry/) |
+| quick | Realtime LP display for like/unlike balance changes | 2026-04-26 | pending | Verified | `backend/app/services/economy_service.py`, `frontend/src/components/AuthBootstrap.tsx` |
 
 ### Blockers/Concerns
 

@@ -54,6 +54,22 @@ async def get_balance(db: AsyncSession, user_id: uuid.UUID) -> dict:
     return {"bp": bp, "lp": lp, "tp": tp}
 
 
+async def emit_balance_changed(db: AsyncSession, user_id: uuid.UUID) -> None:
+    balances = await get_balance(db, user_id)
+    from app.socket.server import celery_emit
+
+    await celery_emit(
+        "points:balance_changed",
+        {
+            "user_id": str(user_id),
+            "bp": float(balances["bp"]),
+            "lp": int(balances["lp"]),
+            "tp": float(balances["tp"]),
+        },
+        room=f"user:{user_id}",
+    )
+
+
 async def credit_bp(
     db: AsyncSession,
     user_id: uuid.UUID,

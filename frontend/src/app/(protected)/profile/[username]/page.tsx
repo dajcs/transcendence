@@ -7,6 +7,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { api } from "@/lib/api";
 import { useAuthStore } from "@/store/auth";
+import { useSocketStore } from "@/store/socket";
 import { useT } from "@/i18n";
 import { getMarketPath } from "@/lib/markets";
 import type { BetPositionsListResponse, MarketListResponse } from "@/lib/types";
@@ -77,6 +78,7 @@ export default function ProfilePage() {
   const params = useParams<{ username: string }>();
   const { user: currentUser } = useAuthStore();
   const queryClient = useQueryClient();
+  const socket = useSocketStore((s) => s.socket);
   const isOwnProfile = currentUser?.username === params.username;
   const t = useT();
 
@@ -94,6 +96,34 @@ export default function ProfilePage() {
   });
 
   const profile = profileQuery.data;
+
+  useEffect(() => {
+    if (!socket || !profile?.id) return;
+
+    const handler = (payload: { user_id: string; bp: number; lp: number; tp: number }) => {
+      if (payload.user_id !== profile.id) return;
+      queryClient.setQueryData<Profile>(["profile", params.username], (current) =>
+        current
+          ? {
+              ...current,
+              bp: payload.bp,
+              lp: payload.lp,
+              tp: payload.tp,
+            }
+          : current,
+      );
+      void queryClient.invalidateQueries({ queryKey: ["profile", params.username] });
+      if (activeTab === "points") {
+        setTxOffset(0);
+        void queryClient.invalidateQueries({ queryKey: ["user-transactions", params.username] });
+      }
+    };
+
+    socket.on("points:balance_changed", handler);
+    return () => {
+      socket.off("points:balance_changed", handler);
+    };
+  }, [socket, profile?.id, params.username, queryClient, activeTab]);
 
   const transactionsQuery = useQuery<TransactionListResponse>({
     queryKey: ["user-transactions", params.username, txOffset, sortBy, sortDir],

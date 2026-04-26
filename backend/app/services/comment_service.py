@@ -11,6 +11,7 @@ from app.db.models.market import Market, Comment, CommentUpvote
 from app.db.models.transaction import LpEvent
 from app.db.models.user import User
 from app.schemas.comment import CommentCreate, CommentResponse
+from app.services.economy_service import emit_balance_changed
 
 MAX_COMMENT_DEPTH = 7
 
@@ -148,6 +149,7 @@ async def upvote_comment(db: AsyncSession, voter_id: uuid.UUID, comment_id: uuid
             )
         )
         await db.commit()
+        await emit_balance_changed(db, comment.user_id)
     except IntegrityError:
         await db.rollback()  # already upvoted — treat as no-op
 
@@ -170,7 +172,8 @@ async def unlike_comment(db: AsyncSession, voter_id: uuid.UUID, comment_id: uuid
     lp_total = (
         await db.execute(select(func.sum(LpEvent.amount)).where(LpEvent.user_id == comment.user_id))
     ).scalar_one()
-    if int(lp_total or 0) > 0:
+    lp_changed = int(lp_total or 0) > 0
+    if lp_changed:
         today = datetime.now(timezone.utc).date()
         db.add(
             LpEvent(
@@ -182,3 +185,5 @@ async def unlike_comment(db: AsyncSession, voter_id: uuid.UUID, comment_id: uuid
             )
         )
     await db.commit()
+    if lp_changed:
+        await emit_balance_changed(db, comment.user_id)

@@ -6,6 +6,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 from httpx import AsyncClient
 from sqlalchemy import func, select
+from unittest.mock import AsyncMock
 
 
 @pytest.mark.asyncio
@@ -217,6 +218,46 @@ async def test_upvote_market_disallows_self_like(db_session):
 
     assert upvote_count == 0
     assert lp_events == []
+
+
+@pytest.mark.asyncio
+async def test_upvote_market_emits_realtime_balance_change(db_session, monkeypatch):
+    """When a market earns LP, the recipient's connected tabs get a balance event."""
+    from app.db.models.market import Market
+    from app.db.models.transaction import BpTransaction
+    from app.db.models.user import User
+    from app.services.market_service import upvote_market
+
+    proposer_id = uuid.uuid4()
+    voter_id = uuid.uuid4()
+    market_id = uuid.uuid4()
+    emit = AsyncMock()
+    monkeypatch.setattr("app.socket.server.celery_emit", emit)
+
+    db_session.add_all([
+        User(id=proposer_id, email="rt-market-owner@test.com", username="rt_market_owner", password_hash="x"),
+        User(id=voter_id, email="rt-market-voter@test.com", username="rt_market_voter", password_hash="x"),
+        BpTransaction(user_id=proposer_id, amount=5.0, reason="signup"),
+        Market(
+            id=market_id,
+            proposer_id=proposer_id,
+            title="Realtime market LP",
+            description="desc",
+            resolution_criteria="criteria",
+            deadline=datetime(2030, 1, 1, tzinfo=timezone.utc),
+            market_type="binary",
+            status="open",
+        ),
+    ])
+    await db_session.commit()
+
+    await upvote_market(db_session, voter_id, market_id)
+
+    emit.assert_awaited_once()
+    event, payload = emit.await_args.args[:2]
+    assert event == "points:balance_changed"
+    assert payload == {"user_id": str(proposer_id), "bp": 5.0, "lp": 1, "tp": 0.0}
+    assert emit.await_args.kwargs["room"] == f"user:{proposer_id}"
 
 
 @pytest.mark.asyncio

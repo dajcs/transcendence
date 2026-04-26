@@ -11,7 +11,7 @@ from app.db.models.market import Market, MarketPosition, MarketUpvote, Comment, 
 from app.db.models.user import User
 from app.schemas.market import MarketCreate, MarketListResponse, MarketResponse
 from app.config import settings
-from app.services.economy_service import deduct_bp, get_bet_odds
+from app.services.economy_service import deduct_bp, emit_balance_changed, get_bet_odds
 
 _DEFAULT_DIRS: dict[str, str] = {"deadline": "asc", "newest": "desc", "active": "desc"}
 
@@ -374,6 +374,7 @@ async def upvote_market(db: AsyncSession, user_id: uuid.UUID, market_id: uuid.UU
             day_date=datetime.now(timezone.utc).date(),
         ))
         await db.commit()
+        await emit_balance_changed(db, market.proposer_id)
     except IntegrityError:
         await db.rollback()  # already upvoted — treat as no-op
 
@@ -399,7 +400,8 @@ async def unlike_market(db: AsyncSession, user_id: uuid.UUID, market_id: uuid.UU
     lp_total = (
         await db.execute(select(func.sum(LpEvent.amount)).where(LpEvent.user_id == market.proposer_id))
     ).scalar_one()
-    if int(lp_total or 0) > 0:
+    lp_changed = int(lp_total or 0) > 0
+    if lp_changed:
         db.add(LpEvent(
             user_id=market.proposer_id,
             amount=-1,
@@ -408,3 +410,5 @@ async def unlike_market(db: AsyncSession, user_id: uuid.UUID, market_id: uuid.UU
             day_date=datetime.now(timezone.utc).date(),
         ))
     await db.commit()
+    if lp_changed:
+        await emit_balance_changed(db, market.proposer_id)
