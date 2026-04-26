@@ -379,7 +379,7 @@ async def upvote_market(db: AsyncSession, user_id: uuid.UUID, market_id: uuid.UU
 
 
 async def unlike_market(db: AsyncSession, user_id: uuid.UUID, market_id: uuid.UUID) -> None:
-    """Remove upvote from market; decrement LP for proposer by 1."""
+    """Remove upvote from market; decrement unconverted LP for proposer by 1."""
     from datetime import datetime, timezone
     from app.db.models.transaction import LpEvent
 
@@ -396,11 +396,15 @@ async def unlike_market(db: AsyncSession, user_id: uuid.UUID, market_id: uuid.UU
     )
     if delete_result.rowcount == 0:
         return  # not upvoted — no-op
-    db.add(LpEvent(
-        user_id=market.proposer_id,
-        amount=-1,
-        source_type="market_upvote",
-        source_id=market_id,
-        day_date=datetime.now(timezone.utc).date(),
-    ))
+    lp_total = (
+        await db.execute(select(func.sum(LpEvent.amount)).where(LpEvent.user_id == market.proposer_id))
+    ).scalar_one()
+    if int(lp_total or 0) > 0:
+        db.add(LpEvent(
+            user_id=market.proposer_id,
+            amount=-1,
+            source_type="market_upvote",
+            source_id=market_id,
+            day_date=datetime.now(timezone.utc).date(),
+        ))
     await db.commit()

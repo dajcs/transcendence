@@ -127,6 +127,9 @@ async def test_unlike_comment_only_records_one_negative_lp_event_when_delete_is_
         def scalar_one_or_none(self):
             return self._value
 
+        def scalar_one(self):
+            return self._value
+
     class FakeDeleteResult:
         def __init__(self, rowcount: int):
             self.rowcount = rowcount
@@ -134,13 +137,18 @@ async def test_unlike_comment_only_records_one_negative_lp_event_when_delete_is_
     class FakeSession:
         def __init__(self):
             self.delete_rowcounts = [1, 0]
+            self.select_results = [
+                SimpleNamespace(id=comment_id, user_id=author_id),
+                1,
+                SimpleNamespace(id=comment_id, user_id=author_id),
+            ]
             self.added = []
             self.commit_count = 0
 
         async def execute(self, statement):
             statement_type = statement.__class__.__name__
             if statement_type == "Select":
-                return FakeSelectResult(SimpleNamespace(id=comment_id, user_id=author_id))
+                return FakeSelectResult(self.select_results.pop(0))
             if statement_type == "Delete":
                 return FakeDeleteResult(self.delete_rowcounts.pop(0))
             raise AssertionError(f"Unexpected statement type: {statement_type}")
@@ -159,3 +167,52 @@ async def test_unlike_comment_only_records_one_negative_lp_event_when_delete_is_
     negative_events = [obj for obj in db.added if getattr(obj, "amount", None) == -1]
     assert len(negative_events) == 1
     assert db.commit_count == 1
+
+
+@pytest.mark.asyncio
+async def test_unlike_comment_does_not_make_converted_lp_negative(db_session):
+    """After login conversion resets LP to zero, unlikes must not create negative LP."""
+    from datetime import datetime, timezone
+
+    from app.db.models.market import Comment, CommentUpvote, Market
+    from app.db.models.transaction import LpEvent
+    from app.db.models.user import User
+    from app.services.comment_service import unlike_comment
+    from app.services.economy_service import convert_lp_to_bp, get_balance
+
+    market_id = uuid.uuid4()
+    comment_id = uuid.uuid4()
+    proposer_id = uuid.uuid4()
+    author_id = uuid.uuid4()
+    voter_id = uuid.uuid4()
+    db_session.add_all([
+        User(id=proposer_id, email="converted-comment-proposer@test.com", username="converted_comment_prop", password_hash="x"),
+        User(id=author_id, email="converted-comment-author@test.com", username="converted_comment_author", password_hash="x"),
+        User(id=voter_id, email="converted-comment-voter@test.com", username="converted_comment_voter", password_hash="x"),
+        Market(
+            id=market_id,
+            proposer_id=proposer_id,
+            title="Converted comment unlike",
+            description="desc",
+            resolution_criteria="criteria",
+            deadline=datetime(2030, 1, 1, tzinfo=timezone.utc),
+            market_type="binary",
+            status="open",
+        ),
+        Comment(id=comment_id, market_id=market_id, user_id=author_id, content="liked comment"),
+        CommentUpvote(comment_id=comment_id, user_id=voter_id),
+        LpEvent(
+            user_id=author_id,
+            amount=1,
+            source_type="comment_upvote",
+            source_id=comment_id,
+            day_date=datetime.now(timezone.utc).date(),
+        ),
+    ])
+    await db_session.commit()
+    await convert_lp_to_bp(db_session, author_id)
+    await db_session.commit()
+
+    await unlike_comment(db_session, voter_id, comment_id)
+
+    assert (await get_balance(db_session, author_id))["lp"] == 0

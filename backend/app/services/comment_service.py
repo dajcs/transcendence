@@ -153,7 +153,7 @@ async def upvote_comment(db: AsyncSession, voter_id: uuid.UUID, comment_id: uuid
 
 
 async def unlike_comment(db: AsyncSession, voter_id: uuid.UUID, comment_id: uuid.UUID) -> None:
-    """Remove upvote from comment; decrement LP for author by 1."""
+    """Remove upvote from comment; decrement unconverted LP for author by 1."""
     comment = (await db.execute(select(Comment).where(Comment.id == comment_id))).scalar_one_or_none()
     if comment is None:
         raise HTTPException(status_code=404, detail="Comment not found")
@@ -167,14 +167,18 @@ async def unlike_comment(db: AsyncSession, voter_id: uuid.UUID, comment_id: uuid
     )
     if delete_result.rowcount == 0:
         return  # not upvoted — no-op
-    today = datetime.now(timezone.utc).date()
-    db.add(
-        LpEvent(
-            user_id=comment.user_id,
-            amount=-1,
-            source_type="comment_upvote",
-            source_id=comment_id,
-            day_date=today,
+    lp_total = (
+        await db.execute(select(func.sum(LpEvent.amount)).where(LpEvent.user_id == comment.user_id))
+    ).scalar_one()
+    if int(lp_total or 0) > 0:
+        today = datetime.now(timezone.utc).date()
+        db.add(
+            LpEvent(
+                user_id=comment.user_id,
+                amount=-1,
+                source_type="comment_upvote",
+                source_id=comment_id,
+                day_date=today,
+            )
         )
-    )
     await db.commit()
