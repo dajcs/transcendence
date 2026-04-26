@@ -110,6 +110,8 @@ const fr = {
   "market.post": "Publier",
   "market.posting": "Publication en cours...",
   "market.reply": "Répondre",
+  "market.collapse_replies": "Réduire les réponses",
+  "market.expand_replies": "Afficher les réponses",
   "market.upvote": "Voter pour",
   "market.loading_comments": "Chargement des commentaires...",
   "market.resolution": "Résolution",

@@ -110,6 +110,8 @@ const de = {
   "market.post": "Veröffentlichen",
   "market.posting": "Wird veröffentlicht...",
   "market.reply": "Antworten",
+  "market.collapse_replies": "Antworten zuklappen",
+  "market.expand_replies": "Antworten aufklappen",
   "market.upvote": "Zustimmen",
   "market.loading_comments": "Kommentare werden geladen...",
   "market.resolution": "Auflösung",

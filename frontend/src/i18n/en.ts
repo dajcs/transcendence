@@ -110,6 +110,8 @@ const en = {
   "market.post": "Post",
   "market.posting": "Posting...",
   "market.reply": "Reply",
+  "market.collapse_replies": "Collapse replies",
+  "market.expand_replies": "Expand replies",
   "market.upvote": "Upvote",
   "market.loading_comments": "Loading comments...",
   "market.resolution": "Resolution",

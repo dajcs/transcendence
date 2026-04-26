@@ -170,6 +170,7 @@ See: `.planning/PROJECT.md` (updated 2026-03-24)
 | 260424-i6c | Left navigation bar redesign | 2026-04-24 | pending | Verified | [260424-i6c-left-navigation-bar-redesign](./quick/260424-i6c-left-navigation-bar-redesign/) |
 | 20260426 | Fix login redirect after expired session | 2026-04-26 | pending | Verified | [20260426-auth-login-redirect-after-expiry](./quick/20260426-auth-login-redirect-after-expiry/) |
 | quick | Realtime LP display for like/unlike balance changes | 2026-04-26 | pending | Verified | `backend/app/services/economy_service.py`, `frontend/src/components/AuthBootstrap.tsx` |
+| 260426-abc | Market detail: reply icon + foldable replies | 2026-04-26 | pending | Complete | [260426-abc-market-reply-icon-foldable-replies](./quick/260426-abc-market-reply-icon-foldable-replies/) |
 
 ### Blockers/Concerns
 
