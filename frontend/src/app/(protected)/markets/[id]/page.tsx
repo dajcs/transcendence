@@ -1309,6 +1309,7 @@ export default function MarketDetailPage() {
                       </button>
                       {depth < MAX_COMMENT_DEPTH && (
                         <button
+                          aria-label={t("market.reply")}
                           title={t("market.reply")}
                           onClick={() => {
                             setReplyText("");
@@ -1316,7 +1317,7 @@ export default function MarketDetailPage() {
                           }}
                           className="flex items-center p-1 rounded text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
                         >
-                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                          <svg aria-hidden="true" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                             <polyline points="9 17 4 12 9 7"/>
                             <path d="M20 18v-2a4 4 0 0 0-4-4H4"/>
                           </svg>
