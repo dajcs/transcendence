@@ -3,9 +3,11 @@ import userEvent from "@testing-library/user-event";
 
 jest.mock("@/lib/api", () => ({ api: { post: jest.fn() } }));
 const push = jest.fn();
+const replace = jest.fn();
+const refresh = jest.fn();
 const searchParamsGet = jest.fn((_: string): string | null => null);
 jest.mock("next/navigation", () => ({
-  useRouter: () => ({ push }),
+  useRouter: () => ({ push, replace, refresh }),
   useSearchParams: () => ({ get: searchParamsGet }),
 }));
 jest.mock("@/i18n", () => ({ useT: () => (key: string) => key }));
@@ -79,7 +81,7 @@ describe("LoginForm", () => {
     expect(await screen.findByText("Locked account")).toBeInTheDocument();
   });
 
-  it("bootstraps auth state and redirects after a successful login", async () => {
+  it("bootstraps auth state and refreshes before replacing login with markets after a successful login", async () => {
     mockPost.mockResolvedValueOnce({ data: {} });
 
     render(<LoginForm />);
@@ -94,7 +96,9 @@ describe("LoginForm", () => {
         password: "secret",
       });
       expect(bootstrap).toHaveBeenCalledTimes(1);
-      expect(push).toHaveBeenCalledWith("/markets");
+      expect(refresh).toHaveBeenCalledTimes(1);
+      expect(replace).toHaveBeenCalledWith("/markets");
+      expect(push).not.toHaveBeenCalled();
     });
   });
 
