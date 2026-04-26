@@ -1326,9 +1326,9 @@ export default function MarketDetailPage() {
                         <button
                           title={isCollapsed ? t("market.expand_replies") : t("market.collapse_replies")}
                           onClick={() => toggleCollapsed(comment.id)}
-                          className="text-[11px] px-1.5 py-0.5 rounded font-mono text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
+                          className="text-[13px] px-1.5 py-0.5 rounded font-mono text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
                         >
-                          {isCollapsed ? `(${countDescendants(comment.id)})` : "»"}
+                          {isCollapsed ? `»(${countDescendants(comment.id)})` : "»"}
                         </button>
                       )}
                     </div>
