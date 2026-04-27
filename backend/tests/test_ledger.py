@@ -6,7 +6,7 @@ import pytest
 from httpx import AsyncClient
 from sqlalchemy import select
 
-from app.db.models.transaction import LpEvent
+from app.db.models.transaction import BpTransaction, LpEvent
 from app.db.models.user import User
 
 
@@ -219,3 +219,24 @@ async def test_withdrawal_refund_transaction_uses_bet_refund_type(client: AsyncC
         if tx["type"] == "bet_refund"
     ]
     assert refund_rows, "Expected a bet refund row in the ledger"
+
+
+@pytest.mark.asyncio
+async def test_dispute_vote_transaction_uses_dispute_type(client: AsyncClient, db_session):
+    await _register_and_login(client, "ledgerdispute")
+
+    user = (
+        await db_session.execute(select(User).where(User.username == "ledgerdispute"))
+    ).scalar_one()
+    db_session.add(BpTransaction(user_id=user.id, amount=-1.0, reason="dispute_vote"))
+    await db_session.commit()
+
+    resp = await client.get("/api/users/ledgerdispute/transactions")
+    assert resp.status_code == 200
+
+    dispute_rows = [
+        tx for tx in resp.json()["transactions"]
+        if tx["bp_delta"] == -1.0
+    ]
+    assert dispute_rows, "Expected a dispute cost row in the ledger"
+    assert dispute_rows[0]["type"] == "dispute"

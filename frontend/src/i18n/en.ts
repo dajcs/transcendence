@@ -194,6 +194,7 @@ const en = {
   "ledger.type_bet_lost": "Lost",
   "ledger.type_withdrawal": "Withdrawal",
   "ledger.type_bet_refund": "Bet Refund",
+  "ledger.type_dispute": "Dispute",
   "ledger.type_daily_bonus": "Daily Bonus",
   "ledger.type_lp_allocation": "❤️→ BP",
   "ledger.type_payout": "Payout",

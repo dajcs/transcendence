@@ -173,6 +173,7 @@ Last activity: 2026-04-27 - Completed quick task 260427-i85: fix uncontested res
 | quick | Realtime LP display for like/unlike balance changes | 2026-04-26 | pending | Verified | `backend/app/services/economy_service.py`, `frontend/src/components/AuthBootstrap.tsx` |
 | 260426-abc | Market detail: reply icon + foldable replies | 2026-04-26 | pending | Complete | [260426-abc-market-reply-icon-foldable-replies](./quick/260426-abc-market-reply-icon-foldable-replies/) |
 | 260427-i85 | Fix uncontested resolution payout skip | 2026-04-27 | bd03d13 | Complete | [260427-i85-please-check-the-validity-of-the-comment](./quick/260427-i85-please-check-the-validity-of-the-comment/) |
+| fast | Dispute cost ledger type fix | 2026-04-27 | pending | Complete | `backend/app/services/ledger_service.py`, `frontend/src/i18n/en.ts` |
 
 ### Blockers/Concerns
 

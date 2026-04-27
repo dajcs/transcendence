@@ -101,6 +101,7 @@ async def get_user_transactions(
         (merged.c.reason.in_(["bet_refund", "withdrawal_refund"]), "bet_refund"),
         (merged.c.reason == "bet_win", "bet_won"),
         (merged.c.reason == "proposer_penalty", "bet_lost"),
+        (merged.c.reason == "dispute_vote", "dispute"),
         (merged.c.reason == "lp_conversion", "lp_allocation"),
         (merged.c.reason == "daily_login", "daily_bonus"),
         (merged.c.reason == "signup_bonus", "daily_bonus"),
