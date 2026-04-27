@@ -108,6 +108,42 @@ openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
 
 Certificates mounted into Nginx container via Docker volume.
 
+### JWT Signing Keys
+
+Access tokens are signed with an RSA key pair. The key files are deployment-local
+secrets and are ignored by git (`*.pem`), but the `backend/keys/` directory is
+tracked so Docker does not create the bind-mount source as `root`.
+
+Generate the key pair before starting Compose on a fresh server:
+
+```bash
+mkdir -p backend/keys
+openssl genrsa -out backend/keys/jwt_private.pem 2048
+openssl rsa -in backend/keys/jwt_private.pem -pubout -out backend/keys/jwt_public.pem
+chmod 600 backend/keys/jwt_private.pem
+chmod 644 backend/keys/jwt_public.pem
+```
+
+The default `.env` paths are relative to the backend working directory:
+
+```bash
+JWT_PRIVATE_KEY_PATH=keys/jwt_private.pem
+JWT_PUBLIC_KEY_PATH=keys/jwt_public.pem
+```
+
+If `backend/keys/` was created by Docker as `root:root`, fix ownership before
+generating keys:
+
+```bash
+sudo chown -R "$USER:$USER" backend/keys
+```
+
+Verify the running backend can read the private key:
+
+```bash
+docker compose exec backend sh -c 'test -r keys/jwt_private.pem && echo private-readable || echo private-missing'
+```
+
 ### Nginx Config
 ```nginx
 server {
