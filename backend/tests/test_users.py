@@ -7,6 +7,7 @@ from sqlalchemy import select
 
 from app.db.models.transaction import BpFundEntry, TpTransaction
 from app.db.models.user import User
+from app.utils.crypto import decrypt_secret
 
 
 async def _register_and_login(client: AsyncClient, email: str, username: str) -> dict:
@@ -140,6 +141,23 @@ async def test_patch_my_settings_round_trip_and_hides_api_key(client: AsyncClien
         "llm_model": "openrouter/test-model",
         "llm_api_key_set": True,
     }
+
+
+@pytest.mark.asyncio
+async def test_patch_my_settings_encrypts_api_key_at_rest(client: AsyncClient, db_session):
+    await _register_and_login(client, "encrypted-settings@example.com", "encryptedsettings")
+
+    patch_resp = await client.patch(
+        "/api/users/me",
+        json={"llm_mode": "custom", "llm_provider": "openrouter", "llm_api_key": "secret-key"},
+    )
+    assert patch_resp.status_code == 200
+
+    user = (
+        await db_session.execute(select(User).where(User.username == "encryptedsettings"))
+    ).scalar_one()
+    assert user.llm_api_key != "secret-key"
+    assert decrypt_secret(user.llm_api_key) == "secret-key"
 
 
 @pytest.mark.asyncio

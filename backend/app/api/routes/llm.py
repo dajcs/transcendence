@@ -23,8 +23,16 @@ from app.services.llm_service import (
     get_resolution_hint,
     summarize_thread,
 )
+from app.utils.crypto import decrypt_secret
 
 router = APIRouter(tags=["llm"])
+
+
+def _decrypt_user_llm_api_key(value: str | None) -> str | None:
+    try:
+        return decrypt_secret(value)
+    except ValueError:
+        raise HTTPException(status_code=500, detail="Saved LLM API key could not be decrypted") from None
 
 
 async def _get_current_user(request: Request, db: AsyncSession) -> User:
@@ -70,11 +78,12 @@ async def create_summary(
     if not await _check_budget(r):
         raise HTTPException(status_code=503, detail="Monthly AI budget exceeded")
 
-    if current_user.llm_mode == "custom" and current_user.llm_provider and current_user.llm_api_key:
+    custom_api_key = _decrypt_user_llm_api_key(current_user.llm_api_key)
+    if current_user.llm_mode == "custom" and current_user.llm_provider and custom_api_key:
         from app.services.llm_service import _build_summarize_messages
         msgs = _build_summarize_messages(bet.title, bet.description, bet.resolution_criteria, comment_texts)
         try:
-            summary = await call_custom_provider(msgs, current_user.llm_provider, current_user.llm_api_key, model_override=current_user.llm_model or None)
+            summary = await call_custom_provider(msgs, current_user.llm_provider, custom_api_key, model_override=current_user.llm_model or None)
         except ProviderError as e:
             raise HTTPException(status_code=502, detail=f"{e.provider} error: {e.detail[:200]}")
     else:
@@ -119,11 +128,12 @@ async def create_resolution_hint(
     if not await _check_budget(r):
         raise HTTPException(status_code=503, detail="Monthly AI budget exceeded")
 
-    if current_user.llm_mode == "custom" and current_user.llm_provider and current_user.llm_api_key:
+    custom_api_key = _decrypt_user_llm_api_key(current_user.llm_api_key)
+    if current_user.llm_mode == "custom" and current_user.llm_provider and custom_api_key:
         from app.services.llm_service import _build_hint_messages
         msgs = _build_hint_messages(bet.title, bet.description, bet.resolution_criteria, bet.deadline, body.evidence)
         try:
-            hint = await call_custom_provider(msgs, current_user.llm_provider, current_user.llm_api_key, model_override=current_user.llm_model or None)
+            hint = await call_custom_provider(msgs, current_user.llm_provider, custom_api_key, model_override=current_user.llm_model or None)
         except ProviderError as e:
             raise HTTPException(status_code=502, detail=f"{e.provider} error: {e.detail[:200]}")
     else:

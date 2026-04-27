@@ -25,7 +25,7 @@ class User(Base):
     # LLM preference: "default" (platform key via OpenRouter), "disabled", "custom" (user key)
     llm_mode: Mapped[str] = mapped_column(Text, nullable=False, default="default", server_default=sa.text("'default'"))
     llm_provider: Mapped[str | None] = mapped_column(Text, nullable=True)   # anthropic|openai|gemini|grok
-    llm_api_key: Mapped[str | None] = mapped_column(Text, nullable=True)    # stored in plaintext (user-owned key)
+    llm_api_key: Mapped[str | None] = mapped_column(Text, nullable=True)    # encrypted user-owned key
     llm_model: Mapped[str | None] = mapped_column(Text, nullable=True)     # e.g. "gpt-4o-mini", "claude-3-haiku"
 
     oauth_accounts: Mapped[list["OauthAccount"]] = relationship("OauthAccount", back_populates="user", cascade="all, delete-orphan")

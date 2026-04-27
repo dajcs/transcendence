@@ -16,6 +16,7 @@ from app.services import auth_service
 from app.services import ledger_service
 from app.services import profile_service
 from app.services import gdpr_service
+from app.utils.crypto import encrypt_secret
 
 router = APIRouter()
 
@@ -81,7 +82,9 @@ async def patch_my_settings(
             raise HTTPException(status_code=422, detail=f"llm_provider must be one of {_VALID_PROVIDERS}")
         user.llm_provider = data.llm_provider
     if data.llm_api_key is not None:
-        user.llm_api_key = data.llm_api_key or None  # empty string → NULL
+        user.llm_api_key = (
+            encrypt_secret(data.llm_api_key) if data.llm_api_key else None
+        )  # empty string → NULL
     if data.llm_model is not None:
         user.llm_model = data.llm_model or None  # empty string → NULL
     await db.commit()
