@@ -1,6 +1,6 @@
 """Market API tests — BET-02 (place YES/NO), BET-03 (withdraw), BET-05 (insufficient bp)."""
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 import pytest
 from httpx import AsyncClient
@@ -70,6 +70,20 @@ async def test_place_bet_rejects_closed_market(client: AsyncClient, db_session):
     market_id = await _setup_user_with_market(client, "closed@example.com", "closed_user")
     market = (await db_session.execute(select(Market).where(Market.id == uuid.UUID(market_id)))).scalar_one()
     market.status = "closed"
+    await db_session.commit()
+
+    resp = await client.post("/api/bets", json={"bet_id": market_id, "side": "yes"})
+
+    assert resp.status_code == 409
+    assert resp.json()["detail"] == "Market is not open for betting"
+
+
+@pytest.mark.asyncio
+async def test_place_bet_rejects_open_market_after_deadline(client: AsyncClient, db_session):
+    market_id = await _setup_user_with_market(client, "expired@example.com", "expired_user")
+    market = (await db_session.execute(select(Market).where(Market.id == uuid.UUID(market_id)))).scalar_one()
+    market.deadline = datetime.now(timezone.utc) - timedelta(minutes=1)
+    market.status = "open"
     await db_session.commit()
 
     resp = await client.post("/api/bets", json={"bet_id": market_id, "side": "yes"})

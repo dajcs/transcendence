@@ -85,6 +85,11 @@ async def place_bet(db: AsyncSession, user_id: uuid.UUID, data: BetPlaceRequest)
         raise HTTPException(status_code=404, detail="Market not found")
     if market.status != "open":
         raise HTTPException(status_code=409, detail="Market is not open for betting")
+    deadline = market.deadline
+    if deadline.tzinfo is None:
+        deadline = deadline.replace(tzinfo=timezone.utc)
+    if deadline <= datetime.now(timezone.utc):
+        raise HTTPException(status_code=409, detail="Market is not open for betting")
 
     existing_position = (
         await db.execute(
