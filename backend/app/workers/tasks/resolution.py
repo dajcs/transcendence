@@ -514,9 +514,13 @@ async def _finalize_uncontested_resolutions(db: AsyncSession) -> None:
         if existing_dispute:
             continue  # already escalated
 
-        bet.status = "closed"
+        bet_id = bet.id
+        outcome = resolution.outcome
+        # Close the scanner session's read transaction before trigger_payout
+        # opens its own payout transaction. trigger_payout is responsible for
+        # marking the market closed after crediting winners.
         await db.commit()
         TaskSession = make_task_session()
         async with TaskSession() as payout_db:
-            await trigger_payout(payout_db, bet.id, resolution.outcome, overturned=False)
-        logger.info("Market %s finalized uncontested (outcome: %s)", bet.id, resolution.outcome)
+            await trigger_payout(payout_db, bet_id, outcome, overturned=False)
+        logger.info("Market %s finalized uncontested (outcome: %s)", bet_id, outcome)

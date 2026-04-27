@@ -1,12 +1,12 @@
 """Resolution service regression tests for payout, weighting, and numeric band logic."""
 import math
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 import pytest
 from sqlalchemy import select
 
-from app.db.models.market import Market, MarketPosition, MarketPositionHistory
+from app.db.models.market import Market, MarketPosition, MarketPositionHistory, Resolution
 from app.db.models.transaction import BpFundEntry, BpTransaction, TpTransaction
 from app.db.models.user import User
 
@@ -259,3 +259,76 @@ async def test_trigger_payout_closes_binary_market_and_records_surplus_and_tp(db
         await db_session.execute(select(BpTransaction).where(BpTransaction.user_id == winner_id))
     ).scalars().all()
     assert sum(float(row.amount) for row in balance_rows) == pytest.approx(11.0)
+
+
+@pytest.mark.asyncio
+async def test_uncontested_resolution_finalizer_pays_winners(db_engine, db_session, monkeypatch):
+    from sqlalchemy.ext.asyncio import async_sessionmaker
+
+    import app.workers.tasks.resolution as resolution_tasks
+
+    TaskSession = async_sessionmaker(db_engine, expire_on_commit=False)
+    monkeypatch.setattr(resolution_tasks, "make_task_session", lambda: TaskSession)
+
+    bet_id = uuid.uuid4()
+    proposer_id = uuid.uuid4()
+    winner_id = uuid.uuid4()
+    loser_id = uuid.uuid4()
+    created_at = datetime(2030, 1, 1, 8, 0, tzinfo=timezone.utc)
+    deadline = datetime(2030, 1, 1, 12, 0, tzinfo=timezone.utc)
+    resolved_at = datetime.now(timezone.utc) - timedelta(hours=49)
+
+    db_session.add_all(
+        [
+            User(id=proposer_id, email="prop@uncontested.test", username="prop_uncontested", password_hash="x"),
+            User(id=winner_id, email="winner@uncontested.test", username="winner_uncontested", password_hash="x"),
+            User(id=loser_id, email="loser@uncontested.test", username="loser_uncontested", password_hash="x"),
+            BpTransaction(user_id=winner_id, amount=5.0, reason="signup"),
+            BpTransaction(user_id=loser_id, amount=15.0, reason="signup"),
+            Market(
+                id=bet_id,
+                proposer_id=proposer_id,
+                title="Uncontested payout",
+                description="desc",
+                resolution_criteria="criteria",
+                deadline=deadline,
+                created_at=created_at,
+                market_type="binary",
+                status="proposer_resolved",
+            ),
+            Resolution(
+                id=uuid.uuid4(),
+                market_id=bet_id,
+                tier=1,
+                resolved_by=proposer_id,
+                outcome="yes",
+                resolved_at=resolved_at,
+            ),
+            MarketPosition(id=uuid.uuid4(), bet_id=bet_id, user_id=winner_id, side="yes", bp_staked=5.0),
+            MarketPosition(id=uuid.uuid4(), bet_id=bet_id, user_id=loser_id, side="no", bp_staked=15.0),
+            MarketPositionHistory(
+                id=uuid.uuid4(),
+                bet_id=bet_id,
+                user_id=winner_id,
+                side="yes",
+                changed_at=datetime(2030, 1, 1, 9, 0, tzinfo=timezone.utc),
+            ),
+        ]
+    )
+    await db_session.commit()
+
+    await resolution_tasks._finalize_uncontested_resolutions(db_session)
+
+    bet = (await db_session.execute(select(Market).where(Market.id == bet_id))).scalar_one()
+    assert bet.status == "closed"
+    assert bet.winning_side == "yes"
+
+    balance_rows = (
+        await db_session.execute(select(BpTransaction).where(BpTransaction.user_id == winner_id))
+    ).scalars().all()
+    assert sum(float(row.amount) for row in balance_rows) == pytest.approx(25.0)
+
+    tp_rows = (
+        await db_session.execute(select(TpTransaction).where(TpTransaction.user_id == winner_id))
+    ).scalars().all()
+    assert len(tp_rows) == 1
