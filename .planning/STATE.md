@@ -4,7 +4,7 @@ milestone: v21.0
 milestone_name: milestone
 current_plan: Not started
 status: Phase 06.1 complete
-last_updated: "2026-04-26T18:40:34+02:00"
+last_updated: "2026-04-27T13:07:23+02:00"
 progress:
   total_phases: 9
   completed_phases: 7
@@ -26,7 +26,8 @@ See: `.planning/PROJECT.md` (updated 2026-03-24)
 
 **Phase:** 07
 **Current Plan:** Not started
-**Last session:** 2026-04-26T18:40:34+02:00
+**Last session:** 2026-04-27T13:07:23+02:00
+Last activity: 2026-04-27 - Completed quick task 260427-i85: fix uncontested resolution payout skip
 **Resume file:** None
 
 ## Decisions
@@ -171,6 +172,7 @@ See: `.planning/PROJECT.md` (updated 2026-03-24)
 | 20260426 | Fix login redirect after expired session | 2026-04-26 | pending | Verified | [20260426-auth-login-redirect-after-expiry](./quick/20260426-auth-login-redirect-after-expiry/) |
 | quick | Realtime LP display for like/unlike balance changes | 2026-04-26 | pending | Verified | `backend/app/services/economy_service.py`, `frontend/src/components/AuthBootstrap.tsx` |
 | 260426-abc | Market detail: reply icon + foldable replies | 2026-04-26 | pending | Complete | [260426-abc-market-reply-icon-foldable-replies](./quick/260426-abc-market-reply-icon-foldable-replies/) |
+| 260427-i85 | Fix uncontested resolution payout skip | 2026-04-27 | bd03d13 | Complete | [260427-i85-please-check-the-validity-of-the-comment](./quick/260427-i85-please-check-the-validity-of-the-comment/) |
 
 ### Blockers/Concerns
 
