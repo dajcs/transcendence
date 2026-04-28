@@ -1,12 +1,22 @@
-.PHONY: dev test migrate seed logs build down gen-keys e2e e2e-list \
+.PHONY: dev main main-down test migrate seed logs build down gen-keys gen-keys-main \
+	e2e e2e-list \
 	phase7-frontend-install phase7-e2e-install phase7-proof-backend \
-	phase7-proof-frontend phase7-proof-e2e-list phase7-proof phase7-heavy
+	phase7-proof-frontend phase7-proof-e2e-list phase7-proof phase7-heavy \
+	restart reload
 
 UV_CACHE_DIR := $(CURDIR)/.cache/uv
 
 # Start all services with hot-reload (docker-compose.override.yml picked up automatically)
 dev:
 	docker compose up --build
+
+# Start all services in PRODUCTION mode (https://voxpo.me, no hot-reload)
+main:
+	docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+
+# Stop production services
+main-down:
+	docker compose -f docker-compose.yml -f docker-compose.prod.yml down
 
 # Run backend tests inside the container
 test:
@@ -120,7 +130,7 @@ reload:
 	docker compose up --build
 
 
-# Generate SSL cert + RSA key pair for JWT (run once)
+# Generate self-signed SSL cert + RSA key pair for JWT (dev mode)
 gen-keys:
 	mkdir -p nginx/ssl
 	openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
@@ -131,3 +141,9 @@ gen-keys:
 	openssl genrsa -out backend/keys/jwt_private.pem 2048
 	openssl rsa -in backend/keys/jwt_private.pem -pubout -out backend/keys/jwt_public.pem
 	@echo "Keys generated. Update JWT_PRIVATE_KEY_PATH and JWT_PUBLIC_KEY_PATH in .env"
+
+# Create nginx/ssl-prod/ directory for production SSL certs (main mode)
+gen-keys-main:
+	mkdir -p nginx/ssl-prod
+	@echo "Place real SSL certs in nginx/ssl-prod/cert.pem and nginx/ssl-prod/key.pem"
+	@echo "(e.g. from Let's Encrypt: fullchain.pem -> cert.pem, privkey.pem -> key.pem)"
