@@ -268,12 +268,14 @@ Plans:
 - `plan/TESTING.md`
 - `plan/SCALING.md` (load test targets)
 
-**Plans:** 3 plans
+**Plans:** 5 plans
 
 Plans:
 - [x] 07-01-PLAN.md — Backend regression baseline: pytest coverage tooling + economy/resolution/auth/API tests
 - [x] 07-02-PLAN.md — Frontend Jest regression baseline: coverage scripts + auth/nav/profile/market-detail tests
 - [x] 07-03-PLAN.md — Playwright critical flows + incremental GitHub Actions CI
+- [x] 07-04-PLAN.md — Gap closure: repo-owned proof targets, CI wiring confirmation, and real E2E proof
+- [ ] 07-05-PLAN.md — Gap closure: backend/frontend coverage thresholds, fail-under gates, and reviewed test hardening
 
 ---
 
