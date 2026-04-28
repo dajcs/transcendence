@@ -66,7 +66,7 @@ describe("AuthBootstrap", () => {
       expect(connect).toHaveBeenCalledTimes(1);
     });
 
-    authState = { bootstrap, isAuthenticated: false };
+    authState = { bootstrap, isAuthenticated: false, user: null, applyBalanceUpdate };
     view.rerender(<AuthBootstrap />);
 
     await waitFor(() => {
@@ -76,7 +76,7 @@ describe("AuthBootstrap", () => {
 
   it("does not probe /api/auth/me on logged-out auth pages", () => {
     pathname = "/login";
-    authState = { bootstrap, isAuthenticated: false };
+    authState = { bootstrap, isAuthenticated: false, user: null, applyBalanceUpdate };
 
     render(<AuthBootstrap />);
 

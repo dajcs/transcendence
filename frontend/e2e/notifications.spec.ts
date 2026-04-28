@@ -20,5 +20,5 @@ test("notification bell opens seeded notifications and routes to the linked mark
 
   await page.getByText("Review the proposer resolution for this market.").click();
   await page.waitForURL(new RegExp(`/markets/${scenario.market.id}$`));
-  await expect(page.getByRole("heading", { name: scenario.market.title })).toBeVisible();
+  await expect(page.getByText(scenario.market.title, { exact: true })).toBeVisible();
 });

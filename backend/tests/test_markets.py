@@ -261,11 +261,11 @@ async def test_upvote_market_emits_realtime_balance_change(db_session, monkeypat
 
 
 @pytest.mark.asyncio
-async def test_unlike_market_only_records_one_negative_lp_event_when_delete_is_retried():
+async def test_unlike_market_only_records_one_negative_lp_event_when_delete_is_retried(monkeypatch):
     """Concurrent/stale unlike attempts must not create duplicate LP decrements."""
     from types import SimpleNamespace
 
-    from app.services.market_service import unlike_market
+    from app.services import market_service
 
     market_id = uuid.uuid4()
     proposer_id = uuid.uuid4()
@@ -312,8 +312,13 @@ async def test_unlike_market_only_records_one_negative_lp_event_when_delete_is_r
 
     db = FakeSession()
 
-    await unlike_market(db, voter_id, market_id)
-    await unlike_market(db, voter_id, market_id)
+    async def noop_emit_balance_changed(db, user_id):
+        return None
+
+    monkeypatch.setattr(market_service, "emit_balance_changed", noop_emit_balance_changed)
+
+    await market_service.unlike_market(db, voter_id, market_id)
+    await market_service.unlike_market(db, voter_id, market_id)
 
     negative_events = [obj for obj in db.added if getattr(obj, "amount", None) == -1]
     assert len(negative_events) == 1

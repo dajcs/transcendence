@@ -156,11 +156,11 @@ async def test_nested_reply_rejected(client: AsyncClient):
 
 
 @pytest.mark.asyncio
-async def test_unlike_comment_only_records_one_negative_lp_event_when_delete_is_retried():
+async def test_unlike_comment_only_records_one_negative_lp_event_when_delete_is_retried(monkeypatch):
     """Concurrent/stale unlike attempts must not create duplicate LP decrements."""
     from types import SimpleNamespace
 
-    from app.services.comment_service import unlike_comment
+    from app.services import comment_service
 
     comment_id = uuid.uuid4()
     author_id = uuid.uuid4()
@@ -207,8 +207,13 @@ async def test_unlike_comment_only_records_one_negative_lp_event_when_delete_is_
 
     db = FakeSession()
 
-    await unlike_comment(db, voter_id, comment_id)
-    await unlike_comment(db, voter_id, comment_id)
+    async def noop_emit_balance_changed(db, user_id):
+        return None
+
+    monkeypatch.setattr(comment_service, "emit_balance_changed", noop_emit_balance_changed)
+
+    await comment_service.unlike_comment(db, voter_id, comment_id)
+    await comment_service.unlike_comment(db, voter_id, comment_id)
 
     negative_events = [obj for obj in db.added if getattr(obj, "amount", None) == -1]
     assert len(negative_events) == 1
