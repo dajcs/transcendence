@@ -1,6 +1,6 @@
 .PHONY: dev main main-down test migrate seed logs build down gen-keys gen-keys-main \
 	e2e e2e-list \
-	phase7-frontend-install phase7-e2e-install phase7-proof-backend \
+	phase7-backend-sync phase7-frontend-install phase7-e2e-install phase7-proof-backend \
 	phase7-proof-frontend phase7-proof-e2e-list phase7-proof phase7-heavy \
 	restart reload
 
@@ -50,10 +50,13 @@ phase7-frontend-install:
 phase7-e2e-install: phase7-frontend-install
 	cd frontend && npm run test:e2e:install || PLAYWRIGHT_BROWSERS_PATH=.playwright npx playwright install chromium
 
-# Backend coverage proof using a repo-local uv cache instead of stale local state
-phase7-proof-backend:
+# Sync backend dev dependencies for the Phase 7 proof path using a repo-local uv cache
+phase7-backend-sync:
 	mkdir -p $(UV_CACHE_DIR)
 	cd backend && UV_CACHE_DIR="$(UV_CACHE_DIR)" uv sync --group dev
+
+# Backend coverage proof using a repo-local uv cache instead of stale local state
+phase7-proof-backend: phase7-backend-sync
 	cd backend && UV_CACHE_DIR="$(UV_CACHE_DIR)" uv run pytest --cov=app --cov-report=term-missing tests/ -q
 
 # Frontend typecheck + Jest coverage proof using a clean npm install
@@ -61,8 +64,8 @@ phase7-proof-frontend: phase7-frontend-install
 	cd frontend && npm run type-check
 	cd frontend && npm run test:coverage -- --runInBand
 
-# Prove the Playwright command surface is installed and runnable
-phase7-proof-e2e-list: phase7-frontend-install
+# Prepare Playwright, then prove the command surface is installed and runnable
+phase7-proof-e2e-list: phase7-e2e-install
 	cd frontend && npm run test:e2e:list
 
 # Aggregate light proof path used locally and by CI
