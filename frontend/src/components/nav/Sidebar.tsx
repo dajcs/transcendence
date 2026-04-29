@@ -165,7 +165,7 @@ export default function Sidebar() {
           </span>
           <span className="text-gray-400 dark:text-gray-600 text-[11px]">♦</span>
           {/* TP — light blue */}
-          <span className="text-[11px] font-semibold px-2 py-1 rounded-full bg-sky-100 dark:bg-sky-900/30 text-sky-700 dark:sky-400 whitespace-nowrap">
+          <span className="text-[11px] font-semibold px-2 py-1 rounded-full bg-sky-100 dark:bg-sky-900/30 text-sky-700 dark:text-sky-400 whitespace-nowrap">
             {(user?.tp ?? 0).toFixed(1)} TP
           </span>
         </div>
