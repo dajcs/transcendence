@@ -65,7 +65,7 @@ export default function ChatConversationPage() {
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-12rem)]">
+    <div className="flex flex-col h-[calc(100vh-14rem)] md:h-[calc(100vh-12rem)]">
       {/* Header */}
       <div className="flex items-center gap-2.5 pb-3 mb-3 border-b border-gray-100 dark:border-[oklch(22%_0.015_250)]">
         <Link

@@ -8,7 +8,7 @@ import { useT } from "@/i18n";
 export default function RegisterPage() {
   const t = useT();
   return (
-    <div className="flex flex-col items-center gap-6 pt-12">
+    <div className="flex flex-col items-center gap-6 pt-4 md:pt-12">
       <h1 className="text-2xl font-bold dark:text-gray-100">{t("auth.register")}</h1>
       <RegisterForm />
       <OAuthButtons />
