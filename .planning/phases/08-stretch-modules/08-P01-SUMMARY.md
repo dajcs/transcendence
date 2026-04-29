@@ -73,6 +73,7 @@ Each task was committed atomically:
 1. **Task 1: Fix AppShell breakpoint-conditional offset** - `b3a307f` (feat)
 2. **Task 2: Add hamburger drawer to Sidebar with mobile top bar and backdrop** - `6ac371c` (feat)
 3. **Task 3: Compensate layout.tsx main padding for mobile top bar** - `014b6b0` (feat)
+4. **Rule 1 fix: Restore dark:text-sky-400 on TP balance span** - `b98f6c2` (fix)
 
 ## Files Created/Modified
 - `frontend/src/components/AppShell.tsx` - Changed unconditional ml-[220px] to md:ml-[220px]
@@ -85,10 +86,24 @@ Each task was committed atomically:
 - Fragment (`<>...</>`) wraps the Sidebar return since it now has multiple root elements
 
 ## Deviations from Plan
-None - plan executed exactly as written.
+
+### Auto-fixed Issues
+
+**1. [Rule 1 - Bug] Restored dark:text-sky-400 on TP balance span**
+- **Found during:** Post-task self-check (advisor review)
+- **Issue:** Full-file `Write` of Sidebar.tsx accidentally dropped the `text-` prefix from `dark:text-sky-400`, yielding the invalid Tailwind class `dark:sky-400`. TP balance text in dark mode would render at the light-mode `text-sky-700` color instead of the correct `text-sky-400`.
+- **Fix:** Replaced `dark:sky-400` with `dark:text-sky-400` on the TP balance span.
+- **Files modified:** `frontend/src/components/nav/Sidebar.tsx`
+- **Verification:** `grep -c 'dark:sky-400'` returns 0; `grep -n 'dark:text-sky-400'` shows line 168.
+- **Committed in:** `b98f6c2`
+
+---
+
+**Total deviations:** 1 auto-fixed (Rule 1 - Bug)
+**Impact on plan:** Minor cosmetic regression corrected. No scope creep.
 
 ## Issues Encountered
-None.
+None beyond the auto-fixed Rule 1 bug above.
 
 ## User Setup Required
 None - no external service configuration required.
