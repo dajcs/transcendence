@@ -2,7 +2,7 @@
 
 Architecture: hybrid ETA + sweep scheduling.
   Per-bet ETA: market_service.py schedules resolve_market_at_deadline via send_task(eta=deadline)
-    and stores the Celery task ID on Bet.celery_task_id for revocation if the market is cancelled
+    and stores the Celery task ID on Market.celery_task_id for revocation if the market is cancelled
     or its deadline changes.
   Fallback beat: check_auto_resolution runs every 60 seconds — catches open bets whose ETA task was
     lost (worker restart, broker flush, or pre-deploy markets).
@@ -22,7 +22,7 @@ import httpx
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.models.bet import Bet, Dispute, Resolution
+from app.db.models.market import Market, Dispute, Resolution
 from app.db.session import make_task_session
 from app.workers.celery_app import celery_app
 
@@ -91,9 +91,9 @@ async def _process_auto_resolution(db: AsyncSession) -> None:
     now = datetime.now(timezone.utc)
 
     bets = (await db.execute(
-        select(Bet).where(
-            Bet.status == "open",
-            Bet.deadline <= now,
+        select(Market).where(
+            Market.status == "open",
+            Market.deadline <= now,
         )
     )).scalars().all()
 
@@ -119,7 +119,7 @@ async def _process_auto_resolution(db: AsyncSession) -> None:
             resolved_outcome = outcome
 
             db.add(Resolution(
-                bet_id=bet.id,
+                market_id=bet.id,
                 tier=1,
                 resolved_by=None,
                 outcome=resolved_outcome,
@@ -131,9 +131,9 @@ async def _process_auto_resolution(db: AsyncSession) -> None:
             if is_weather:
                 weather_payouts.append((bet.id, resolved_outcome))
             await db.flush()
-            logger.info("Bet %s auto-resolved: %s", bet.id, resolved_outcome)
+            logger.info("Market %s auto-resolved: %s", bet.id, resolved_outcome)
         else:
-            logger.info("Bet %s escalated to Tier 2 (proposer resolution)", bet.id)
+            logger.info("Market %s escalated to Tier 2 (proposer resolution)", bet.id)
             from app.services.notification_service import notify_resolution_due
             try:
                 await notify_resolution_due(db, bet.proposer_id, bet.title, str(bet.id))
@@ -164,16 +164,16 @@ async def _escalate_overdue_proposer(db: AsyncSession) -> None:
     now = datetime.now(timezone.utc)
 
     overdue_bets = (await db.execute(
-        select(Bet).where(
-            Bet.status == "pending_resolution",
-            Bet.deadline <= now - timedelta(days=7),
+        select(Market).where(
+            Market.status == "pending_resolution",
+            Market.deadline <= now - timedelta(days=7),
         )
     )).scalars().all()
 
     for bet in overdue_bets:
         # Check no existing dispute
         existing = (await db.execute(
-            select(Dispute).where(Dispute.bet_id == bet.id)
+            select(Dispute).where(Dispute.market_id == bet.id)
         )).scalar_one_or_none()
         if existing:
             continue
@@ -181,7 +181,7 @@ async def _escalate_overdue_proposer(db: AsyncSession) -> None:
         # Open a system dispute (proposer is opener for accounting purposes)
         closes_at = now + timedelta(days=3)
         dispute = Dispute(
-            bet_id=bet.id,
+            market_id=bet.id,
             opened_by=bet.proposer_id,
             closes_at=closes_at,
             status="open",
@@ -189,7 +189,7 @@ async def _escalate_overdue_proposer(db: AsyncSession) -> None:
         db.add(dispute)
         bet.status = "disputed"
         await db.flush()
-        logger.info("Bet %s auto-escalated to Tier 3 (proposer timeout)", bet.id)
+        logger.info("Market %s auto-escalated to Tier 3 (proposer timeout)", bet.id)
 
         try:
             celery_app.send_task(
@@ -215,7 +215,7 @@ async def _process_dispute_deadlines(db: AsyncSession) -> None:
     """D-10: Close expired disputes. Weighted majority -> outcome. Invalid -> restore."""
     from sqlalchemy import func
 
-    from app.db.models.bet import BetPosition, DisputeVote
+    from app.db.models.market import MarketPosition, DisputeVote
 
     now = datetime.now(timezone.utc)
 
@@ -229,9 +229,9 @@ async def _process_dispute_deadlines(db: AsyncSession) -> None:
     for dispute in expired_disputes:
         # Count participants (unique active positions)
         participant_count = (await db.execute(
-            select(func.count(BetPosition.id)).where(
-                BetPosition.bet_id == dispute.bet_id,
-                BetPosition.withdrawn_at.is_(None),
+            select(func.count(MarketPosition.id)).where(
+                MarketPosition.market_id == dispute.market_id,
+                MarketPosition.withdrawn_at.is_(None),
             )
         )).scalar_one()
 
@@ -245,7 +245,7 @@ async def _process_dispute_deadlines(db: AsyncSession) -> None:
 
         # Fetch original resolution to determine if overturned
         resolution = (await db.execute(
-            select(Resolution).where(Resolution.bet_id == dispute.bet_id)
+            select(Resolution).where(Resolution.market_id == dispute.market_id)
         )).scalar_one_or_none()
         original_outcome = resolution.outcome if resolution else "no"
 
@@ -257,7 +257,7 @@ async def _process_dispute_deadlines(db: AsyncSession) -> None:
             await db.commit()
             async with make_task_session()() as payout_db:
                 from app.services.resolution_service import trigger_payout
-                await trigger_payout(payout_db, dispute.bet_id, original_outcome, overturned=False)
+                await trigger_payout(payout_db, dispute.market_id, original_outcome, overturned=False)
             continue
 
         # Compute weighted totals — plurality voting across any outcome value
@@ -285,14 +285,14 @@ async def _process_dispute_deadlines(db: AsyncSession) -> None:
 
         async with make_task_session()() as payout_db:
             from app.services.resolution_service import trigger_payout
-            await trigger_payout(payout_db, dispute.bet_id, final_outcome, overturned=overturned)
+            await trigger_payout(payout_db, dispute.market_id, final_outcome, overturned=overturned)
 
         # Emit dispute:closed
         from app.socket.server import celery_emit
         await celery_emit(
             "dispute:closed",
-            {"bet_id": str(dispute.bet_id), "outcome": final_outcome, "overturned": overturned},
-            room=f"bet:{dispute.bet_id}",
+            {"bet_id": str(dispute.market_id), "outcome": final_outcome, "overturned": overturned},
+            room=f"bet:{dispute.market_id}",
         )
 
 
@@ -308,7 +308,7 @@ async def _close_single_dispute(dispute_id_str: str) -> None:
     import uuid as _uuid
     from sqlalchemy import func
 
-    from app.db.models.bet import BetPosition, DisputeVote
+    from app.db.models.market import MarketPosition, DisputeVote
 
     dispute_id = _uuid.UUID(dispute_id_str)
     TaskSession = make_task_session()
@@ -320,9 +320,9 @@ async def _close_single_dispute(dispute_id_str: str) -> None:
             return  # already closed or not found
 
         participant_count = (await db.execute(
-            select(func.count(BetPosition.id)).where(
-                BetPosition.bet_id == dispute.bet_id,
-                BetPosition.withdrawn_at.is_(None),
+            select(func.count(MarketPosition.id)).where(
+                MarketPosition.market_id == dispute.market_id,
+                MarketPosition.withdrawn_at.is_(None),
             )
         )).scalar_one()
 
@@ -331,7 +331,7 @@ async def _close_single_dispute(dispute_id_str: str) -> None:
         )).scalars().all()
 
         resolution = (await db.execute(
-            select(Resolution).where(Resolution.bet_id == dispute.bet_id)
+            select(Resolution).where(Resolution.market_id == dispute.market_id)
         )).scalar_one_or_none()
         original_outcome = resolution.outcome if resolution else "no"
 
@@ -342,7 +342,7 @@ async def _close_single_dispute(dispute_id_str: str) -> None:
             await db.commit()
             async with TaskSession() as payout_db:
                 from app.services.resolution_service import trigger_payout
-                await trigger_payout(payout_db, dispute.bet_id, original_outcome, overturned=False)
+                await trigger_payout(payout_db, dispute.market_id, original_outcome, overturned=False)
             return
 
         weight_by_outcome: dict[str, float] = {}
@@ -364,13 +364,13 @@ async def _close_single_dispute(dispute_id_str: str) -> None:
 
         async with TaskSession() as payout_db:
             from app.services.resolution_service import trigger_payout
-            await trigger_payout(payout_db, dispute.bet_id, final_outcome, overturned=overturned)
+            await trigger_payout(payout_db, dispute.market_id, final_outcome, overturned=overturned)
 
         from app.socket.server import celery_emit
         await celery_emit(
             "dispute:closed",
-            {"bet_id": str(dispute.bet_id), "outcome": final_outcome, "overturned": overturned},
-            room=f"bet:{dispute.bet_id}",
+            {"bet_id": str(dispute.market_id), "outcome": final_outcome, "overturned": overturned},
+            room=f"bet:{dispute.market_id}",
         )
 
         logger.info("Dispute %s closed — outcome: %s (overturned: %s)", dispute_id, final_outcome, overturned)
@@ -393,7 +393,7 @@ async def _resolve_single_market(bet_id_str: str) -> None:
     bet_id = _uuid.UUID(bet_id_str)
     TaskSession = make_task_session()
     async with TaskSession() as db:
-        bet = (await db.execute(select(Bet).where(Bet.id == bet_id))).scalar_one_or_none()
+        bet = (await db.execute(select(Market).where(Market.id == bet_id))).scalar_one_or_none()
         if bet is None or bet.status != "open":
             return
 
@@ -415,7 +415,7 @@ async def _resolve_single_market(bet_id_str: str) -> None:
             resolved_outcome = outcome
 
             db.add(Resolution(
-                bet_id=bet.id,
+                market_id=bet.id,
                 tier=1,
                 resolved_by=None,
                 outcome=resolved_outcome,
@@ -425,7 +425,7 @@ async def _resolve_single_market(bet_id_str: str) -> None:
             bet.winning_side = resolved_outcome
             bet.status = "proposer_resolved"  # trigger_payout will close it
             await db.commit()
-            logger.info("Bet %s auto-resolved at deadline: %s", bet.id, resolved_outcome)
+            logger.info("Market %s auto-resolved at deadline: %s", bet.id, resolved_outcome)
 
             if is_weather:
                 async with TaskSession() as payout_db:
@@ -441,7 +441,7 @@ async def _resolve_single_market(bet_id_str: str) -> None:
             await db.commit()
             async with TaskSession() as notif_db:
                 await notify_resolution_due(notif_db, proposer_id, market_title, market_id)
-            logger.info("Bet %s needs manual resolution — proposer notified", bet.id)
+            logger.info("Market %s needs manual resolution — proposer notified", bet.id)
 
     from app.socket.server import celery_emit
     data = {"bet_id": bet_id_str, "status": bet.status}
@@ -495,9 +495,9 @@ async def _finalize_uncontested_resolutions(db: AsyncSession) -> None:
     window = timedelta(hours=48)
 
     overdue = (await db.execute(
-        select(Bet, Resolution)
-        .join(Resolution, Resolution.bet_id == Bet.id)
-        .where(Bet.status == "proposer_resolved")
+        select(Market, Resolution)
+        .join(Resolution, Resolution.market_id == Market.id)
+        .where(Market.status == "proposer_resolved")
     )).all()
 
     for bet, resolution in overdue:
@@ -509,14 +509,18 @@ async def _finalize_uncontested_resolutions(db: AsyncSession) -> None:
 
         # Check no Dispute record — threshold was never reached
         existing_dispute = (await db.execute(
-            select(Dispute).where(Dispute.bet_id == bet.id)
+            select(Dispute).where(Dispute.market_id == bet.id)
         )).scalar_one_or_none()
         if existing_dispute:
             continue  # already escalated
 
-        bet.status = "closed"
+        bet_id = bet.id
+        outcome = resolution.outcome
+        # Close the scanner session's read transaction before trigger_payout
+        # opens its own payout transaction. trigger_payout is responsible for
+        # marking the market closed after crediting winners.
         await db.commit()
         TaskSession = make_task_session()
         async with TaskSession() as payout_db:
-            await trigger_payout(payout_db, bet.id, resolution.outcome, overturned=False)
-        logger.info("Bet %s finalized uncontested (outcome: %s)", bet.id, resolution.outcome)
+            await trigger_payout(payout_db, bet_id, outcome, overturned=False)
+        logger.info("Market %s finalized uncontested (outcome: %s)", bet_id, outcome)

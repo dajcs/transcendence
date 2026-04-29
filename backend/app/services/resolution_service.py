@@ -11,7 +11,7 @@ from fastapi import HTTPException
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.models.bet import Bet, BetPosition, PositionHistory
+from app.db.models.market import Market, MarketPosition, MarketPositionHistory
 from app.db.models.transaction import BpFundEntry, BpTransaction, TpTransaction
 from app.services.economy_service import credit_bp
 
@@ -58,7 +58,7 @@ async def _compute_tp_for_user(
     t_bet: float,
 ) -> float:
     """D-11 TP formula: time-based. tp = t_win / t_bet.
-    t_win from PositionHistory via _compute_t_win.
+    t_win from MarketPositionHistory via _compute_t_win.
     Returns 0.0 if user has no winning-side position history."""
     t_win = await _compute_t_win(db, bet_id, user_id, winning_side, deadline)
     return compute_tp_earned(t_win, t_bet)
@@ -67,10 +67,10 @@ async def _compute_tp_for_user(
 async def _get_proposer_staked(db: AsyncSession, bet_id: uuid.UUID, proposer_id: uuid.UUID) -> float:
     """Sum of bp staked by proposer on active positions for this bet."""
     result = await db.execute(
-        select(func.sum(BetPosition.bp_staked)).where(
-            BetPosition.bet_id == bet_id,
-            BetPosition.user_id == proposer_id,
-            BetPosition.withdrawn_at.is_(None),
+        select(func.sum(MarketPosition.bp_staked)).where(
+            MarketPosition.market_id == bet_id,
+            MarketPosition.user_id == proposer_id,
+            MarketPosition.withdrawn_at.is_(None),
         )
     )
     return float(result.scalar_one() or 0)
@@ -80,16 +80,16 @@ async def _compute_t_win(
     db: AsyncSession, bet_id: uuid.UUID, user_id: uuid.UUID, winning_side: str, deadline: datetime
 ) -> float:
     """Compute t_win for a user: seconds from their last entry on winning side to deadline.
-    Uses PositionHistory rows (handles users who changed sides).
+    Uses MarketPositionHistory rows (handles users who changed sides).
     """
     result = await db.execute(
-        select(PositionHistory.changed_at)
+        select(MarketPositionHistory.changed_at)
         .where(
-            PositionHistory.bet_id == bet_id,
-            PositionHistory.user_id == user_id,
-            PositionHistory.side == winning_side,
+            MarketPositionHistory.market_id == bet_id,
+            MarketPositionHistory.user_id == user_id,
+            MarketPositionHistory.side == winning_side,
         )
-        .order_by(PositionHistory.changed_at.desc())
+        .order_by(MarketPositionHistory.changed_at.desc())
         .limit(1)
     )
     entry_time = result.scalar_one_or_none()
@@ -193,11 +193,11 @@ async def trigger_payout(
     async with db.begin():
         # Lock bet row — prevents double-payout
         bet = (await db.execute(
-            select(Bet).where(Bet.id == bet_id).with_for_update()
+            select(Market).where(Market.id == bet_id).with_for_update()
         )).scalar_one_or_none()
 
         if bet is None:
-            raise HTTPException(status_code=404, detail="Bet not found")
+            raise HTTPException(status_code=404, detail="Market not found")
         if bet.status == "closed":
             # Already paid out — idempotent guard
             return {"already_closed": True}
@@ -222,29 +222,29 @@ async def trigger_payout(
 
         # D-12 BP payout: compute total pool and winning stake
         total_pool_result = await db.execute(
-            select(func.sum(BetPosition.bp_staked)).where(
-                BetPosition.bet_id == bet_id,
-                BetPosition.withdrawn_at.is_(None),
+            select(func.sum(MarketPosition.bp_staked)).where(
+                MarketPosition.market_id == bet_id,
+                MarketPosition.withdrawn_at.is_(None),
             )
         )
         total_bp_pool = float(total_pool_result.scalar_one() or 0)
 
         winning_stake_result = await db.execute(
-            select(func.sum(BetPosition.bp_staked)).where(
-                BetPosition.bet_id == bet_id,
-                BetPosition.side == outcome,
-                BetPosition.withdrawn_at.is_(None),
+            select(func.sum(MarketPosition.bp_staked)).where(
+                MarketPosition.market_id == bet_id,
+                MarketPosition.side == outcome,
+                MarketPosition.withdrawn_at.is_(None),
             )
         )
         total_winning_stake = float(winning_stake_result.scalar_one() or 0)
 
         # Collect distinct winner user IDs with their aggregated winning stake
         winners_result = await db.execute(
-            select(BetPosition.user_id, func.sum(BetPosition.bp_staked).label("user_stake")).where(
-                BetPosition.bet_id == bet_id,
-                BetPosition.side == outcome,
-                BetPosition.withdrawn_at.is_(None),
-            ).group_by(BetPosition.user_id)
+            select(MarketPosition.user_id, func.sum(MarketPosition.bp_staked).label("user_stake")).where(
+                MarketPosition.market_id == bet_id,
+                MarketPosition.side == outcome,
+                MarketPosition.withdrawn_at.is_(None),
+            ).group_by(MarketPosition.user_id)
         )
         winner_rows = winners_result.all()  # list of (user_id, user_winning_stake)
 
@@ -255,9 +255,9 @@ async def trigger_payout(
         if market_type == "numeric":
             # D-14–D-17: window-expansion + linear-interpolation payout
             all_positions_result = await db.execute(
-                select(BetPosition.user_id, BetPosition.bp_staked, BetPosition.side).where(
-                    BetPosition.bet_id == bet_id,
-                    BetPosition.withdrawn_at.is_(None),
+                select(MarketPosition.user_id, MarketPosition.bp_staked, MarketPosition.side).where(
+                    MarketPosition.market_id == bet_id,
+                    MarketPosition.withdrawn_at.is_(None),
                 )
             )
             all_position_rows = all_positions_result.all()

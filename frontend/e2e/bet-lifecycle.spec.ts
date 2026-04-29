@@ -16,19 +16,19 @@ test("bet lifecycle supports place and withdraw on a seeded open market", async 
   await login(page, scenario.users.bettor.email, scenario.users.bettor.password);
   await page.goto(`/markets/${scenario.market.id}`);
 
-  const betSection = page.getByRole("heading", { name: "Place your bet" }).locator("..");
-  const positionSection = page.getByRole("heading", { name: "Your Position" }).locator("..");
+  const betSection = page.getByText("Place your bet", { exact: true }).locator("..");
+  const positionSection = page.getByText("Your Position", { exact: true }).locator("..");
 
-  await expect(page.getByRole("heading", { name: scenario.market.title })).toBeVisible();
+  await expect(page.getByText(scenario.market.title, { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "YES" }).click();
   await betSection.getByRole("combobox").selectOption("2");
   await page.getByRole("button", { name: "Place Bet" }).click();
 
-  await expect(page.getByRole("heading", { name: "Your Position" })).toBeVisible();
+  await expect(page.getByText("Your Position", { exact: true })).toBeVisible();
   await expect(positionSection).toContainText("2 BP");
 
   await page.getByRole("button", { name: "Withdraw" }).click();
   await page.getByRole("button", { name: "Confirm" }).click();
 
-  await expect(page.getByRole("heading", { name: "Place your bet" })).toBeVisible();
+  await expect(page.getByText("Place your bet", { exact: true })).toBeVisible();
 });

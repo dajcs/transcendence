@@ -18,14 +18,14 @@ class User(Base):
     username: Mapped[str] = mapped_column(Text, unique=True, nullable=False)
     password_hash: Mapped[str | None] = mapped_column(Text, nullable=True)
     avatar_url: Mapped[str | None] = mapped_column(Text, nullable=True)
-    bio: Mapped[str | None] = mapped_column(Text, nullable=True)
+    mission: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     last_login: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     # LLM preference: "default" (platform key via OpenRouter), "disabled", "custom" (user key)
     llm_mode: Mapped[str] = mapped_column(Text, nullable=False, default="default", server_default=sa.text("'default'"))
     llm_provider: Mapped[str | None] = mapped_column(Text, nullable=True)   # anthropic|openai|gemini|grok
-    llm_api_key: Mapped[str | None] = mapped_column(Text, nullable=True)    # stored in plaintext (user-owned key)
+    llm_api_key: Mapped[str | None] = mapped_column(Text, nullable=True)    # encrypted user-owned key
     llm_model: Mapped[str | None] = mapped_column(Text, nullable=True)     # e.g. "gpt-4o-mini", "claude-3-haiku"
 
     oauth_accounts: Mapped[list["OauthAccount"]] = relationship("OauthAccount", back_populates="user", cascade="all, delete-orphan")

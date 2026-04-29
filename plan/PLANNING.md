@@ -326,7 +326,7 @@ markets ──< community_votes >── users
 | password_hash | VARCHAR(255) | nullable (OAuth users) |
 | display_name | VARCHAR(100) | |
 | avatar_url | VARCHAR(500) | default avatar path |
-| bio | TEXT | |
+| mission | TEXT | |
 | kp | INTEGER | default 100 |
 | bp | FLOAT | default 10.0 |
 | tp | FLOAT | default 0.0 |

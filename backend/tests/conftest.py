@@ -70,6 +70,18 @@ def reset_auth_redis_singleton():
     auth_svc._redis = None
 
 
+@pytest.fixture(autouse=True)
+def skip_market_celery_scheduling(monkeypatch):
+    """Keep API tests from importing Celery unless a test opts into scheduling."""
+    from app.services import market_service
+
+    monkeypatch.setattr(
+        market_service.settings,
+        "database_url",
+        "sqlite+aiosqlite:///:memory:",
+    )
+
+
 @pytest.fixture
 async def fake_redis():
     """Async FakeRedis instance for LLM rate-limit and budget tests."""

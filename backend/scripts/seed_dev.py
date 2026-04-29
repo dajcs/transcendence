@@ -24,7 +24,7 @@ from datetime import datetime, timedelta, timezone
 
 from sqlalchemy import select
 
-from app.db.models.bet import Bet, BetPosition, BetUpvote, Comment, CommentUpvote
+from app.db.models.market import Market, MarketPosition, MarketUpvote, Comment, CommentUpvote
 from app.db.models.social import FriendRequest, Message
 from app.db.models.transaction import BpTransaction, LpEvent
 from app.db.models.user import User
@@ -513,17 +513,17 @@ async def seed():
         await db.flush()
 
         # ── Create markets ────────────────────────────────────────────────────
-        market_map: dict[str, Bet] = {}
+        market_map: dict[str, Market] = {}
         for tmpl in MARKET_TEMPLATES:
             existing = (await db.execute(
-                select(Bet).where(Bet.title == tmpl["title"])
+                select(Market).where(Market.title == tmpl["title"])
             )).scalar_one_or_none()
             if existing:
                 print(f"  skip market: {tmpl['title'][:55]}…")
                 market_map[tmpl["title"]] = existing
                 continue
 
-            market = Bet(
+            market = Market(
                 id=uuid.uuid4(),
                 proposer_id=user_map[tmpl["proposer"]].id,
                 title=tmpl["title"],
@@ -558,13 +558,13 @@ async def seed():
             # Market upvotes (2–4 from other users)
             for voter in random.sample(others, k=random.randint(2, 4)):
                 exists = (await db.execute(
-                    select(BetUpvote).where(
-                        BetUpvote.bet_id == market.id,
-                        BetUpvote.user_id == voter.id,
+                    select(MarketUpvote).where(
+                        MarketUpvote.market_id == market.id,
+                        MarketUpvote.user_id == voter.id,
                     )
                 )).scalar_one_or_none()
                 if not exists:
-                    db.add(BetUpvote(bet_id=market.id, user_id=voter.id))
+                    db.add(MarketUpvote(market_id=market.id, user_id=voter.id))
                     db.add(LpEvent(
                         user_id=proposer.id, amount=1, source_type="market_upvote",
                         source_id=market.id, day_date=TODAY,
@@ -573,9 +573,9 @@ async def seed():
             # Positions from other users (2–4 bets)
             for bettor in random.sample(others, k=random.randint(2, 4)):
                 exists = (await db.execute(
-                    select(BetPosition).where(
-                        BetPosition.bet_id == market.id,
-                        BetPosition.user_id == bettor.id,
+                    select(MarketPosition).where(
+                        MarketPosition.market_id == market.id,
+                        MarketPosition.user_id == bettor.id,
                     )
                 )).scalar_one_or_none()
                 if exists:
@@ -587,9 +587,9 @@ async def seed():
                 else:
                     lo, hi = tmpl["numeric_min"], tmpl["numeric_max"]
                     side = str(round(random.uniform(lo, hi), 1))
-                db.add(BetPosition(
+                db.add(MarketPosition(
                     id=uuid.uuid4(),
-                    bet_id=market.id,
+                    market_id=market.id,
                     user_id=bettor.id,
                     side=side,
                     bp_staked=float(random.randint(1, 10)),
@@ -599,7 +599,7 @@ async def seed():
             for commenter in random.sample(others, k=random.randint(2, 4)):
                 comment = Comment(
                     id=uuid.uuid4(),
-                    bet_id=market.id,
+                    market_id=market.id,
                     user_id=commenter.id,
                     content=random.choice(COMMENT_POOL),
                 )

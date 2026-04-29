@@ -96,14 +96,14 @@ bet_id      UUID NOT NULL REFERENCES bets(id)
 created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
 ```
 
-### kp_events
+### lp_events
 ```sql
 id          UUID PRIMARY KEY DEFAULT gen_random_uuid()
 user_id     UUID NOT NULL REFERENCES users(id)
-amount      INTEGER NOT NULL  -- +1 per upvote
-source_type TEXT NOT NULL  -- 'comment_upvote'|'market_upvote'|'daily_reset'
+amount      INTEGER NOT NULL  -- +1 per upvote, negative rows for unlikes/login reset
+source_type TEXT NOT NULL  -- 'comment_upvote'|'market_upvote'|'lp_reset_login'
 source_id   UUID NOT NULL
-day_date    DATE NOT NULL   -- which day this kp counts toward
+day_date    DATE NOT NULL   -- event day
 created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
 ```
 Daily kp = `SUM(amount) WHERE user_id = ? AND day_date = ?`
@@ -162,14 +162,14 @@ created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
 PRIMARY KEY (comment_id, user_id)
 ```
 
-### bet_upvotes
+### market_upvotes
 ```sql
-bet_id      UUID NOT NULL REFERENCES bets(id)
+market_id   UUID NOT NULL REFERENCES markets(id)
 user_id     UUID NOT NULL REFERENCES users(id)
 created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
-PRIMARY KEY (bet_id, user_id)
+PRIMARY KEY (market_id, user_id)
 ```
-One upvote per user per market. Awards +1 kp to the market proposer.
+One upvote per user per market. Awards +1 LP to the market proposer. Removing an upvote removes unconverted LP when available, without allowing LP to go negative.
 
 ---
 
@@ -264,11 +264,10 @@ CREATE UNIQUE INDEX uq_friend_pair_symmetric
 | Key Pattern | Type | TTL | Purpose |
 |---|---|---|---|
 | `session:{token}` | Hash | 24h | JWT session data |
-| `bp_balance:{user_id}` | String | 30s | Cached bp balance |
 | `rate:{action}:{user_id}` | String | varies | Rate limiting counters |
 | `bet_odds:{bet_id}` | Hash | 10s | Cached YES/NO vote counts |
 | `channel:bet:{bet_id}` | Pub-Sub | — | Real-time bet updates |
-| `channel:user:{user_id}` | Pub-Sub | — | User notifications |
+| `channel:user:{user_id}` | Pub-Sub | — | User notifications and `points:balance_changed` balance updates |
 
 ---
 
@@ -290,7 +289,7 @@ CREATE UNIQUE INDEX uq_friend_pair_symmetric
 | 005 | `005_friend_request_unique_constraint.py` | Directional unique constraint (superseded) |
 | 006 | `006_symmetric_friend_constraint.py` | Replace with symmetric LEAST/GREATEST unique index |
 | 007 | `007_friend_request_query_indexes.py` | Composite indexes on `(from_user_id, status)` and `(to_user_id, status)` |
-| 008 | `008_add_user_bio.py` | `users.bio` (Text, nullable) |
+| 008 | `008_add_user_bio.py` | `users.mission` (Text, nullable) |
 | 009 | `009_add_llm_opt_out.py` | `users.llm_opt_out` (Boolean, server_default false) |
 | 010 | `010_llm_user_config.py` | Replace `llm_opt_out` with `llm_mode` (Text, default 'default'), `llm_provider` (Text, nullable), `llm_api_key` (Text, nullable) |
 

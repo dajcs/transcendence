@@ -18,7 +18,7 @@ def upgrade() -> None:
     op.create_table(
         "bp_fund_entries",
         sa.Column("id", UUID(as_uuid=True), primary_key=True),
-        sa.Column("market_id", UUID(as_uuid=True), sa.ForeignKey("bets.id"), nullable=False),
+        sa.Column("market_id", UUID(as_uuid=True), sa.ForeignKey("markets.id"), nullable=False),
         sa.Column("user_id", UUID(as_uuid=True), sa.ForeignKey("users.id"), nullable=False),
         sa.Column("amount", sa.Numeric(10, 2), nullable=False),
         sa.Column("reason", sa.Text, nullable=False),

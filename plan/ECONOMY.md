@@ -18,15 +18,17 @@ Vox Populi uses four point currencies. No real money involved.
 ### Earning
 - +1 lp per upvote received on a comment (`source_type = comment_upvote`)
 - +1 lp per upvote received on a market (`source_type = market_upvote`)
-- Resets **daily at 00:00 UTC**
+- Converted to BP and reset to zero on user login
 
 ### Type
 - **lp** is an **integer** (stored as a sum of integer LpEvent amounts).
 
 ### Edge Cases
 - `lp = 0` after conversion reset until first upvote
-- Upvotes received before reset count toward accumulated lp; no carryover after reset
+- Upvotes received before conversion count toward accumulated lp; no carryover after reset
+- Unlike operations remove the upvote but never let the recipient's lp aggregate go below 0
 - Upvoting your own content: **not allowed** (backend enforces unique voter constraint)
+- LP balance changes emit `points:balance_changed` to the recipient's `user:{id}` Socket.IO room so open sessions update without a page reload
 
 ### Purpose
 - Determines bp allocation on next login (see LP → BP Conversion below)
@@ -220,6 +222,7 @@ Community dispute votes are weighted to penalize self-serving voting:
 - All balance-modifying operations wrapped in DB transactions with `SELECT FOR UPDATE` on user row
 - **bp and tp are floats** — no floor/truncation in payout or allocation calculations
 - **lp is an integer** — displayed without decimals
+- Balance display updates use Socket.IO `points:balance_changed` events for LP/BP/TP payloads, while ledgers remain the source of truth
 - Celery handles:
   - Bet resolution scheduling
   - Dispute deadline checks

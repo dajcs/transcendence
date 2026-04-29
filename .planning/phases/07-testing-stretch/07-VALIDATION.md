@@ -41,6 +41,10 @@ created: 2026-04-22
 | 07-04-01 | 04 | 3 | TEST-01, TEST-02, TEST-03 | T-07-04-01 | Proof targets use workspace-local caches/install paths rather than stale checked-in environments | command/integration | `make phase7-proof-backend && make phase7-proof-frontend && make phase7-proof-e2e-list` | ✅ | ⬜ pending |
 | 07-04-02 | 04 | 3 | TEST-01, TEST-02, TEST-03, TEST-04 | T-07-04-02 / T-07-04-03 | CI calls repo-owned proof targets; test-only helpers remain gated | workflow/config | `rg -n "make phase7-proof|make phase7-heavy|workflow_dispatch|pull_request|push" .github/workflows/ci.yml .github/workflows/e2e-manual.yml` | ✅ | ⬜ pending |
 | 07-04-03 | 04 | 3 | TEST-01, TEST-02, TEST-03, TEST-04 | T-07-04-04 | Summary records real backend/frontend coverage evidence and concrete E2E proof source | end-to-end | `make phase7-proof` plus `make phase7-heavy` or a successful `workflow_dispatch` run of `E2E Manual` | ✅ | ⬜ pending |
+| 07-05-01 | 05 | 4 | TEST-01, TEST-02 | T-07-05-01 | Backend coverage reaches at least 80 percent and economy formula coverage is separately proven | command/integration | `make phase7-proof-backend && cd backend && UV_CACHE_DIR="../.cache/uv" uv run coverage report --include="app/services/economy_service.py" --fail-under=100` | ✅ | ⬜ pending |
+| 07-05-02 | 05 | 4 | TEST-01, TEST-02 | T-07-05-02 | Review-identified market/comment tests assert BP/LP state changes, not only HTTP status | unit/integration | `cd backend && UV_CACHE_DIR="../.cache/uv" uv run pytest tests/test_markets.py tests/test_comments.py -q` | ✅ | ⬜ pending |
+| 07-05-03 | 05 | 4 | TEST-03 | T-07-05-03 | Frontend Jest coverage reaches at least 70 percent statements/lines with product code still in scope | command/component | `make phase7-proof-frontend` | ✅ | ⬜ pending |
+| 07-05-04 | 05 | 4 | TEST-01, TEST-02, TEST-03, TEST-04 | T-07-05-04 | Summary records final coverage percentages and confirms the four-spec E2E scope remains discoverable | end-to-end | `make phase7-proof-backend && make phase7-proof-frontend && make phase7-proof-e2e-list` | ✅ | ⬜ pending |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 

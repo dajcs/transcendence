@@ -1,4 +1,4 @@
-"""Market (Bet) service — create, list, get."""
+"""Market service — create, list, get."""
 import json
 import uuid
 from datetime import timedelta
@@ -7,10 +7,11 @@ from fastapi import HTTPException
 from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.models.bet import Bet, BetPosition, BetUpvote, Comment, Resolution
+from app.db.models.market import Market, MarketPosition, MarketUpvote, Comment, Resolution
 from app.db.models.user import User
 from app.schemas.market import MarketCreate, MarketListResponse, MarketResponse
-from app.services.economy_service import deduct_bp, get_bet_odds
+from app.config import settings
+from app.services.economy_service import deduct_bp, emit_balance_changed, get_bet_odds
 
 _DEFAULT_DIRS: dict[str, str] = {"deadline": "asc", "newest": "desc", "active": "desc"}
 
@@ -19,7 +20,7 @@ async def create_market(
     db: AsyncSession, proposer_id: uuid.UUID, data: MarketCreate
 ) -> MarketResponse:
     """Create market and deduct 1 bp atomically."""
-    bet = Bet(
+    market = Market(
         id=uuid.uuid4(),
         proposer_id=proposer_id,
         title=data.title,
@@ -33,43 +34,45 @@ async def create_market(
         status="open",
         resolution_source=json.dumps(data.resolution_source) if data.resolution_source else None,
     )
-    db.add(bet)
+    db.add(market)
     await db.flush()
-    await deduct_bp(db, user_id=proposer_id, amount=1.0, reason="market_create", bet_id=bet.id)
+    await deduct_bp(db, user_id=proposer_id, amount=1.0, reason="market_create", bet_id=market.id)
     await db.commit()
-    await db.refresh(bet)
+    await db.refresh(market)
 
     proposer = (await db.execute(select(User).where(User.id == proposer_id))).scalar_one_or_none()
     proposer_username = proposer.username if proposer else ""
 
     # Schedule per-market resolution callback exactly at deadline; store task_id for revocation
     try:
+        if settings.database_url.startswith("sqlite"):
+            raise RuntimeError("Skipping Celery scheduling for SQLite test database")
         from app.workers.celery_app import celery_app
-        eta = bet.deadline
+        eta = market.deadline
         result = celery_app.send_task(
             "app.workers.tasks.resolution.resolve_market_at_deadline",
-            args=[str(bet.id)],
+            args=[str(market.id)],
             eta=eta,
         )
-        bet.celery_task_id = result.id
+        market.celery_task_id = result.id
         await db.commit()
     except Exception:
         pass  # celery unavailable in test/dev without worker
 
     return MarketResponse(
-        id=bet.id,
-        title=bet.title,
-        description=bet.description,
-        resolution_criteria=bet.resolution_criteria,
-        deadline=bet.deadline,
-        status=bet.status,
-        proposer_id=bet.proposer_id,
+        id=market.id,
+        title=market.title,
+        description=market.description,
+        resolution_criteria=market.resolution_criteria,
+        deadline=market.deadline,
+        status=market.status,
+        proposer_id=market.proposer_id,
         proposer_username=proposer_username,
-        created_at=bet.created_at,
-        market_type=bet.market_type,
-        choices=bet.choices,
-        numeric_min=bet.numeric_min,
-        numeric_max=bet.numeric_max,
+        created_at=market.created_at,
+        market_type=market.market_type,
+        choices=market.choices,
+        numeric_min=market.numeric_min,
+        numeric_max=market.numeric_max,
     )
 
 
@@ -90,9 +93,9 @@ def revoke_market_task(task_id: str, *, terminate: bool = False) -> None:
 async def _get_choice_counts(db: AsyncSession, bet_id: uuid.UUID) -> dict[str, int]:
     """Return vote count per side for a market (useful for multichoice)."""
     result = await db.execute(
-        select(BetPosition.side, func.count(BetPosition.id))
-        .where(BetPosition.bet_id == bet_id, BetPosition.withdrawn_at.is_(None))
-        .group_by(BetPosition.side)
+        select(MarketPosition.side, func.count(MarketPosition.id))
+        .where(MarketPosition.market_id == bet_id, MarketPosition.withdrawn_at.is_(None))
+        .group_by(MarketPosition.side)
     )
     return {side: int(count) for side, count in result}
 
@@ -104,6 +107,7 @@ async def list_markets(
     status: str = "all",
     my_bets: bool = False,
     my_markets: bool = False,
+    liked: bool = False,
     user_id: uuid.UUID | None = None,
     proposer_id: uuid.UUID | None = None,
     q: str = "",
@@ -111,26 +115,26 @@ async def list_markets(
     page: int = 1,
     limit: int = 20,
 ) -> MarketListResponse:
-    query = select(Bet)
+    query = select(Market)
 
     # Status filter
     if status == "open":
-        query = query.where(Bet.status == "open")
+        query = query.where(Market.status == "open")
     elif status == "closed":
         has_res = (
             select(func.count(Resolution.id))
-            .where(Resolution.bet_id == Bet.id)
-            .correlate(Bet)
+            .where(Resolution.market_id == Market.id)
+            .correlate(Market)
             .scalar_subquery()
         )
-        query = query.where(Bet.status == "closed", has_res == 0)
+        query = query.where(Market.status == "closed", has_res == 0)
     elif status == "disputed":
-        query = query.where(Bet.status == "disputed")
+        query = query.where(Market.status == "disputed")
     elif status == "resolved":
         has_res = (
             select(func.count(Resolution.id))
-            .where(Resolution.bet_id == Bet.id)
-            .correlate(Bet)
+            .where(Resolution.market_id == Market.id)
+            .correlate(Market)
             .scalar_subquery()
         )
         query = query.where(has_res > 0)
@@ -138,52 +142,60 @@ async def list_markets(
     # My bets filter
     if my_bets and user_id:
         query = query.where(
-            Bet.id.in_(
-                select(BetPosition.bet_id).where(
-                    BetPosition.user_id == user_id,
-                    BetPosition.withdrawn_at.is_(None),
+            Market.id.in_(
+                select(MarketPosition.market_id).where(
+                    MarketPosition.user_id == user_id,
+                    MarketPosition.withdrawn_at.is_(None),
                 )
             )
         )
 
     # My markets filter (markets created by user)
     if my_markets and user_id:
-        query = query.where(Bet.proposer_id == user_id)
+        query = query.where(Market.proposer_id == user_id)
+
+    # Liked filter — markets the current user has upvoted
+    if liked and user_id:
+        query = query.where(
+            Market.id.in_(
+                select(MarketUpvote.market_id).where(MarketUpvote.user_id == user_id)
+            )
+        )
 
     # Public proposer filter — for profile page "My Markets" tab
     if proposer_id:
-        query = query.where(Bet.proposer_id == proposer_id)
+        query = query.where(Market.proposer_id == proposer_id)
 
     # Search
     if q:
         term = f"%{q}%"
         if include_desc:
             query = query.where(
-                Bet.title.ilike(term)
-                | Bet.description.ilike(term)
-                | Bet.resolution_criteria.ilike(term)
+                Market.title.ilike(term)
+                | Market.description.ilike(term)
+                | Market.resolution_criteria.ilike(term)
             )
         else:
-            query = query.where(Bet.title.ilike(term))
+            query = query.where(Market.title.ilike(term))
 
     # Sort (effective direction: explicit override or per-sort default)
     effective_dir = sort_dir if sort_dir in ("asc", "desc") else _DEFAULT_DIRS.get(sort, "asc")
 
     if sort == "deadline":
-        query = query.order_by(Bet.deadline.asc() if effective_dir == "asc" else Bet.deadline.desc())
+        query = query.order_by(Market.deadline.asc() if effective_dir == "asc" else Market.deadline.desc())
     elif sort == "newest":
-        query = query.order_by(Bet.created_at.desc() if effective_dir == "desc" else Bet.created_at.asc())
+        query = query.order_by(Market.created_at.desc() if effective_dir == "desc" else Market.created_at.asc())
     elif sort == "active":
         active_count = (
-            select(func.count(BetPosition.id))
-            .where(BetPosition.bet_id == Bet.id, BetPosition.withdrawn_at.is_(None))
-            .correlate(Bet)
+            select(func.count(MarketPosition.id))
+            .where(MarketPosition.market_id == Market.id, MarketPosition.withdrawn_at.is_(None))
+            .correlate(Market)
             .scalar_subquery()
         )
         if effective_dir == "desc":
-            query = query.order_by(active_count.desc(), Bet.created_at.desc())
+            query = query.order_by(active_count.desc(), Market.created_at.desc())
         else:
-            query = query.order_by(active_count.asc(), Bet.created_at.desc())
+            query = query.order_by(active_count.asc(), Market.created_at.desc())
 
     total = (await db.execute(select(func.count()).select_from(query.subquery()))).scalar_one()
     offset = (page - 1) * limit
@@ -192,27 +204,31 @@ async def list_markets(
 
     proposer_ids = {row.proposer_id for row in rows}
     username_map: dict[uuid.UUID, str] = {}
+    bio_map: dict[uuid.UUID, str | None] = {}
+    created_at_map: dict[uuid.UUID, object] = {}
     if proposer_ids:
         uname_rows = (await db.execute(
-            select(User.id, User.username).where(User.id.in_(proposer_ids))
+            select(User.id, User.username, User.mission, User.created_at).where(User.id.in_(proposer_ids))
         )).all()
-        username_map = {uid: uname for uid, uname in uname_rows}
+        username_map = {uid: uname for uid, uname, _m, _cat in uname_rows}
+        mission_map = {uid: m for uid, _uname, m, _cat in uname_rows}
+        created_at_map = {uid: cat for uid, _uname, _m, cat in uname_rows}
 
     items: list[MarketResponse] = []
     for row in rows:
         odds = await get_bet_odds(db, row.id)
         position_count = (
             await db.execute(
-                select(func.count(BetPosition.id)).where(
-                    BetPosition.bet_id == row.id,
-                    BetPosition.withdrawn_at.is_(None),
+                select(func.count(MarketPosition.id)).where(
+                    MarketPosition.market_id == row.id,
+                    MarketPosition.withdrawn_at.is_(None),
                 )
             )
         ).scalar_one()
         comment_count = (
             await db.execute(
                 select(func.count(Comment.id)).where(
-                    Comment.bet_id == row.id,
+                    Comment.market_id == row.id,
                     Comment.deleted_at.is_(None),
                 )
             )
@@ -220,16 +236,16 @@ async def list_markets(
         choice_counts = await _get_choice_counts(db, row.id)
         upvote_count = (
             await db.execute(
-                select(func.count(BetUpvote.bet_id)).where(BetUpvote.bet_id == row.id)
+                select(func.count(MarketUpvote.market_id)).where(MarketUpvote.market_id == row.id)
             )
         ).scalar_one()
         user_has_liked = False
         if user_id is not None:
             user_has_liked = (
                 await db.execute(
-                    select(BetUpvote).where(
-                        BetUpvote.bet_id == row.id,
-                        BetUpvote.user_id == user_id,
+                    select(MarketUpvote).where(
+                        MarketUpvote.market_id == row.id,
+                        MarketUpvote.user_id == user_id,
                     )
                 )
             ).scalar_one_or_none() is not None
@@ -243,6 +259,8 @@ async def list_markets(
                 status=row.status,
                 proposer_id=row.proposer_id,
                 proposer_username=username_map.get(row.proposer_id, ""),
+                proposer_mission=mission_map.get(row.proposer_id),
+                proposer_created_at=created_at_map.get(row.proposer_id),
                 created_at=row.created_at,
                 market_type=row.market_type,
                 choices=row.choices,
@@ -268,7 +286,7 @@ async def get_market(
     market_id: uuid.UUID,
     current_user_id: uuid.UUID | None = None,
 ) -> MarketResponse:
-    market = (await db.execute(select(Bet).where(Bet.id == market_id))).scalar_one_or_none()
+    market = (await db.execute(select(Market).where(Market.id == market_id))).scalar_one_or_none()
     if market is None:
         raise HTTPException(status_code=404, detail="Market not found")
 
@@ -278,16 +296,16 @@ async def get_market(
     odds = await get_bet_odds(db, market.id)
     position_count = (
         await db.execute(
-            select(func.count(BetPosition.id)).where(
-                BetPosition.bet_id == market.id,
-                BetPosition.withdrawn_at.is_(None),
+            select(func.count(MarketPosition.id)).where(
+                MarketPosition.market_id == market.id,
+                MarketPosition.withdrawn_at.is_(None),
             )
         )
     ).scalar_one()
     comment_count = (
         await db.execute(
             select(func.count(Comment.id)).where(
-                Comment.bet_id == market.id,
+                Comment.market_id == market.id,
                 Comment.deleted_at.is_(None),
             )
         )
@@ -295,7 +313,7 @@ async def get_market(
     choice_counts = await _get_choice_counts(db, market.id)
     upvote_count = (
         await db.execute(
-            select(func.count(BetUpvote.bet_id)).where(BetUpvote.bet_id == market.id)
+            select(func.count(MarketUpvote.market_id)).where(MarketUpvote.market_id == market.id)
         )
     ).scalar_one()
 
@@ -303,9 +321,9 @@ async def get_market(
     if current_user_id is not None:
         user_has_liked = (
             await db.execute(
-                select(BetUpvote).where(
-                    BetUpvote.bet_id == market_id,
-                    BetUpvote.user_id == current_user_id,
+                select(MarketUpvote).where(
+                    MarketUpvote.market_id == market_id,
+                    MarketUpvote.user_id == current_user_id,
                 )
             )
         ).scalar_one_or_none() is not None
@@ -341,13 +359,13 @@ async def upvote_market(db: AsyncSession, user_id: uuid.UUID, market_id: uuid.UU
     from sqlalchemy.exc import IntegrityError
     from app.db.models.transaction import LpEvent
 
-    market = (await db.execute(select(Bet).where(Bet.id == market_id))).scalar_one_or_none()
+    market = (await db.execute(select(Market).where(Market.id == market_id))).scalar_one_or_none()
     if market is None:
         raise HTTPException(status_code=404, detail="Market not found")
     if market.proposer_id == user_id:
         return  # self-like not allowed
     try:
-        db.add(BetUpvote(bet_id=market_id, user_id=user_id))
+        db.add(MarketUpvote(market_id=market_id, user_id=user_id))
         db.add(LpEvent(
             user_id=market.proposer_id,
             amount=1,
@@ -356,33 +374,41 @@ async def upvote_market(db: AsyncSession, user_id: uuid.UUID, market_id: uuid.UU
             day_date=datetime.now(timezone.utc).date(),
         ))
         await db.commit()
+        await emit_balance_changed(db, market.proposer_id)
     except IntegrityError:
         await db.rollback()  # already upvoted — treat as no-op
 
 
 async def unlike_market(db: AsyncSession, user_id: uuid.UUID, market_id: uuid.UUID) -> None:
-    """Remove upvote from market; decrement LP for proposer by 1."""
+    """Remove upvote from market; decrement unconverted LP for proposer by 1."""
     from datetime import datetime, timezone
     from app.db.models.transaction import LpEvent
 
-    market = (await db.execute(select(Bet).where(Bet.id == market_id))).scalar_one_or_none()
+    market = (await db.execute(select(Market).where(Market.id == market_id))).scalar_one_or_none()
     if market is None:
         raise HTTPException(status_code=404, detail="Market not found")
     if market.proposer_id == user_id:
         return  # self-like state is always a no-op
     delete_result = await db.execute(
-        delete(BetUpvote).where(
-            BetUpvote.bet_id == market_id,
-            BetUpvote.user_id == user_id,
+        delete(MarketUpvote).where(
+            MarketUpvote.market_id == market_id,
+            MarketUpvote.user_id == user_id,
         )
     )
     if delete_result.rowcount == 0:
         return  # not upvoted — no-op
-    db.add(LpEvent(
-        user_id=market.proposer_id,
-        amount=-1,
-        source_type="market_upvote",
-        source_id=market_id,
-        day_date=datetime.now(timezone.utc).date(),
-    ))
+    lp_total = (
+        await db.execute(select(func.sum(LpEvent.amount)).where(LpEvent.user_id == market.proposer_id))
+    ).scalar_one()
+    lp_changed = int(lp_total or 0) > 0
+    if lp_changed:
+        db.add(LpEvent(
+            user_id=market.proposer_id,
+            amount=-1,
+            source_type="market_upvote",
+            source_id=market_id,
+            day_date=datetime.now(timezone.utc).date(),
+        ))
     await db.commit()
+    if lp_changed:
+        await emit_balance_changed(db, market.proposer_id)

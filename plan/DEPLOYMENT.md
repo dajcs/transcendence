@@ -1,16 +1,25 @@
 # Deployment
 
+## Startup Modes
+
+| Mode | Command | URL | Override file |
+|---|---|---|---|
+| **dev** | `make dev` | https://localhost:8443 | `docker-compose.override.yml` (hot-reload) |
+| **main** | `make main` | https://voxpo.me | `docker-compose.prod.yml` (port 443, real certs) |
+
 ## Architecture
 
 ```
+# dev
 Internet → Nginx (HTTPS :8443) → FastAPI (uvicorn :8000)
                                → Next.js (node :3000)
                                → PostgreSQL (:5432)
                                → Redis (:6379)
                                → Celery worker (no port)
-```
 
-Single `docker compose up --build` starts everything.
+# main
+Internet → Nginx (HTTP :80 → redirect) → (HTTPS :443) → FastAPI / Next.js / ...
+```
 
 ---
 
@@ -18,16 +27,16 @@ Single `docker compose up --build` starts everything.
 
 ### docker-compose.yml services
 
-| Service | Image | Port |
-|---|---|---|
-| `nginx` | nginx:alpine | 8443 (HTTPS) |
-| `frontend` | node:20-alpine | 3000 (internal) |
-| `backend` | python:3.12-slim | 8000 (internal) |
-| `db` | postgres:16-alpine | 5432 (internal) |
-| `redis` | redis:7-alpine | 6379 (internal) |
-| `celery` | (same as backend image) | none |
+| Service | Image | Port (dev) | Port (main) |
+|---|---|---|---|
+| `nginx` | nginx:alpine | 8443 (HTTPS) | 80 + 443 (HTTPS) |
+| `frontend` | node:20-alpine | 3000 (internal) | 3000 (internal) |
+| `backend` | python:3.12-slim | 8000 (internal) | 8000 (internal) |
+| `db` | postgres:16-alpine | 5432 (internal) | 5432 (internal) |
+| `redis` | redis:7-alpine | 6379 (internal) | 6379 (internal) |
+| `celery` | (same as backend image) | none | none |
 
-All internal ports: not exposed to host in production; only Nginx is public.
+All internal ports: not exposed to host; only Nginx is public.
 
 ### Healthchecks
 Each service defines a healthcheck:
@@ -60,7 +69,7 @@ JWT_PUBLIC_KEY_PATH=/run/secrets/jwt_public.pem
 OPENROUTER_API_KEY=sk-...
 LLM_MONTHLY_BUDGET_USD=20
 
-# Frontend
+# Frontend (dev: localhost:8443 | main: https://voxpo.me)
 NEXT_PUBLIC_API_URL=https://localhost:8443
 NEXT_PUBLIC_SOCKET_URL=https://localhost:8443
 
@@ -98,40 +107,61 @@ for var in REQUIRED_ENV_VARS:
 
 42 school requirement: HTTPS on all backend endpoints.
 
-### Self-Signed Certificate (development / evaluation)
+### Dev: self-signed certificate
 ```bash
-openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
-  -keyout nginx/ssl/key.pem \
-  -out nginx/ssl/cert.pem \
-  -subj "/CN=localhost"
+make gen-keys   # writes nginx/ssl/cert.pem + key.pem
 ```
 
-Certificates mounted into Nginx container via Docker volume.
+### Main: real certificate (Let's Encrypt or similar)
+```bash
+make gen-keys-main          # creates nginx/ssl-prod/
+# copy certs:
+cp /etc/letsencrypt/live/voxpo.me/fullchain.pem nginx/ssl-prod/cert.pem
+cp /etc/letsencrypt/live/voxpo.me/privkey.pem   nginx/ssl-prod/key.pem
+```
+
+Certificates mounted into Nginx via `nginx/ssl/` (dev) or `nginx/ssl-prod/` (main).
+
+### JWT Signing Keys
+
+Access tokens are signed with an RSA key pair. The key files are deployment-local
+secrets and are ignored by git (`*.pem`), but the `backend/keys/` directory is
+tracked so Docker does not create the bind-mount source as `root`.
+
+Generate the key pair before starting Compose on a fresh server:
+
+```bash
+mkdir -p backend/keys
+openssl genrsa -out backend/keys/jwt_private.pem 2048
+openssl rsa -in backend/keys/jwt_private.pem -pubout -out backend/keys/jwt_public.pem
+chmod 600 backend/keys/jwt_private.pem
+chmod 644 backend/keys/jwt_public.pem
+```
+
+The default `.env` paths are relative to the backend working directory:
+
+```bash
+JWT_PRIVATE_KEY_PATH=keys/jwt_private.pem
+JWT_PUBLIC_KEY_PATH=keys/jwt_public.pem
+```
+
+If `backend/keys/` was created by Docker as `root:root`, fix ownership before
+generating keys:
+
+```bash
+sudo chown -R "$USER:$USER" backend/keys
+```
+
+Verify the running backend can read the private key:
+
+```bash
+docker compose exec backend sh -c 'test -r keys/jwt_private.pem && echo private-readable || echo private-missing'
+```
 
 ### Nginx Config
-```nginx
-server {
-    listen 8443 ssl;
-    ssl_certificate     /etc/nginx/ssl/cert.pem;
-    ssl_certificate_key /etc/nginx/ssl/key.pem;
 
-    location /api/ {
-        proxy_pass http://backend:8000;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "upgrade";
-    }
-
-    location /socket.io/ {
-        proxy_pass http://backend:8000;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "upgrade";
-    }
-
-    location / {
-        proxy_pass http://frontend:3000;
-    }
-}
-```
+Dev (`nginx/nginx.conf`): `listen 8443 ssl;`  
+Main (`nginx/nginx.prod.conf`): `listen 443 ssl; server_name voxpo.me;` + port-80 redirect.
 
 ---
 
@@ -172,6 +202,11 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm ci
 COPY . .
+# NEXT_PUBLIC_* vars must be baked in at build time
+ARG NEXT_PUBLIC_API_URL=https://localhost:8443
+ARG NEXT_PUBLIC_SOCKET_URL=https://localhost:8443
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_SOCKET_URL=$NEXT_PUBLIC_SOCKET_URL
 RUN npm run build
 
 FROM node:20-alpine
@@ -180,6 +215,9 @@ COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/node_modules ./node_modules
 CMD ["npm", "start"]
 ```
+
+`docker-compose.yml` passes `${NEXT_PUBLIC_API_URL}` as both a build arg and runtime env var.  
+`docker-compose.prod.yml` overrides them to `https://voxpo.me`.
 
 ---
 
@@ -222,14 +260,22 @@ Checklist before evaluation:
 
 ## Single-Command Start
 
-The evaluator runs one command:
+**Dev (42 evaluation):**
 ```bash
 cp .env.example .env  # fill in OAuth keys
-docker compose up --build
+make gen-keys
+make dev
 ```
+App available at `https://localhost:8443`.
 
-App is available at `https://localhost:8443`.
+**Main (production):**
+```bash
+make gen-keys-main    # then place real certs in nginx/ssl-prod/
+# set OAUTH_REDIRECT_BASE=https://voxpo.me in .env
+make main
+```
+App available at `https://voxpo.me`.
 
 ---
 
-*Last updated: 2026-03-24*
+*Last updated: 2026-04-28*

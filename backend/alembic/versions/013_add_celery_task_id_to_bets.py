@@ -1,4 +1,4 @@
-"""Add celery_task_id column to bets table.
+"""Add celery_task_id column to markets table.
 
 Revision ID: 013
 Revises: 012
@@ -14,8 +14,8 @@ depends_on = None
 
 
 def upgrade() -> None:
-    op.add_column("bets", sa.Column("celery_task_id", sa.Text, nullable=True))
+    op.add_column("markets", sa.Column("celery_task_id", sa.Text, nullable=True))
 
 
 def downgrade() -> None:
-    op.drop_column("bets", "celery_task_id")
+    op.drop_column("markets", "celery_task_id")

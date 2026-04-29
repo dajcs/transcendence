@@ -276,7 +276,7 @@ export default function SettingsPage() {
                   setDeleteError(null);
                   try {
                     await api.delete("/api/users/account");
-                    window.location.href = "/";
+                    window.location.assign("/");
                   } catch {
                     setDeleteError(t("settings.delete_error"));
                   } finally {

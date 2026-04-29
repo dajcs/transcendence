@@ -29,7 +29,7 @@
 - [x] **BET-04**: Bet cap: flat 10 BP per position (or available balance, whichever is lower). Backend enforces via `_check_bet_cap()`; UI dropdown limits options to `1..min(10, floor(balance))`.
 - [x] **BET-05**: bp balance cannot go below 0; checked atomically before deduction
 - [x] **BET-06**: New user receives 10 bp signup bonus
-- [x] **BET-07**: LP→BP conversion on login: `+min(log2(lp+1), 10.0)` bp; lp reset to 0 after conversion
+- [x] **BET-07**: LP→BP conversion on login: `+min(log2(lp+1), 10.0)` bp; lp reset to 0 after conversion; notification and ledger descriptions use the exact converted LP amount.
 - [x] **BET-08**: Daily login bonus: +1 bp
 
 ### Discussion
@@ -87,7 +87,7 @@
 ### Economy (Phase 6.1)
 
 - [x] **ECON-01**: "Karma Points (KP)" renamed to "Like Points (LP)" in DB (`lp_events` table), backend Python code, API response fields, frontend Zustand store, and all i18n locale files
-- [x] **ECON-02**: UI displays LP as ♥ N (red heart emoji + count) in nav; comment and market upvote buttons are heart icons (filled red when liked, empty otherwise); unlike removes upvote
+- [x] **ECON-02**: UI displays LP as ❤️ N (red heart emoji + count) in nav; comment and market upvote buttons are heart icons (filled red when liked, empty otherwise); unlike removes upvote
 - [x] **ECON-03**: Economy formulas corrected: LP→BP conversion capped at 10.0 BP (`min(log2(lp+1), 10.0)`); bet cap flat 10 BP; TP formula is raw `t_win / t_bet` (no floor); binary/multichoice payout is `min(bet_amount × 10, proportional_share)` with surplus to `bp_fund_entries`; market creator rebate removed
 - [x] **ECON-04**: Numeric market payout uses span-based waterfall bands at 2%, 4%, 8%, and 16% of `(range_max - range_min)`; the first non-empty band takes the full pool, split proportionally by staked BP, with a 10x cap and capped surplus stored in `bp_fund_entries`; `bp_fund_entries` table created (migration 016). Hall of Fame surfaces users with the most cap-surplus BP and a second TP leaderboard tab.
 

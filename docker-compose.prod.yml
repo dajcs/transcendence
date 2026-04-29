@@ -1,0 +1,21 @@
+services:
+  nginx:
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.prod.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl-prod:/etc/nginx/ssl:ro
+
+  frontend:
+    build:
+      args:
+        NEXT_PUBLIC_API_URL: https://voxpo.me
+        NEXT_PUBLIC_SOCKET_URL: https://voxpo.me
+    environment:
+      NEXT_PUBLIC_API_URL: https://voxpo.me
+      NEXT_PUBLIC_SOCKET_URL: https://voxpo.me
+
+  backend:
+    environment:
+      ENABLE_E2E_TEST_SUPPORT: "false"

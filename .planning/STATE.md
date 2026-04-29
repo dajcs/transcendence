@@ -2,15 +2,16 @@
 gsd_state_version: 1.0
 milestone: v21.0
 milestone_name: milestone
-current_plan: 07-not-started
-status: Phase 06.1 complete
-last_updated: "2026-04-23T11:30:00.000Z"
+current_plan: 5
+status: Phase 07 complete
+last_updated: "2026-04-29T00:00:00+02:00"
+last_activity: 2026-04-29
 progress:
   total_phases: 9
   completed_phases: 8
   total_plans: 50
   completed_plans: 50
-  percent: 89
+  percent: 100
 ---
 
 # Project State
@@ -20,14 +21,15 @@ progress:
 See: `.planning/PROJECT.md` (updated 2026-03-24)
 
 **Core value:** Users can bet on real-world outcomes, argue their position, and earn a verifiable reputation score — without real money.
-**Current focus:** Phase 07 planning. Phase 06.1 is complete, including accepted post-UAT economy fixes and Hall of Fame.
+**Current focus:** Phase 07 — testing-stretch complete
 
 ## Current Status
 
 **Phase:** 07
-**Current Plan:** Not started
-**Last session:** 2026-04-21T18:30:00.000Z
-**Resume file:** `.planning/phases/06.1-like-points-rename-economy-formula-fix/.continue-here.md`
+**Current Plan:** 5
+**Last session:** 2026-04-29T00:00:00+02:00
+Last activity: 2026-04-29
+**Resume file:** .planning/phases/07-testing-stretch/07-05-SUMMARY.md
 
 ## Decisions
 
@@ -163,6 +165,19 @@ See: `.planning/PROJECT.md` (updated 2026-03-24)
 | 260423-jh8 | Remove obsolete dashboard page and links | 2026-04-23 | pending | Verified | [260423-jh8-remove-dashboard-page-and-all-links-wait](./quick/260423-jh8-remove-dashboard-page-and-all-links-wait/) |
 | 260423-k0z | Increase discussion reply depth | 2026-04-23 | pending | Verified | [260423-k0z-increase-market-discussion-reply-depth-t](./quick/260423-k0z-increase-market-discussion-reply-depth-t/) |
 | fast | Fix dev seed message idempotency crash | 2026-04-23 | pending | Verified | `backend/scripts/seed_dev.py` |
+| fast | Fix LP conversion ledger description mismatch | 2026-04-23 | pending | Verified | `backend/app/services/ledger_service.py` |
+| fast | Clear stale Next generated route types before frontend type-check | 2026-04-23 | pending | Verified | `frontend/package.json` |
+| fast | Remove duplicate Privacy Policy and Terms of Service links from home page | 2026-04-23 | pending | Verified | `frontend/src/app/page.tsx` |
+| quick | Protect `/settings` behind frontend proxy guard and add regression test | 2026-04-23 | pending | Verified | `frontend/src/proxy.ts` |
+| 260424-i6c | Left navigation bar redesign | 2026-04-24 | pending | Verified | [260424-i6c-left-navigation-bar-redesign](./quick/260424-i6c-left-navigation-bar-redesign/) |
+| 20260426 | Fix login redirect after expired session | 2026-04-26 | pending | Verified | [20260426-auth-login-redirect-after-expiry](./quick/20260426-auth-login-redirect-after-expiry/) |
+| quick | Realtime LP display for like/unlike balance changes | 2026-04-26 | pending | Verified | `backend/app/services/economy_service.py`, `frontend/src/components/AuthBootstrap.tsx` |
+| 260426-abc | Market detail: reply icon + foldable replies | 2026-04-26 | pending | Complete | [260426-abc-market-reply-icon-foldable-replies](./quick/260426-abc-market-reply-icon-foldable-replies/) |
+| 260427-i85 | Fix uncontested resolution payout skip | 2026-04-27 | bd03d13 | Complete | [260427-i85-please-check-the-validity-of-the-comment](./quick/260427-i85-please-check-the-validity-of-the-comment/) |
+| fast | Dispute cost ledger type fix | 2026-04-27 | pending | Complete | `backend/app/services/ledger_service.py`, `frontend/src/i18n/en.ts` |
+| 260427-ivy | Reject bets after market deadline | 2026-04-27 | f302c1c | Complete | [260427-ivy-please-check-the-comment-below-if-valid-](./quick/260427-ivy-please-check-the-comment-below-if-valid-/) |
+| fast | Fix mission length validation message | 2026-04-29 | pending | Verified | `backend/app/schemas/profile.py`, `backend/tests/test_users.py` |
+| fast | Remove fragile Celery broker timeout override | 2026-04-29 | pending | Verified | `backend/app/workers/celery_app.py` |
 
 ### Blockers/Concerns
 

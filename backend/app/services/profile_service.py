@@ -5,7 +5,7 @@ from fastapi import HTTPException
 from sqlalchemy import and_, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.models.bet import BetPosition, Resolution
+from app.db.models.market import MarketPosition, Resolution
 from app.db.models.transaction import BpFundEntry, BpTransaction, TpTransaction
 from app.db.models.social import FriendRequest
 from app.db.models.user import User
@@ -32,9 +32,9 @@ async def get_public_profile(
 
     balances = await get_balance(db, user.id)
 
-    # Bet stats
+    # Market stats
     total_bets = (await db.execute(
-        select(func.count(BetPosition.id)).where(BetPosition.user_id == user.id)
+        select(func.count(MarketPosition.id)).where(MarketPosition.user_id == user.id)
     )).scalar_one()
 
     # Win rate: positions where user's side matches the resolution outcome
@@ -47,11 +47,11 @@ async def get_public_profile(
     )).scalar_one()
 
     resolved_bets = (await db.execute(
-        select(func.count(func.distinct(BetPosition.bet_id)))
-        .join(Resolution, Resolution.bet_id == BetPosition.bet_id)
+        select(func.count(func.distinct(MarketPosition.market_id)))
+        .join(Resolution, Resolution.market_id == MarketPosition.market_id)
         .where(
-            BetPosition.user_id == user.id,
-            BetPosition.withdrawn_at.is_(None),
+            MarketPosition.user_id == user.id,
+            MarketPosition.withdrawn_at.is_(None),
         )
     )).scalar_one()
 
@@ -77,7 +77,7 @@ async def get_public_profile(
         id=user.id,
         username=user.username,
         avatar_url=user.avatar_url,
-        bio=user.bio,
+        mission=user.mission,
         created_at=user.created_at,
         lp=int(balances["lp"]),
         bp=float(balances["bp"]),
@@ -101,8 +101,8 @@ async def update_profile(db: AsyncSession, user_id: uuid.UUID, data: UpdateProfi
             raise HTTPException(status_code=409, detail="Username already taken")
         user.username = data.username
 
-    if data.bio is not None:
-        user.bio = data.bio
+    if data.mission is not None:
+        user.mission = data.mission
 
     if data.avatar_url is not None:
         user.avatar_url = data.avatar_url

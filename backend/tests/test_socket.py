@@ -68,17 +68,19 @@ class TestBetEmits:
         from datetime import date, timezone
         from fakeredis.aioredis import FakeRedis
         from app.db.models.user import User
-        from app.db.models.bet import Bet
+        from app.db.models.market import Market
         from app.db.models.transaction import LpEvent, BpTransaction
         from app.services.bet_service import place_bet
         from app.schemas.bet import BetPlaceRequest
         from app.socket.server import sio
+        from app.config import settings
 
+        monkeypatch.setattr(settings, "database_url", "postgresql://test")
         from datetime import datetime, timedelta
         user_id = uuid.uuid4()
         bet_id = uuid.uuid4()
         user = User(id=user_id, email="u@t.com", username="tester", password_hash="x")
-        bet = Bet(id=bet_id, proposer_id=user_id, title="T", description="D",
+        bet = Market(id=bet_id, proposer_id=user_id, title="T", description="D",
                   resolution_criteria="C", status="open", market_type="binary",
                   deadline=datetime.now(timezone.utc) + timedelta(days=1))
         # Give user enough bp balance and kp (for bet cap check)
@@ -126,7 +128,7 @@ class TestCommentEmits:
     async def test_comment_emits(self, db_session, patch_jwt_key_paths):
         """create_comment() emits bet:comment_added to bet:{id} room."""
         from app.db.models.user import User
-        from app.db.models.bet import Bet
+        from app.db.models.market import Market
         from app.services.comment_service import create_comment
         from app.schemas.comment import CommentCreate
         from app.socket.server import sio
@@ -135,7 +137,7 @@ class TestCommentEmits:
         bet_id = uuid.uuid4()
         from datetime import datetime, timezone, timedelta
         user = User(id=user_id, email="c@t.com", username="commenter", password_hash="x")
-        bet = Bet(id=bet_id, proposer_id=user_id, title="T", description="D",
+        bet = Market(id=bet_id, proposer_id=user_id, title="T", description="D",
                   resolution_criteria="C", status="open", market_type="binary",
                   deadline=datetime.now(timezone.utc) + timedelta(days=1))
         db_session.add_all([user, bet])

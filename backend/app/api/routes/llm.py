@@ -11,7 +11,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_db
-from app.db.models.bet import Bet, Comment
+from app.db.models.market import Market, Comment
 from app.db.models.user import User
 from app.services import auth_service
 from app.services.llm_service import (
@@ -23,8 +23,16 @@ from app.services.llm_service import (
     get_resolution_hint,
     summarize_thread,
 )
+from app.utils.crypto import decrypt_secret
 
 router = APIRouter(tags=["llm"])
+
+
+def _decrypt_user_llm_api_key(value: str | None) -> str | None:
+    try:
+        return decrypt_secret(value)
+    except ValueError:
+        raise HTTPException(status_code=500, detail="Saved LLM API key could not be decrypted") from None
 
 
 async def _get_current_user(request: Request, db: AsyncSession) -> User:
@@ -52,14 +60,14 @@ async def create_summary(
     if current_user.llm_mode == "disabled":
         raise HTTPException(status_code=403, detail="LLM features disabled in your settings")
 
-    bet = (await db.execute(select(Bet).where(Bet.id == bet_id))).scalar_one_or_none()
+    bet = (await db.execute(select(Market).where(Market.id == bet_id))).scalar_one_or_none()
     if bet is None:
-        raise HTTPException(status_code=404, detail="Bet not found")
+        raise HTTPException(status_code=404, detail="Market not found")
 
     # Fetch recent comments (latest 20 for context)
     comments_result = await db.execute(
         select(Comment.content)
-        .where(Comment.bet_id == bet_id, Comment.deleted_at.is_(None))
+        .where(Comment.market_id == bet_id, Comment.deleted_at.is_(None))
         .order_by(Comment.created_at.desc())
         .limit(20)
     )
@@ -70,11 +78,12 @@ async def create_summary(
     if not await _check_budget(r):
         raise HTTPException(status_code=503, detail="Monthly AI budget exceeded")
 
-    if current_user.llm_mode == "custom" and current_user.llm_provider and current_user.llm_api_key:
+    custom_api_key = _decrypt_user_llm_api_key(current_user.llm_api_key)
+    if current_user.llm_mode == "custom" and current_user.llm_provider and custom_api_key:
         from app.services.llm_service import _build_summarize_messages
         msgs = _build_summarize_messages(bet.title, bet.description, bet.resolution_criteria, comment_texts)
         try:
-            summary = await call_custom_provider(msgs, current_user.llm_provider, current_user.llm_api_key, model_override=current_user.llm_model or None)
+            summary = await call_custom_provider(msgs, current_user.llm_provider, custom_api_key, model_override=current_user.llm_model or None)
         except ProviderError as e:
             raise HTTPException(status_code=502, detail=f"{e.provider} error: {e.detail[:200]}")
     else:
@@ -108,9 +117,9 @@ async def create_resolution_hint(
     if current_user.llm_mode == "disabled":
         raise HTTPException(status_code=403, detail="LLM features disabled in your settings")
 
-    bet = (await db.execute(select(Bet).where(Bet.id == bet_id))).scalar_one_or_none()
+    bet = (await db.execute(select(Market).where(Market.id == bet_id))).scalar_one_or_none()
     if bet is None:
-        raise HTTPException(status_code=404, detail="Bet not found")
+        raise HTTPException(status_code=404, detail="Market not found")
     if bet.proposer_id != current_user.id:
         raise HTTPException(status_code=403, detail="Only the proposer can request a resolution hint")
 
@@ -119,11 +128,12 @@ async def create_resolution_hint(
     if not await _check_budget(r):
         raise HTTPException(status_code=503, detail="Monthly AI budget exceeded")
 
-    if current_user.llm_mode == "custom" and current_user.llm_provider and current_user.llm_api_key:
+    custom_api_key = _decrypt_user_llm_api_key(current_user.llm_api_key)
+    if current_user.llm_mode == "custom" and current_user.llm_provider and custom_api_key:
         from app.services.llm_service import _build_hint_messages
         msgs = _build_hint_messages(bet.title, bet.description, bet.resolution_criteria, bet.deadline, body.evidence)
         try:
-            hint = await call_custom_provider(msgs, current_user.llm_provider, current_user.llm_api_key, model_override=current_user.llm_model or None)
+            hint = await call_custom_provider(msgs, current_user.llm_provider, custom_api_key, model_override=current_user.llm_model or None)
         except ProviderError as e:
             raise HTTPException(status_code=502, detail=f"{e.provider} error: {e.detail[:200]}")
     else:

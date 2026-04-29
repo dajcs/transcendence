@@ -1,10 +1,18 @@
 import type { Metadata } from "next";
+import { DM_Sans } from "next/font/google";
 import "./globals.css";
-import TopNav from "@/components/nav/TopNav";
+import Sidebar from "@/components/nav/Sidebar";
+import AppShell from "@/components/AppShell";
 import AuthBootstrap from "@/components/AuthBootstrap";
 import QueryProvider from "@/components/QueryProvider";
 import ThemeProvider from "@/components/ThemeProvider";
-import Footer from "@/components/Footer";
+
+const dmSans = DM_Sans({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700", "800"],
+  variable: "--font-dm-sans",
+  display: "swap",
+});
 
 // Runs before React hydrates — sets dark class to avoid FOUC
 const themeScript = `(function(){try{var t=localStorage.getItem('theme');if(t==='dark'||(t!=='light'&&window.matchMedia('(prefers-color-scheme:dark)').matches)){document.documentElement.classList.add('dark')}}catch(e){}})();`;
@@ -21,17 +29,21 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" className={dmSans.variable} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
-      <body className="min-h-screen bg-gray-50 text-gray-900 dark:bg-gray-900 dark:text-gray-100" suppressHydrationWarning>
+      <body
+        className="min-h-screen font-sans antialiased bg-[oklch(98%_0.005_250)] dark:bg-[oklch(14%_0.015_250)] text-[#0f0f0f] dark:text-[oklch(95%_0.005_250)]"
+        suppressHydrationWarning
+      >
         <QueryProvider>
           <ThemeProvider>
             <AuthBootstrap />
-            <TopNav />
-            <main className="max-w-4xl mx-auto px-4 py-8">{children}</main>
-            <Footer />
+            <Sidebar />
+            <AppShell>
+              <main className="max-w-4xl mx-auto px-4 py-8">{children}</main>
+            </AppShell>
           </ThemeProvider>
         </QueryProvider>
       </body>

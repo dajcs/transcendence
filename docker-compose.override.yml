@@ -4,11 +4,16 @@ services:
     entrypoint: ["sh", "-c", "uv sync --frozen --no-dev && uv run --no-sync alembic upgrade head && uv run --no-sync uvicorn app.main:socket_app --host 0.0.0.0 --port 8000 --reload --reload-exclude '.venv/*'"]
     volumes:
       - ./backend:/app
-      - /app/.venv
+      - backend_venv:/app/.venv
 
   frontend:
     command: ["sh", "-c", "rm -rf /app/.next/dev/cache/turbopack && npm run dev"]
     volumes:
       - ./frontend:/app
-      - /app/node_modules
-      - /app/.next
+      - frontend_node_modules:/app/node_modules
+      - frontend_next:/app/.next
+
+volumes:
+  backend_venv:
+  frontend_node_modules:
+  frontend_next:

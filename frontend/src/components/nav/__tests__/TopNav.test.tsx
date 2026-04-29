@@ -79,7 +79,7 @@ describe("TopNav", () => {
 
     expect(screen.getByTestId("notification-bell")).toBeInTheDocument();
     expect(screen.getAllByText("@alice")[0]).toBeInTheDocument();
-    expect(view.container.textContent).toContain("♥\u00a07 · BP\u00a012.3 · TP\u00a04.5");
+    expect(view.container.textContent).toContain("❤️\u00a07 · BP\u00a012.3 · TP\u00a04.5");
     expect(screen.queryByRole("link", { name: "nav.settings" })).not.toBeInTheDocument();
     expect(screen.getAllByText("2")[0]).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "nav.markets" })).toHaveAttribute("href", "/markets");

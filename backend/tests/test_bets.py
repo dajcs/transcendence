@@ -1,12 +1,12 @@
-"""Bet API tests — BET-02 (place YES/NO), BET-03 (withdraw), BET-05 (insufficient bp)."""
+"""Market API tests — BET-02 (place YES/NO), BET-03 (withdraw), BET-05 (insufficient bp)."""
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 import pytest
 from httpx import AsyncClient
 from sqlalchemy import select
 
-from app.db.models.bet import Bet
+from app.db.models.market import Market
 
 
 async def _setup_user_with_market(client: AsyncClient, email: str, username: str):
@@ -68,8 +68,22 @@ async def test_place_bet_rejects_amount_above_cap(client: AsyncClient):
 @pytest.mark.asyncio
 async def test_place_bet_rejects_closed_market(client: AsyncClient, db_session):
     market_id = await _setup_user_with_market(client, "closed@example.com", "closed_user")
-    market = (await db_session.execute(select(Bet).where(Bet.id == uuid.UUID(market_id)))).scalar_one()
+    market = (await db_session.execute(select(Market).where(Market.id == uuid.UUID(market_id)))).scalar_one()
     market.status = "closed"
+    await db_session.commit()
+
+    resp = await client.post("/api/bets", json={"bet_id": market_id, "side": "yes"})
+
+    assert resp.status_code == 409
+    assert resp.json()["detail"] == "Market is not open for betting"
+
+
+@pytest.mark.asyncio
+async def test_place_bet_rejects_open_market_after_deadline(client: AsyncClient, db_session):
+    market_id = await _setup_user_with_market(client, "expired@example.com", "expired_user")
+    market = (await db_session.execute(select(Market).where(Market.id == uuid.UUID(market_id)))).scalar_one()
+    market.deadline = datetime.now(timezone.utc) - timedelta(minutes=1)
+    market.status = "open"
     await db_session.commit()
 
     resp = await client.post("/api/bets", json={"bet_id": market_id, "side": "yes"})
@@ -121,7 +135,7 @@ async def test_withdraw_bet_refund_scales_with_bp_staked(client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_withdraw_numeric_bet_refund_scales_with_bp_staked(db_session):
-    from app.db.models.bet import Bet, BetPosition
+    from app.db.models.market import Market, MarketPosition
     from app.db.models.transaction import BpTransaction
     from app.db.models.user import User
     from app.services.bet_service import withdraw_bet
@@ -134,7 +148,7 @@ async def test_withdraw_numeric_bet_refund_scales_with_bp_staked(db_session):
     db_session.add_all([
         User(id=user_id, email="numeric@test.com", username="numericuser", password_hash="x"),
         User(id=other_id, email="numericother@test.com", username="numericother", password_hash="x"),
-        Bet(
+        Market(
             id=market_id,
             proposer_id=other_id,
             title="Numeric market",
@@ -147,8 +161,8 @@ async def test_withdraw_numeric_bet_refund_scales_with_bp_staked(db_session):
             status="open",
         ),
         BpTransaction(user_id=user_id, amount=10, reason="signup"),
-        BetPosition(id=position_id, bet_id=market_id, user_id=user_id, side="4", bp_staked=2),
-        BetPosition(id=uuid.uuid4(), bet_id=market_id, user_id=other_id, side="6", bp_staked=1),
+        MarketPosition(id=position_id, bet_id=market_id, user_id=user_id, side="4", bp_staked=2),
+        MarketPosition(id=uuid.uuid4(), bet_id=market_id, user_id=other_id, side="6", bp_staked=1),
     ])
     await db_session.commit()
 
@@ -162,7 +176,7 @@ async def test_positions_endpoint_splits_open_and_closed_markets(client: AsyncCl
     place_resp = await client.post("/api/bets", json={"bet_id": market_id, "side": "yes"})
     assert place_resp.status_code == 201
 
-    market = (await db_session.execute(select(Bet).where(Bet.id == uuid.UUID(market_id)))).scalar_one()
+    market = (await db_session.execute(select(Market).where(Market.id == uuid.UUID(market_id)))).scalar_one()
     market.status = "closed"
     await db_session.commit()
 

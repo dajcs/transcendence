@@ -15,6 +15,26 @@ interface SearchResult {
   avatar_url: string | null;
 }
 
+// --- Avatar: deterministic color from username (matches markets page) ---
+const AVATAR_HUES = [40, 145, 160, 205, 264, 270, 310, 25, 320, 180];
+
+function avatarColor(username: string): string {
+  let hash = 0;
+  for (const c of username) hash = (hash * 31 + c.charCodeAt(0)) >>> 0;
+  return `oklch(56% 0.2 ${AVATAR_HUES[hash % AVATAR_HUES.length]})`;
+}
+
+function Avatar({ username }: { username: string }) {
+  return (
+    <div
+      style={{ background: avatarColor(username) }}
+      className="w-[26px] h-[26px] rounded-full shrink-0 flex items-center justify-center text-white font-bold text-[12px]"
+    >
+      {(username[0] ?? "?").toUpperCase()}
+    </div>
+  );
+}
+
 function UserSearch() {
   const t = useT();
   const [query, setQuery] = useState("");
@@ -36,10 +56,7 @@ function UserSearch() {
     setQuery(value);
     if (debounceRef.current) clearTimeout(debounceRef.current);
     abortRef.current?.abort();
-    if (!value.trim()) {
-      setResults([]);
-      return;
-    }
+    if (!value.trim()) { setResults([]); return; }
     debounceRef.current = setTimeout(async () => {
       const controller = new AbortController();
       abortRef.current = controller;
@@ -71,51 +88,65 @@ function UserSearch() {
   };
 
   return (
-    <div className="rounded border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
-      <label htmlFor="user-search" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-        {t("friends.add_friend")}
-      </label>
-      <input
-        id="user-search"
-        type="text"
-        value={query}
-        onChange={(e) => handleSearch(e.target.value)}
-        placeholder={t("friends.search_placeholder")}
-        className="w-full rounded border border-gray-300 dark:border-gray-600 px-3 py-2 text-sm focus:border-blue-500 dark:focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-      />
-      {searching && <p className="mt-2 text-xs text-gray-400 dark:text-gray-500">{t("friends.searching")}</p>}
+    <div className="bg-white dark:bg-[oklch(18%_0.015_250)] border border-[oklch(91%_0.006_250)] dark:border-[oklch(22%_0.015_250)] rounded-[10px] p-3 mb-3">
+      <div className="relative mb-2">
+        <svg
+          className="absolute left-3 top-1/2 -translate-y-1/2 opacity-35 pointer-events-none text-gray-900 dark:text-gray-100"
+          width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden
+        >
+          <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+        </svg>
+        <input
+          id="user-search"
+          type="text"
+          value={query}
+          onChange={(e) => handleSearch(e.target.value)}
+          placeholder={t("friends.search_placeholder")}
+          className="w-full pl-8 pr-3 py-2 rounded-lg text-[13px] bg-[oklch(97%_0.005_250)] dark:bg-[oklch(20%_0.015_250)] border border-[oklch(91%_0.006_250)] dark:border-[oklch(24%_0.015_250)] text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-600 focus:outline-none focus:border-[var(--accent)] transition-colors"
+        />
+      </div>
+      {searching && (
+        <p className="text-[11px] text-gray-400 dark:text-gray-500 px-1">{t("friends.searching")}</p>
+      )}
       {results.length > 0 && (
-        <ul className="mt-2 divide-y divide-gray-100 dark:divide-gray-700">
-          {results.map((user) => (
-            <li key={user.id} className="flex items-center justify-between py-2">
-              <div className="flex items-center gap-2">
-                <div className="h-8 w-8 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center text-xs font-medium text-gray-700 dark:text-gray-300">
-                  {user.username[0].toUpperCase()}
-                </div>
-                <span className="text-sm font-medium text-gray-900 dark:text-gray-100">{user.username}</span>
+        <div className="mt-1 border border-[oklch(91%_0.006_250)] dark:border-[oklch(22%_0.015_250)] rounded-lg overflow-hidden">
+          {results.map((user, i) => (
+            <div
+              key={user.id}
+              className={`flex items-center justify-between px-3 py-2 hover:bg-[oklch(97%_0.008_264)] dark:hover:bg-[oklch(20%_0.015_250)] transition-colors duration-100 ${
+                i < results.length - 1 ? "border-b border-gray-100 dark:border-[oklch(22%_0.015_250)]" : ""
+              }`}
+            >
+              <div className="flex items-center gap-2.5">
+                <Avatar username={user.username} />
+                <span className="text-[13px] font-medium text-gray-900 dark:text-gray-100">{user.username}</span>
               </div>
               <div className="flex flex-col items-end gap-1">
                 <button
                   onClick={() => handleSendRequest(user.id)}
                   disabled={sendingTo === user.id || sentTo.has(user.id)}
-                  className={`rounded px-3 py-1 text-sm text-white ${
+                  className={`text-[12px] px-2.5 py-[5px] rounded-md font-semibold transition-opacity ${
                     sentTo.has(user.id)
-                      ? "bg-gray-400 dark:bg-gray-500 cursor-default"
-                      : "bg-blue-600 hover:bg-blue-700 disabled:opacity-50"
+                      ? "bg-[oklch(91%_0.006_250)] dark:bg-[oklch(24%_0.015_250)] text-gray-500 dark:text-gray-400 cursor-default"
+                      : "bg-[var(--accent)] text-white hover:opacity-90 disabled:opacity-50"
                   }`}
                 >
-                  {sentTo.has(user.id) ? t("friends.sent_label") : sendingTo === user.id ? t("friends.sending") : t("friends.add_friend")}
+                  {sentTo.has(user.id)
+                    ? t("friends.sent_label")
+                    : sendingTo === user.id
+                    ? t("friends.sending")
+                    : t("friends.add_friend")}
                 </button>
                 {errors[user.id] && (
-                  <span className="text-xs text-red-500">{errors[user.id]}</span>
+                  <span className="text-[11px] text-red-500">{errors[user.id]}</span>
                 )}
               </div>
-            </li>
+            </div>
           ))}
-        </ul>
+        </div>
       )}
       {query.trim() && !searching && results.length === 0 && (
-        <p className="mt-2 text-xs text-gray-400 dark:text-gray-500">{t("friends.no_users_found")}</p>
+        <p className="text-[11px] text-gray-400 dark:text-gray-500 px-1 mt-1">{t("friends.no_users_found")}</p>
       )}
     </div>
   );
@@ -124,18 +155,9 @@ function UserSearch() {
 export default function FriendsPage() {
   const t = useT();
   const {
-    friends,
-    pendingReceived,
-    pendingSent,
-    blocked,
-    isLoading,
-    fetch,
-    acceptRequest,
-    rejectRequest,
-    removeFriend,
-    blockUser,
-    unblockUser,
-    cancelRequest,
+    friends, pendingReceived, pendingSent, blocked,
+    isLoading, fetch, acceptRequest, rejectRequest,
+    removeFriend, blockUser, unblockUser, cancelRequest,
   } = useFriendsStore();
 
   const socket = useSocketStore((s) => s.socket);
@@ -147,7 +169,6 @@ export default function FriendsPage() {
     fetch();
   }, [fetch]);
 
-  // Re-fetch when friend status changes via socket
   useEffect(() => {
     if (!socket) return;
     socket.on("notification:friend_accepted", fetch);
@@ -169,206 +190,190 @@ export default function FriendsPage() {
     return () => window.removeEventListener("friends:open-tab", handler as EventListener);
   }, [fetch]);
 
-  return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-bold">{t("friends.title")}</h1>
+  const tabs = [
+    { key: "friends" as const, label: `${t("friends.all")} (${friends.length})` },
+    { key: "received" as const, label: `${t("friends.requests")} (${pendingReceived.length})`, badge: pendingReceived.length },
+    { key: "sent" as const, label: `${t("friends.sent")} (${pendingSent.length})` },
+    ...(blocked.length > 0 ? [{ key: "blocked" as const, label: `${t("friends.blocked")} (${blocked.length})` }] : []),
+  ];
 
-      {/* User search / Add Friend */}
+  return (
+    <div>
       <UserSearch />
 
-      {/* Tab navigation */}
-      <div className="flex gap-1 border-b border-gray-200 dark:border-gray-700">
-        <button
-          onClick={() => setActiveTab("friends")}
-          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-            activeTab === "friends"
-              ? "border-blue-600 text-blue-600"
-              : "border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
-          }`}
-        >
-          {t("friends.all")} ({friends.length})
-        </button>
-        <button
-          onClick={() => setActiveTab("received")}
-          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-            activeTab === "received"
-              ? "border-blue-600 text-blue-600"
-              : "border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
-          }`}
-        >
-          {t("friends.requests")} ({pendingReceived.length})
-          {pendingReceived.length > 0 && (
-            <span className="ml-1.5 inline-flex items-center justify-center w-5 h-5 text-xs font-bold text-white bg-red-500 rounded-full">
-              {pendingReceived.length}
-            </span>
-          )}
-        </button>
-        <button
-          onClick={() => setActiveTab("sent")}
-          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-            activeTab === "sent"
-              ? "border-blue-600 text-blue-600"
-              : "border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
-          }`}
-        >
-          {t("friends.sent")} ({pendingSent.length})
-        </button>
-        {blocked.length > 0 && (
-          <button
-            onClick={() => setActiveTab("blocked")}
-            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-              activeTab === "blocked"
-                ? "border-red-600 text-red-600"
-                : "border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
-            }`}
-          >
-            {t("friends.blocked")} ({blocked.length})
-          </button>
-        )}
+      {/* Tab filter row — matches markets filter pill style */}
+      <div className="flex items-center gap-1.5 mb-3 flex-wrap">
+        {tabs.map(({ key, label, badge }) => {
+          const isActive = activeTab === key;
+          return (
+            <button
+              key={key}
+              onClick={() => setActiveTab(key)}
+              className={`text-[12px] px-2.5 py-[5px] rounded-md cursor-pointer whitespace-nowrap border transition-colors ${
+                isActive
+                  ? "bg-[oklch(91%_0.006_250)] dark:bg-[oklch(24%_0.015_250)] border-[oklch(88%_0.005_250)] dark:border-[oklch(28%_0.015_250)] text-gray-900 dark:text-gray-100 font-semibold"
+                  : "border-transparent text-gray-400 dark:text-gray-500 font-medium"
+              }`}
+            >
+              {label}
+              {badge != null && badge > 0 && (
+                <span className="ml-1.5 inline-flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">
+                  {badge}
+                </span>
+              )}
+            </button>
+          );
+        })}
       </div>
 
-      {isLoading && <p className="text-sm text-gray-500 dark:text-gray-400">{t("common.loading")}</p>}
+      {isLoading && (
+        <p className="text-[13px] text-gray-400 dark:text-gray-500 py-6 text-center">{t("common.loading")}</p>
+      )}
 
-      {/* Friends list */}
-      {activeTab === "friends" && (
-        <div className="space-y-2">
-          {friends.length === 0 && !isLoading && (
-            <p className="text-sm text-gray-500 dark:text-gray-400">{t("friends.no_friends")}</p>
-          )}
-          {friends.map((friend) => (
-            <div
-              key={friend.user_id}
-              className="flex items-center justify-between rounded border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4"
-            >
-              <div className="flex items-center gap-3">
-                <div className="relative">
-                  <div className="h-10 w-10 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center text-sm font-medium text-gray-700 dark:text-gray-300">
-                    {friend.username[0].toUpperCase()}
+      {/* Content card — matches markets rows card */}
+      {!isLoading && (
+        <div className="bg-white dark:bg-[oklch(18%_0.015_250)] border border-[oklch(91%_0.006_250)] dark:border-[oklch(22%_0.015_250)] rounded-[10px] overflow-hidden">
+
+          {/* Friends */}
+          {activeTab === "friends" && (
+            friends.length === 0 ? (
+              <div className="py-10 text-center text-[13px] text-gray-400 dark:text-gray-500">{t("friends.no_friends")}</div>
+            ) : friends.map((friend, i) => (
+              <div
+                key={friend.user_id}
+                className={`flex items-center justify-between px-3 py-2.5 hover:bg-[oklch(97%_0.008_264)] dark:hover:bg-[oklch(20%_0.015_250)] transition-colors duration-100 ${
+                  i < friends.length - 1 ? "border-b border-gray-100 dark:border-[oklch(22%_0.015_250)]" : ""
+                }`}
+              >
+                <div className="flex items-center gap-2.5">
+                  <div className="relative">
+                    <Avatar username={friend.username} />
+                    <span className={`absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-white dark:border-[oklch(18%_0.015_250)] ${
+                      friend.is_online ? "bg-green-500" : "bg-gray-400 dark:bg-gray-600"
+                    }`} />
                   </div>
-                  <span
-                    className={`absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-white dark:border-gray-800 ${
-                      friend.is_online ? "bg-green-500" : "bg-gray-400"
-                    }`}
-                  />
+                  <div>
+                    <UserLink username={friend.username} className="text-[13px] font-medium text-gray-900 dark:text-gray-100" />
+                    <p className="text-[11px] text-gray-400 dark:text-gray-500">
+                      {t("friends.friends_since")} {new Date(friend.since).toLocaleDateString()}
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <UserLink username={friend.username} className="font-medium text-gray-900 dark:text-gray-100" />
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
-                    {t("friends.friends_since")} {new Date(friend.since).toLocaleDateString()}
-                  </p>
+                <div className="flex gap-1.5">
+                  <Link
+                    href={`/chat/${friend.user_id}`}
+                    className="text-[12px] px-2.5 py-[5px] rounded-md font-semibold text-white bg-[var(--accent)] hover:opacity-90 transition-opacity"
+                  >
+                    {t("friends.send_message")}
+                  </Link>
+                  <button
+                    onClick={() => removeFriend(friend.user_id)}
+                    className="text-[12px] px-2.5 py-[5px] rounded-md border border-red-200 dark:border-red-800/50 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                  >
+                    {t("friends.remove")}
+                  </button>
+                  <button
+                    onClick={() => blockUser(friend.user_id)}
+                    className="text-[12px] px-2.5 py-[5px] rounded-md border border-[oklch(91%_0.006_250)] dark:border-[oklch(24%_0.015_250)] text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors"
+                  >
+                    {t("friends.block")}
+                  </button>
                 </div>
               </div>
-              <div className="flex gap-2">
-                <Link
-                  href={`/chat/${friend.user_id}`}
-                  className="rounded bg-blue-600 px-3 py-1 text-sm text-white hover:bg-blue-700"
-                >
-                  {t("friends.send_message")}
-                </Link>
-                <button
-                  onClick={() => removeFriend(friend.user_id)}
-                  className="rounded border border-red-300 dark:border-red-700 px-3 py-1 text-sm text-red-700 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20"
-                >
-                  {t("friends.remove")}
-                </button>
-                <button
-                  onClick={() => blockUser(friend.user_id)}
-                  className="rounded border border-gray-300 dark:border-gray-600 px-3 py-1 text-sm text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700"
-                >
-                  {t("friends.block")}
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Pending received */}
-      {activeTab === "received" && (
-        <div className="space-y-2">
-          {pendingReceived.length === 0 && !isLoading && (
-            <p className="text-sm text-gray-500 dark:text-gray-400">{t("friends.no_pending")}</p>
+            ))
           )}
-          {pendingReceived.map((req) => (
-            <div
-              key={req.id}
-              className="flex items-center justify-between rounded border border-yellow-200 dark:border-yellow-700 bg-yellow-50 dark:bg-yellow-900/20 p-4"
-            >
-              <div>
-                <UserLink username={req.from_username} className="font-medium text-gray-900 dark:text-gray-100" />
-                <p className="text-xs text-gray-500 dark:text-gray-400">
-                  {t("friends.sent_date")} {new Date(req.created_at).toLocaleDateString()}
-                </p>
-              </div>
-              <div className="flex gap-2">
-                <button
-                  onClick={async () => { await acceptRequest(req.id); setActiveTab("friends"); }}
-                  className="rounded bg-green-600 px-3 py-1 text-sm text-white hover:bg-green-700"
-                >
-                  {t("friends.accept")}
-                </button>
-                <button
-                  onClick={() => rejectRequest(req.id)}
-                  className="rounded border border-gray-300 dark:border-gray-600 px-3 py-1 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
-                >
-                  {t("friends.decline")}
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
 
-      {/* Blocked users */}
-      {activeTab === "blocked" && (
-        <div className="space-y-2">
-          {blocked.map((u: BlockedUser) => (
-            <div
-              key={u.user_id}
-              className="flex items-center justify-between rounded border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4"
-            >
-              <div className="flex items-center gap-2">
-                <div className="h-8 w-8 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center text-xs font-medium text-gray-700 dark:text-gray-300">
-                  {u.username[0].toUpperCase()}
+          {/* Received requests */}
+          {activeTab === "received" && (
+            pendingReceived.length === 0 ? (
+              <div className="py-10 text-center text-[13px] text-gray-400 dark:text-gray-500">{t("friends.no_pending")}</div>
+            ) : pendingReceived.map((req, i) => (
+              <div
+                key={req.id}
+                className={`flex items-center justify-between px-3 py-2.5 hover:bg-[oklch(97%_0.008_264)] dark:hover:bg-[oklch(20%_0.015_250)] transition-colors duration-100 ${
+                  i < pendingReceived.length - 1 ? "border-b border-gray-100 dark:border-[oklch(22%_0.015_250)]" : ""
+                }`}
+              >
+                <div className="flex items-center gap-2.5">
+                  <Avatar username={req.from_username} />
+                  <div>
+                    <UserLink username={req.from_username} className="text-[13px] font-medium text-gray-900 dark:text-gray-100" />
+                    <p className="text-[11px] text-gray-400 dark:text-gray-500">
+                      {t("friends.sent_date")} {new Date(req.created_at).toLocaleDateString()}
+                    </p>
+                  </div>
                 </div>
-                <UserLink username={u.username} className="text-sm font-medium text-gray-900 dark:text-gray-100" />
+                <div className="flex gap-1.5">
+                  <button
+                    onClick={async () => { await acceptRequest(req.id); setActiveTab("friends"); }}
+                    className="text-[12px] px-2.5 py-[5px] rounded-md font-semibold text-white bg-[var(--accent)] hover:opacity-90 transition-opacity"
+                  >
+                    {t("friends.accept")}
+                  </button>
+                  <button
+                    onClick={() => rejectRequest(req.id)}
+                    className="text-[12px] px-2.5 py-[5px] rounded-md border border-[oklch(91%_0.006_250)] dark:border-[oklch(24%_0.015_250)] text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors"
+                  >
+                    {t("friends.decline")}
+                  </button>
+                </div>
               </div>
-              <button
-                onClick={() => unblockUser(u.user_id)}
-                className="rounded border border-gray-300 dark:border-gray-600 px-3 py-1 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
-              >
-                {t("friends.unblock")}
-              </button>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Pending sent */}
-      {activeTab === "sent" && (
-        <div className="space-y-2">
-          {pendingSent.length === 0 && !isLoading && (
-            <p className="text-sm text-gray-500 dark:text-gray-400">{t("friends.no_sent")}</p>
+            ))
           )}
-          {pendingSent.map((req) => (
-            <div
-              key={req.id}
-              className="flex items-center justify-between rounded border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4"
-            >
-              <div>
-                <UserLink username={req.to_username} className="font-medium text-gray-900 dark:text-gray-100" />
-                <p className="text-xs text-gray-500 dark:text-gray-400">
-                  {t("friends.sent_date")} {new Date(req.created_at).toLocaleDateString()}
-                </p>
-              </div>
-              <button
-                onClick={() => cancelRequest(req.id)}
-                className="rounded border border-red-300 dark:border-red-700 px-3 py-1 text-sm text-red-700 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20"
+
+          {/* Sent requests */}
+          {activeTab === "sent" && (
+            pendingSent.length === 0 ? (
+              <div className="py-10 text-center text-[13px] text-gray-400 dark:text-gray-500">{t("friends.no_sent")}</div>
+            ) : pendingSent.map((req, i) => (
+              <div
+                key={req.id}
+                className={`flex items-center justify-between px-3 py-2.5 hover:bg-[oklch(97%_0.008_264)] dark:hover:bg-[oklch(20%_0.015_250)] transition-colors duration-100 ${
+                  i < pendingSent.length - 1 ? "border-b border-gray-100 dark:border-[oklch(22%_0.015_250)]" : ""
+                }`}
               >
-                {t("friends.cancel_request")}
-              </button>
-            </div>
-          ))}
+                <div className="flex items-center gap-2.5">
+                  <Avatar username={req.to_username} />
+                  <div>
+                    <UserLink username={req.to_username} className="text-[13px] font-medium text-gray-900 dark:text-gray-100" />
+                    <p className="text-[11px] text-gray-400 dark:text-gray-500">
+                      {t("friends.sent_date")} {new Date(req.created_at).toLocaleDateString()}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => cancelRequest(req.id)}
+                  className="text-[12px] px-2.5 py-[5px] rounded-md border border-red-200 dark:border-red-800/50 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                >
+                  {t("friends.cancel_request")}
+                </button>
+              </div>
+            ))
+          )}
+
+          {/* Blocked */}
+          {activeTab === "blocked" && (
+            blocked.map((u: BlockedUser, i) => (
+              <div
+                key={u.user_id}
+                className={`flex items-center justify-between px-3 py-2.5 hover:bg-[oklch(97%_0.008_264)] dark:hover:bg-[oklch(20%_0.015_250)] transition-colors duration-100 ${
+                  i < blocked.length - 1 ? "border-b border-gray-100 dark:border-[oklch(22%_0.015_250)]" : ""
+                }`}
+              >
+                <div className="flex items-center gap-2.5">
+                  <Avatar username={u.username} />
+                  <UserLink username={u.username} className="text-[13px] font-medium text-gray-900 dark:text-gray-100" />
+                </div>
+                <button
+                  onClick={() => unblockUser(u.user_id)}
+                  className="text-[12px] px-2.5 py-[5px] rounded-md border border-[oklch(91%_0.006_250)] dark:border-[oklch(24%_0.015_250)] text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors"
+                >
+                  {t("friends.unblock")}
+                </button>
+              </div>
+            ))
+          )}
+
         </div>
       )}
     </div>
