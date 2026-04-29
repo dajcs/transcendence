@@ -251,10 +251,9 @@ function MarketRow({ market, isLast }: { market: Market; isLast: boolean }) {
   return (
     <div
       onClick={() => router.push(getMarketPath(market))}
-      className={`grid gap-x-3 px-3 py-2.5 items-center cursor-pointer hover:bg-[oklch(97%_0.008_264)] dark:hover:bg-[oklch(20%_0.015_250)] transition-colors duration-100 ${
+      className={`grid gap-x-3 px-3 py-2.5 items-center cursor-pointer hover:bg-[oklch(97%_0.008_264)] dark:hover:bg-[oklch(20%_0.015_250)] transition-colors duration-100 grid-cols-[1fr_84px] sm:grid-cols-[1fr_110px_84px_44px] ${
         !isLast ? "border-b border-gray-100 dark:border-[oklch(22%_0.015_250)]" : ""
       }`}
-      style={{ gridTemplateColumns: "1fr 110px 84px 44px" }}
     >
       {/* Col 1: avatar + title + stat pills */}
       <div className="flex gap-2.5 items-start min-w-0">
@@ -316,7 +315,7 @@ function MarketRow({ market, isLast }: { market: Market; isLast: boolean }) {
       </div>
 
       {/* Col 2: activity numbers */}
-      <div className="text-right flex flex-col items-end gap-0.5">
+      <div className="text-right hidden sm:flex flex-col items-end gap-0.5">
         <span className="text-[12px] font-bold text-gray-900 dark:text-gray-100">
           {market.position_count}{" "}
           <span className="font-normal text-gray-400 dark:text-gray-500">
@@ -334,7 +333,7 @@ function MarketRow({ market, isLast }: { market: Market; isLast: boolean }) {
       </div>
 
       {/* Col 4: time clock */}
-      <div className="flex justify-center">
+      <div className="hidden sm:flex justify-center">
         <TimeClock createdAt={market.created_at} deadline={market.deadline} />
       </div>
     </div>
@@ -500,19 +499,18 @@ export default function MarketsPage() {
 
       {/* Column headers */}
       <div
-        className="grid gap-x-3 px-3 pb-2 items-center"
-        style={{ gridTemplateColumns: "1fr 110px 84px 44px" }}
+        className="grid gap-x-3 px-3 pb-2 items-center grid-cols-[1fr_84px] sm:grid-cols-[1fr_110px_84px_44px]"
       >
         <span className="text-[11px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
           {t("markets.col_question")}
         </span>
-        <span className="text-[11px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider text-right">
+        <span className="hidden sm:flex text-[11px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider text-right">
           {t("markets.col_activity")}
         </span>
         <span className="text-[11px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider text-right">
           {t("markets.col_outcome")}
         </span>
-        <span className="text-[11px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider text-center">
+        <span className="hidden sm:flex text-[11px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider text-center">
           {t("markets.col_time")}
         </span>
       </div>
