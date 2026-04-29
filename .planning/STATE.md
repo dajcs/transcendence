@@ -176,6 +176,7 @@ Last activity: 2026-04-29
 | 260427-i85 | Fix uncontested resolution payout skip | 2026-04-27 | bd03d13 | Complete | [260427-i85-please-check-the-validity-of-the-comment](./quick/260427-i85-please-check-the-validity-of-the-comment/) |
 | fast | Dispute cost ledger type fix | 2026-04-27 | pending | Complete | `backend/app/services/ledger_service.py`, `frontend/src/i18n/en.ts` |
 | 260427-ivy | Reject bets after market deadline | 2026-04-27 | f302c1c | Complete | [260427-ivy-please-check-the-comment-below-if-valid-](./quick/260427-ivy-please-check-the-comment-below-if-valid-/) |
+| fast | Fix mission length validation message | 2026-04-29 | pending | Verified | `backend/app/schemas/profile.py`, `backend/tests/test_users.py` |
 
 ### Blockers/Concerns
 

@@ -43,7 +43,7 @@ class UpdateProfileRequest(BaseModel):
     @classmethod
     def mission_length(cls, v: str | None) -> str | None:
         if v is not None and len(v) > 500:
-            raise ValueError("Bio must be under 500 characters")
+            raise ValueError("Mission must be under 500 characters")
         return v
 
 

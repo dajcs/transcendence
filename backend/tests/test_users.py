@@ -190,6 +190,7 @@ async def test_update_mission_too_long(client: AsyncClient):
     await _register_and_login(client, "heidi@example.com", "heidi")
     resp = await client.put("/api/users/me", json={"mission": "x" * 501})
     assert resp.status_code == 422
+    assert resp.json()["detail"][0]["msg"] == "Value error, Mission must be under 500 characters"
 
 
 # ── PROFILE-03: GET /api/users/search ─────────────────────────────────────────
