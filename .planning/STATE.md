@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v21.0
 milestone_name: milestone
 current_plan: 5
-status: Phase 07 complete
-last_updated: "2026-04-29T00:00:00+02:00"
-last_activity: 2026-04-29
+status: Phase 08 ready to execute
+last_updated: "2026-04-30T00:00:00+02:00"
+last_activity: 2026-04-30
 progress:
   total_phases: 9
   completed_phases: 8
-  total_plans: 50
+  total_plans: 52
   completed_plans: 50
-  percent: 100
+  percent: 96
 ---
 
 # Project State
@@ -25,11 +25,11 @@ See: `.planning/PROJECT.md` (updated 2026-03-24)
 
 ## Current Status
 
-**Phase:** 07
-**Current Plan:** 5
-**Last session:** 2026-04-29T00:00:00+02:00
-Last activity: 2026-04-29
-**Resume file:** .planning/phases/07-testing-stretch/07-05-SUMMARY.md
+**Phase:** 08
+**Current Plan:** 0
+**Last session:** 2026-04-30T00:00:00+02:00
+Last activity: 2026-04-30
+**Resume file:** .planning/phases/08-stretch-modules/
 
 ## Decisions
 
@@ -119,6 +119,7 @@ Last activity: 2026-04-29
 
 - Phase 5.1 inserted after Phase 5: add autoresolution, profile bet logs, market bet details (URGENT)
 - Phase 6.1 inserted after Phase 6: rename Karma Points to Like Points + fix BP/TP earn/win formulas (URGENT)
+- Phase 8 added: stretch modules — RWD (mobile-first, priority), Public REST API, PWA (up to +5 pts)
 
 ## Performance Metrics
 
