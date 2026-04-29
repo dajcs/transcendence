@@ -110,6 +110,8 @@ const de = {
   "market.post": "Veröffentlichen",
   "market.posting": "Wird veröffentlicht...",
   "market.reply": "Antworten",
+  "market.collapse_replies": "Antworten zuklappen",
+  "market.expand_replies": "Antworten aufklappen",
   "market.upvote": "Zustimmen",
   "market.loading_comments": "Kommentare werden geladen...",
   "market.resolution": "Auflösung",
@@ -193,7 +195,7 @@ const de = {
   "ledger.type_withdrawal": "Auszahlung",
   "ledger.type_bet_refund": "Wett-Erstattung",
   "ledger.type_daily_bonus": "Tagesbonus",
-  "ledger.type_lp_allocation": "♥→BP",
+  "ledger.type_lp_allocation": "❤️→ BP",
   "ledger.type_payout": "Auszahlung",
   "ledger.no_transactions": "Noch keine Transaktionen.",
   "ledger.load_more": "Mehr laden",
@@ -276,7 +278,7 @@ const de = {
   "notif.bet_disputed": "Wette angefochten",
   "notif.resolution_proposed": "Auflösung vorgeschlagen",
   "notif.resolution_due": "Auflösung erforderlich",
-  "notif.lp_converted": "♥ Umgewandelt",
+  "notif.lp_converted": "❤️ Umgewandelt",
   "notif.new": "Neue Benachrichtigung",
 
   // Markets page extra
@@ -289,18 +291,22 @@ const de = {
   "markets.filter_closed": "Geschlossen",
   "markets.filter_disputed": "Angefochten",
   "markets.filter_resolved": "Aufgelöst",
+  "markets.filter_liked": "Geliked",
   "markets.sort_by": "Sortieren",
   "markets.filter": "Filtern",
   "markets.include_desc_search": "Beschreibung und Kriterien in Suche einbeziehen",
   "markets.loading": "Märkte werden geladen...",
   "markets.load_error": "Märkte konnten nicht geladen werden.",
   "markets.no_match": "Keine Märkte entsprechen Ihren Kriterien.",
-  "markets.page_of": "Seite {page} / {pages}",
-  "markets.prev": "Zurück",
-  "markets.next": "Weiter",
+
   "markets.votes": "Stimmen",
   "markets.comments": "Kommentare",
   "markets.choices": "Optionen",
+  "markets.col_question": "Frage",
+  "markets.col_activity": "Aktivität",
+  "markets.col_outcome": "Ergebnis",
+  "markets.col_time": "Zeit",
+  "markets.traders": "Händler",
 
   // Create market extra
   "create.date": "Datum",
@@ -451,8 +457,8 @@ const de = {
   "hall.empty_tp": "Bisher wurden keine Wahrheitspunkte erfasst.",
 
   // Footer
-  "footer.privacy": "Datenschutzrichtlinie",
-  "footer.terms": "Nutzungsbedingungen",
+  "footer.privacy": "Datenschutz-richtlinie",
+  "footer.terms": "Nutzungs-bedingungen",
 
   // Settings extra (audit fixes)
   "settings.delete_confirm_word": "LÖSCHEN",

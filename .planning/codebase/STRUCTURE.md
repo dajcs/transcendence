@@ -146,7 +146,7 @@ transcendence/                        # Project root
 **`frontend/src/app/(protected)/`:**
 - Purpose: All authenticated pages; Next.js route group (no URL impact)
 - Contains: `markets`, `friends`, `chat`, `profile`, `hall-of-fame`, and `settings` page directories
-- Note: Route protection is enforced by `frontend/src/proxy.ts`; the old `/dashboard` route has been removed and profile tabs cover its former personal portfolio workflows
+- Note: Route protection is enforced by `frontend/src/proxy.ts`; protected user pages include `markets`, `friends`, `chat`, `profile`, and `settings`. The old `/dashboard` route has been removed and profile tabs cover its former personal portfolio workflows
 
 **`frontend/src/store/`:**
 - Purpose: Zustand state atoms; each store owns one domain's data + API calls

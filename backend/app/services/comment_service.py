@@ -7,10 +7,11 @@ from sqlalchemy import delete, func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.models.bet import Bet, Comment, CommentUpvote
+from app.db.models.market import Market, Comment, CommentUpvote
 from app.db.models.transaction import LpEvent
 from app.db.models.user import User
 from app.schemas.comment import CommentCreate, CommentResponse
+from app.services.economy_service import emit_balance_changed
 
 MAX_COMMENT_DEPTH = 7
 
@@ -21,7 +22,7 @@ async def create_comment(
     bet_id: uuid.UUID,
     data: CommentCreate,
 ) -> CommentResponse:
-    market = (await db.execute(select(Bet).where(Bet.id == bet_id))).scalar_one_or_none()
+    market = (await db.execute(select(Market).where(Market.id == bet_id))).scalar_one_or_none()
     if market is None:
         raise HTTPException(status_code=404, detail="Market not found")
 
@@ -29,7 +30,7 @@ async def create_comment(
         parent = (await db.execute(select(Comment).where(Comment.id == data.parent_id))).scalar_one_or_none()
         if parent is None:
             raise HTTPException(status_code=404, detail="Parent comment not found")
-        if parent.bet_id != bet_id:
+        if parent.market_id != bet_id:
             raise HTTPException(status_code=422, detail="Parent comment belongs to another market")
         # Enforce max 8-post thread depth by traversing ancestor chain.
         depth = 0
@@ -42,7 +43,7 @@ async def create_comment(
 
     comment = Comment(
         id=uuid.uuid4(),
-        bet_id=bet_id,
+        market_id=bet_id,
         user_id=user_id,
         parent_id=data.parent_id,
         content=data.content,
@@ -54,7 +55,7 @@ async def create_comment(
     author = (await db.execute(select(User).where(User.id == user_id))).scalar_one()
     response = CommentResponse(
         id=comment.id,
-        bet_id=comment.bet_id,
+        bet_id=comment.market_id,
         user_id=comment.user_id,
         author_username=author.username,
         parent_id=comment.parent_id,
@@ -88,7 +89,7 @@ async def list_comments(
         await db.execute(
             select(Comment, User.username)
             .join(User, User.id == Comment.user_id)
-            .where(Comment.bet_id == bet_id, Comment.deleted_at.is_(None))
+            .where(Comment.market_id == bet_id, Comment.deleted_at.is_(None))
             .order_by(Comment.created_at.asc())
         )
     ).all()
@@ -114,7 +115,7 @@ async def list_comments(
         response.append(
             CommentResponse(
                 id=comment.id,
-                bet_id=comment.bet_id,
+                bet_id=comment.market_id,
                 user_id=comment.user_id,
                 author_username=author_username,
                 parent_id=comment.parent_id,
@@ -148,12 +149,13 @@ async def upvote_comment(db: AsyncSession, voter_id: uuid.UUID, comment_id: uuid
             )
         )
         await db.commit()
+        await emit_balance_changed(db, comment.user_id)
     except IntegrityError:
         await db.rollback()  # already upvoted — treat as no-op
 
 
 async def unlike_comment(db: AsyncSession, voter_id: uuid.UUID, comment_id: uuid.UUID) -> None:
-    """Remove upvote from comment; decrement LP for author by 1."""
+    """Remove upvote from comment; decrement unconverted LP for author by 1."""
     comment = (await db.execute(select(Comment).where(Comment.id == comment_id))).scalar_one_or_none()
     if comment is None:
         raise HTTPException(status_code=404, detail="Comment not found")
@@ -167,14 +169,21 @@ async def unlike_comment(db: AsyncSession, voter_id: uuid.UUID, comment_id: uuid
     )
     if delete_result.rowcount == 0:
         return  # not upvoted — no-op
-    today = datetime.now(timezone.utc).date()
-    db.add(
-        LpEvent(
-            user_id=comment.user_id,
-            amount=-1,
-            source_type="comment_upvote",
-            source_id=comment_id,
-            day_date=today,
+    lp_total = (
+        await db.execute(select(func.sum(LpEvent.amount)).where(LpEvent.user_id == comment.user_id))
+    ).scalar_one()
+    lp_changed = int(lp_total or 0) > 0
+    if lp_changed:
+        today = datetime.now(timezone.utc).date()
+        db.add(
+            LpEvent(
+                user_id=comment.user_id,
+                amount=-1,
+                source_type="comment_upvote",
+                source_id=comment_id,
+                day_date=today,
+            )
         )
-    )
     await db.commit()
+    if lp_changed:
+        await emit_balance_changed(db, comment.user_id)

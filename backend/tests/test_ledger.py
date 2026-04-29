@@ -1,8 +1,13 @@
 """Tests for GET /api/users/{username}/transactions ledger endpoint."""
 import re
+from datetime import date
 
 import pytest
 from httpx import AsyncClient
+from sqlalchemy import select
+
+from app.db.models.transaction import BpTransaction, LpEvent
+from app.db.models.user import User
 
 
 async def _register_and_login(client: AsyncClient, username: str = "ledgeruser") -> dict:
@@ -93,9 +98,51 @@ async def test_daily_bonus_transactions_include_login_date_description(client: A
     ]
     assert daily_bonus_rows, "Expected at least one daily bonus row in the ledger"
     assert all(
-        isinstance(tx["description"], str) and re.fullmatch(r"\d{4}-\d{2}-\d{2}", tx["description"])
+        isinstance(tx["description"], str)
+        and re.fullmatch(r"\d{4}-\d{2}-\d{2}", tx["description"])
         for tx in daily_bonus_rows
     )
+
+
+@pytest.mark.asyncio
+async def test_lp_conversion_transaction_description_uses_converted_lp(
+    client: AsyncClient,
+    db_session,
+):
+    reg = await client.post("/api/auth/register", json={
+        "email": "lpdesc@example.com",
+        "username": "lpdesc",
+        "password": "TestPass123!",
+    })
+    assert reg.status_code == 201
+
+    user = (
+        await db_session.execute(select(User).where(User.username == "lpdesc"))
+    ).scalar_one()
+    db_session.add(LpEvent(
+        user_id=user.id,
+        amount=21,
+        source_type="comment_upvote",
+        source_id=user.id,
+        day_date=date.today(),
+    ))
+    await db_session.commit()
+
+    login = await client.post("/api/auth/login", json={
+        "email": "lpdesc@example.com",
+        "password": "TestPass123!",
+    })
+    assert login.status_code == 200
+
+    resp = await client.get("/api/users/lpdesc/transactions")
+    assert resp.status_code == 200
+
+    lp_rows = [
+        tx for tx in resp.json()["transactions"]
+        if tx["type"] == "lp_allocation" and tx["bp_delta"] > 0
+    ]
+    assert lp_rows, "Expected an LP conversion row in the ledger"
+    assert lp_rows[0]["description"] == "21 ❤️"
 
 
 @pytest.mark.asyncio
@@ -172,3 +219,24 @@ async def test_withdrawal_refund_transaction_uses_bet_refund_type(client: AsyncC
         if tx["type"] == "bet_refund"
     ]
     assert refund_rows, "Expected a bet refund row in the ledger"
+
+
+@pytest.mark.asyncio
+async def test_dispute_vote_transaction_uses_dispute_type(client: AsyncClient, db_session):
+    await _register_and_login(client, "ledgerdispute")
+
+    user = (
+        await db_session.execute(select(User).where(User.username == "ledgerdispute"))
+    ).scalar_one()
+    db_session.add(BpTransaction(user_id=user.id, amount=-1.0, reason="dispute_vote"))
+    await db_session.commit()
+
+    resp = await client.get("/api/users/ledgerdispute/transactions")
+    assert resp.status_code == 200
+
+    dispute_rows = [
+        tx for tx in resp.json()["transactions"]
+        if tx["bp_delta"] == -1.0
+    ]
+    assert dispute_rows, "Expected a dispute cost row in the ledger"
+    assert dispute_rows[0]["type"] == "dispute"

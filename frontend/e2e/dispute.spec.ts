@@ -16,12 +16,12 @@ test("dispute flow escalates a proposer resolution into community vote", async (
   await login(page, scenario.users.bettor.email, scenario.users.bettor.password);
   await page.goto(`/markets/${scenario.market.id}`);
 
-  const resolutionSection = page.getByRole("heading", { name: "Resolution" }).locator("..");
-  await expect(page.getByRole("heading", { name: scenario.market.title })).toBeVisible();
+  const resolutionSection = page.getByText("Resolution", { exact: true }).locator("..");
+  await expect(page.getByText(scenario.market.title, { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Dispute Resolution (1 BP)" }).click();
   await page.getByRole("button", { name: "Yes" }).click();
 
-  await expect(page.getByRole("heading", { name: "Community Vote" })).toBeVisible();
+  await expect(page.getByText("Community Vote", { exact: true })).toBeVisible();
   await expect(resolutionSection).toContainText("Status:");
   await expect(resolutionSection).toContainText("disputed");
 });

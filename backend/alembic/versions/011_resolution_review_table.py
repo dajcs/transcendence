@@ -18,15 +18,15 @@ def upgrade() -> None:
     op.create_table(
         "resolution_reviews",
         sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True),
-        sa.Column("bet_id", postgresql.UUID(as_uuid=True), sa.ForeignKey("bets.id"), nullable=False),
+        sa.Column("market_id", postgresql.UUID(as_uuid=True), sa.ForeignKey("markets.id"), nullable=False),
         sa.Column("user_id", postgresql.UUID(as_uuid=True), sa.ForeignKey("users.id"), nullable=False),
         sa.Column("vote", sa.Text, nullable=False),
         sa.Column("voted_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
-        sa.UniqueConstraint("bet_id", "user_id", name="uq_resolution_reviews_bet_user"),
+        sa.UniqueConstraint("market_id", "user_id", name="uq_resolution_reviews_market_user"),
     )
-    op.create_index("ix_resolution_reviews_bet_id", "resolution_reviews", ["bet_id"])
+    op.create_index("ix_resolution_reviews_market_id", "resolution_reviews", ["market_id"])
 
 
 def downgrade() -> None:
-    op.drop_index("ix_resolution_reviews_bet_id", table_name="resolution_reviews")
+    op.drop_index("ix_resolution_reviews_market_id", table_name="resolution_reviews")
     op.drop_table("resolution_reviews")

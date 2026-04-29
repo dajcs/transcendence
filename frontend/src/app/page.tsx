@@ -25,11 +25,6 @@ export default function HomePage() {
           {t("home.log_in")}
         </Link>
       </div>
-      <div className="flex gap-3 text-xs text-gray-400 dark:text-gray-500">
-        <Link href="/privacy" className="hover:underline">{t("home.privacy")}</Link>
-        <span>·</span>
-        <Link href="/terms" className="hover:underline">{t("home.terms")}</Link>
-      </div>
     </div>
   );
 }

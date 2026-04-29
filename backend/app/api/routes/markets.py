@@ -6,7 +6,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_db
-from app.db.models.bet import Bet, BetPosition
+from app.db.models.market import Market, MarketPosition
 from app.db.models.transaction import BpTransaction, TpTransaction
 from app.db.models.user import User
 from app.schemas.market import (
@@ -60,6 +60,7 @@ async def list_markets(
     status: str = Query(default="all", pattern="^(all|open|closed|disputed|resolved)$"),
     my_bets: bool = Query(default=False),
     my_markets: bool = Query(default=False),
+    liked: bool = Query(default=False),
     proposer_id: uuid.UUID | None = Query(default=None),
     q: str = Query(default=""),
     include_desc: bool = Query(default=False),
@@ -69,7 +70,7 @@ async def list_markets(
 ):
     current_user = await _get_current_user_optional(request, db)
     user_id = current_user.id if current_user else None
-    if my_bets or my_markets:
+    if my_bets or my_markets or liked:
         if user_id is None:
             raise HTTPException(status_code=401, detail="Login required for this filter")
 
@@ -80,6 +81,7 @@ async def list_markets(
         status=status,
         my_bets=my_bets,
         my_markets=my_markets,
+        liked=liked,
         user_id=user_id,
         proposer_id=proposer_id,
         q=q,
@@ -125,39 +127,39 @@ async def get_market_positions(
     db: AsyncSession = Depends(get_db),
 ):
     """Get participant list and aggregate stats for a market. Public."""
-    market = (await db.execute(select(Bet).where(Bet.id == market_id))).scalar_one_or_none()
+    market = (await db.execute(select(Market).where(Market.id == market_id))).scalar_one_or_none()
     if market is None:
         raise HTTPException(status_code=404, detail="Market not found")
 
     # Active positions only (withdrawn_at IS NULL)
     base_q = (
-        select(BetPosition, User.username)
-        .join(User, User.id == BetPosition.user_id)
-        .where(BetPosition.bet_id == market_id, BetPosition.withdrawn_at.is_(None))
+        select(MarketPosition, User.username)
+        .join(User, User.id == MarketPosition.user_id)
+        .where(MarketPosition.market_id == market_id, MarketPosition.withdrawn_at.is_(None))
     )
 
     total_row = (await db.execute(
-        select(func.count(BetPosition.id))
-        .where(BetPosition.bet_id == market_id, BetPosition.withdrawn_at.is_(None))
+        select(func.count(MarketPosition.id))
+        .where(MarketPosition.market_id == market_id, MarketPosition.withdrawn_at.is_(None))
     )).scalar_one()
 
     agg = (await db.execute(
         select(
-            func.coalesce(func.sum(BetPosition.bp_staked), 0).label("total_bp"),
-            func.count(BetPosition.id).label("total_participants"),
-            func.coalesce(func.avg(BetPosition.bp_staked), 0).label("avg_bp"),
-        ).where(BetPosition.bet_id == market_id, BetPosition.withdrawn_at.is_(None))
+            func.coalesce(func.sum(MarketPosition.bp_staked), 0).label("total_bp"),
+            func.count(MarketPosition.id).label("total_participants"),
+            func.coalesce(func.avg(MarketPosition.bp_staked), 0).label("avg_bp"),
+        ).where(MarketPosition.market_id == market_id, MarketPosition.withdrawn_at.is_(None))
     )).one()
 
     side_counts_rows = (await db.execute(
-        select(BetPosition.side, func.count(BetPosition.id))
-        .where(BetPosition.bet_id == market_id, BetPosition.withdrawn_at.is_(None))
-        .group_by(BetPosition.side)
+        select(MarketPosition.side, func.count(MarketPosition.id))
+        .where(MarketPosition.market_id == market_id, MarketPosition.withdrawn_at.is_(None))
+        .group_by(MarketPosition.side)
     )).all()
     by_side = {side: int(cnt) for side, cnt in side_counts_rows}
 
     page_rows = (await db.execute(
-        base_q.order_by(BetPosition.placed_at.desc()).offset(offset).limit(limit)
+        base_q.order_by(MarketPosition.placed_at.desc()).offset(offset).limit(limit)
     )).all()
 
     participants = [
@@ -191,7 +193,7 @@ async def get_market_payouts(
     db: AsyncSession = Depends(get_db),
 ):
     """Get payout breakdown for a market. Public. Returns empty list for open markets."""
-    market = (await db.execute(select(Bet).where(Bet.id == market_id))).scalar_one_or_none()
+    market = (await db.execute(select(Market).where(Market.id == market_id))).scalar_one_or_none()
     if market is None:
         raise HTTPException(status_code=404, detail="Market not found")
 

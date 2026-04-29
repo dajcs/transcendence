@@ -68,7 +68,7 @@ export default function UserSearch() {
         onChange={(e) => setQuery(e.target.value)}
         onFocus={() => results.length > 0 && setIsOpen(true)}
         placeholder={t("nav.search_users")}
-        className="rounded border border-gray-300 dark:border-gray-600 px-3 py-1.5 text-sm w-48 focus:border-blue-400 focus:outline-none bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+        className="rounded-lg border border-gray-200 dark:border-[oklch(26%_0.015_250)] px-3 py-1.5 text-[13px] w-full focus:border-[var(--accent)] focus:outline-none bg-gray-50 dark:bg-[oklch(18%_0.015_250)] text-gray-900 dark:text-gray-100 placeholder:text-gray-400"
       />
       {isOpen && results.length > 0 && (
         <div className="absolute top-full left-0 z-50 mt-1 w-64 rounded border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-lg">

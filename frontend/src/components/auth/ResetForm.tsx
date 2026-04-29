@@ -1,7 +1,6 @@
 "use client";
 
 import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useState } from "react";
 import { api } from "@/lib/api";
@@ -16,10 +15,19 @@ export default function ResetForm() {
   const {
     register,
     handleSubmit,
+    clearErrors,
+    setError,
     formState: { errors, isSubmitting },
-  } = useForm<FormData>({ resolver: zodResolver(schema) });
+  } = useForm<FormData>();
 
   const onSubmit = async (data: FormData) => {
+    clearErrors();
+    const validation = schema.safeParse(data);
+    if (!validation.success) {
+      setError("email", { message: validation.error.issues[0]?.message ?? "Invalid email" });
+      return;
+    }
+
     await api.post("/api/auth/reset-request", data).catch(() => {});
     setSubmitted(true);
   };
@@ -33,11 +41,14 @@ export default function ResetForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4 w-full max-w-sm">
+    <form noValidate onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4 w-full max-w-sm">
       <div>
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">{t("auth.email")}</label>
+        <label htmlFor="reset-email" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+          {t("auth.email")}
+        </label>
         <input
           {...register("email")}
+          id="reset-email"
           type="email"
           className="mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded px-3 py-2 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
         />

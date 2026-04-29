@@ -8,6 +8,11 @@ RUN npm ci
 
 COPY . .
 
+ARG NEXT_PUBLIC_API_URL=https://localhost:8443
+ARG NEXT_PUBLIC_SOCKET_URL=https://localhost:8443
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_SOCKET_URL=$NEXT_PUBLIC_SOCKET_URL
+
 # Build the Next.js app
 RUN npm run build
 

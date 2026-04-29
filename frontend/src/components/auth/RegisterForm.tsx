@@ -93,20 +93,26 @@ export default function RegisterForm() {
   };
 
   return (
-    <form method="post" onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4 w-full max-w-sm">
+    <form method="post" noValidate onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4 w-full max-w-sm">
       <div>
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">{t("auth.email")}</label>
+        <label htmlFor="register-email" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+          {t("auth.email")}
+        </label>
         <input
           {...register("email")}
+          id="register-email"
           type="email"
           className="mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded px-3 py-2 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
         />
         {errors.email && <p className="text-red-500 text-xs mt-1">{translateValidation(errors.email.message, t)}</p>}
       </div>
       <div>
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">{t("auth.username")}</label>
+        <label htmlFor="register-username" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+          {t("auth.username")}
+        </label>
         <input
           {...register("username")}
+          id="register-username"
           type="text"
           className="mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded px-3 py-2 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
         />
@@ -115,9 +121,12 @@ export default function RegisterForm() {
         )}
       </div>
       <div>
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">{t("auth.password")}</label>
+        <label htmlFor="register-password" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+          {t("auth.password")}
+        </label>
         <input
           {...register("password")}
+          id="register-password"
           type="password"
           className="mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded px-3 py-2 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
         />

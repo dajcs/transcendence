@@ -45,7 +45,7 @@ const TYPE_LABEL_KEYS: Record<string, string> = {
   lp_converted: "notif.lp_converted",
 };
 
-export default function NotificationBell() {
+export default function NotificationBell({ dropdownAlign = "right" }: { dropdownAlign?: "left" | "right" }) {
   const t = useT();
   const {
     notifications,
@@ -234,7 +234,7 @@ export default function NotificationBell() {
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 top-full mt-2 w-80 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-xl z-50">
+        <div className={`absolute top-full mt-2 w-80 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-xl z-[200] ${dropdownAlign === "left" ? "left-0" : "right-0"}`}>
           {/* Header */}
           <div className="flex items-center justify-between border-b border-gray-100 dark:border-gray-700 px-4 py-3">
             <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">{t("notif.title")}</h3>

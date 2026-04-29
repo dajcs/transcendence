@@ -1,4 +1,4 @@
-"""Bet routes."""
+"""Market routes."""
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request

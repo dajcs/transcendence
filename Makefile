@@ -1,12 +1,22 @@
-.PHONY: dev test migrate seed logs build down gen-keys e2e e2e-list \
-	phase7-frontend-install phase7-e2e-install phase7-proof-backend \
-	phase7-proof-frontend phase7-proof-e2e-list phase7-proof phase7-heavy
+.PHONY: dev main main-down test migrate seed logs build down gen-keys gen-keys-main \
+	e2e e2e-list \
+	phase7-backend-sync phase7-frontend-install phase7-e2e-install phase7-proof-backend \
+	phase7-proof-frontend phase7-proof-e2e-list phase7-proof phase7-heavy \
+	restart reload
 
 UV_CACHE_DIR := $(CURDIR)/.cache/uv
 
 # Start all services with hot-reload (docker-compose.override.yml picked up automatically)
 dev:
 	docker compose up --build
+
+# Start all services in PRODUCTION mode (https://voxpo.me, no hot-reload)
+main:
+	docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+
+# Stop production services
+main-down:
+	docker compose -f docker-compose.yml -f docker-compose.prod.yml down
 
 # Run backend tests inside the container
 test:
@@ -20,6 +30,18 @@ e2e:
 e2e-list:
 	cd frontend && npm run test:e2e:list
 
+# phase7-frontend-install
+#         │
+#         ├──> phase7-e2e-install
+#         │
+#         ├──> phase7-proof-frontend
+#         │
+#         ├──> phase7-proof-e2e-list
+#         │
+#         └──> phase7-proof ──> phase7-proof-backend
+#                           ──> phase7-proof-frontend
+#                           ──> phase7-proof-e2e-list
+
 # Install frontend dependencies for the Phase 7 proof path
 phase7-frontend-install:
 	cd frontend && npm ci
@@ -28,19 +50,22 @@ phase7-frontend-install:
 phase7-e2e-install: phase7-frontend-install
 	cd frontend && npm run test:e2e:install || PLAYWRIGHT_BROWSERS_PATH=.playwright npx playwright install chromium
 
-# Backend coverage proof using a repo-local uv cache instead of stale local state
-phase7-proof-backend:
+# Sync backend dev dependencies for the Phase 7 proof path using a repo-local uv cache
+phase7-backend-sync:
 	mkdir -p $(UV_CACHE_DIR)
 	cd backend && UV_CACHE_DIR="$(UV_CACHE_DIR)" uv sync --group dev
-	cd backend && UV_CACHE_DIR="$(UV_CACHE_DIR)" uv run pytest --cov=app --cov-report=term-missing tests/ -q
+
+# Backend coverage proof using a repo-local uv cache instead of stale local state
+phase7-proof-backend: phase7-backend-sync
+	cd backend && UV_CACHE_DIR="$(UV_CACHE_DIR)" uv run pytest --cov=app --cov-report=term-missing --cov-fail-under=62 tests/ -q
 
 # Frontend typecheck + Jest coverage proof using a clean npm install
 phase7-proof-frontend: phase7-frontend-install
 	cd frontend && npm run type-check
 	cd frontend && npm run test:coverage -- --runInBand
 
-# Prove the Playwright command surface is installed and runnable
-phase7-proof-e2e-list: phase7-frontend-install
+# Prepare Playwright, then prove the command surface is installed and runnable
+phase7-proof-e2e-list: phase7-e2e-install
 	cd frontend && npm run test:e2e:list
 
 # Aggregate light proof path used locally and by CI
@@ -108,7 +133,7 @@ reload:
 	docker compose up --build
 
 
-# Generate SSL cert + RSA key pair for JWT (run once)
+# Generate self-signed SSL cert + RSA key pair for JWT (dev mode)
 gen-keys:
 	mkdir -p nginx/ssl
 	openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
@@ -119,3 +144,9 @@ gen-keys:
 	openssl genrsa -out backend/keys/jwt_private.pem 2048
 	openssl rsa -in backend/keys/jwt_private.pem -pubout -out backend/keys/jwt_public.pem
 	@echo "Keys generated. Update JWT_PRIVATE_KEY_PATH and JWT_PUBLIC_KEY_PATH in .env"
+
+# Create nginx/ssl-prod/ directory for production SSL certs (main mode)
+gen-keys-main:
+	mkdir -p nginx/ssl-prod
+	@echo "Place real SSL certs in nginx/ssl-prod/cert.pem and nginx/ssl-prod/key.pem"
+	@echo "(e.g. from Let's Encrypt: fullchain.pem -> cert.pem, privkey.pem -> key.pem)"

@@ -7,6 +7,7 @@ from sqlalchemy import select
 
 from app.db.models.transaction import BpFundEntry, TpTransaction
 from app.db.models.user import User
+from app.utils.crypto import decrypt_secret
 
 
 async def _register_and_login(client: AsyncClient, email: str, username: str) -> dict:
@@ -54,7 +55,7 @@ async def test_get_profile_success(client: AsyncClient):
     assert data["total_bets"] == 0
     assert data["win_rate"] == 0.0
     assert data["lp"] == 0
-    assert "bio" in data
+    assert "mission" in data
     assert "created_at" in data
 
 
@@ -73,14 +74,14 @@ async def test_get_profile_unauthenticated_no_friendship(client: AsyncClient):
 # ── PROFILE-02: PUT /api/users/me ─────────────────────────────────────────────
 
 @pytest.mark.asyncio
-async def test_update_bio(client: AsyncClient):
-    """PROFILE-02: authenticated user can update their bio and it persists."""
+async def test_update_mission(client: AsyncClient):
+    """PROFILE-02: authenticated user can update their mission and it persists."""
     await _register_and_login(client, "carol@example.com", "carol")
-    resp = await client.put("/api/users/me", json={"bio": "Hello world"})
+    resp = await client.put("/api/users/me", json={"mission": "Hello world"})
     assert resp.status_code == 200
 
     profile = await client.get("/api/users/carol")
-    assert profile.json()["bio"] == "Hello world"
+    assert profile.json()["mission"] == "Hello world"
 
 
 @pytest.mark.asyncio
@@ -106,7 +107,7 @@ async def test_update_username_conflict(client: AsyncClient):
 @pytest.mark.asyncio
 async def test_update_profile_unauthenticated(client: AsyncClient):
     """PROFILE-02: unauthenticated update returns 401."""
-    resp = await client.put("/api/users/me", json={"bio": "sneaky"})
+    resp = await client.put("/api/users/me", json={"mission": "sneaky"})
     assert resp.status_code == 401
 
 
@@ -143,6 +144,23 @@ async def test_patch_my_settings_round_trip_and_hides_api_key(client: AsyncClien
 
 
 @pytest.mark.asyncio
+async def test_patch_my_settings_encrypts_api_key_at_rest(client: AsyncClient, db_session):
+    await _register_and_login(client, "encrypted-settings@example.com", "encryptedsettings")
+
+    patch_resp = await client.patch(
+        "/api/users/me",
+        json={"llm_mode": "custom", "llm_provider": "openrouter", "llm_api_key": "secret-key"},
+    )
+    assert patch_resp.status_code == 200
+
+    user = (
+        await db_session.execute(select(User).where(User.username == "encryptedsettings"))
+    ).scalar_one()
+    assert user.llm_api_key != "secret-key"
+    assert decrypt_secret(user.llm_api_key) == "secret-key"
+
+
+@pytest.mark.asyncio
 async def test_patch_my_settings_empty_api_key_clears_saved_secret(client: AsyncClient):
     await _register_and_login(client, "clear-settings@example.com", "clearsettings")
     await client.patch(
@@ -167,11 +185,12 @@ async def test_update_username_invalid_chars(client: AsyncClient):
 
 
 @pytest.mark.asyncio
-async def test_update_bio_too_long(client: AsyncClient):
-    """PROFILE-02: bio over 500 chars returns 422."""
+async def test_update_mission_too_long(client: AsyncClient):
+    """PROFILE-02: mission over 500 chars returns 422."""
     await _register_and_login(client, "heidi@example.com", "heidi")
-    resp = await client.put("/api/users/me", json={"bio": "x" * 501})
+    resp = await client.put("/api/users/me", json={"mission": "x" * 501})
     assert resp.status_code == 422
+    assert resp.json()["detail"][0]["msg"] == "Value error, Mission must be under 500 characters"
 
 
 # ── PROFILE-03: GET /api/users/search ─────────────────────────────────────────

@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { api } from "@/lib/api";
 import { getMarketPath } from "@/lib/markets";
@@ -12,36 +13,222 @@ import { useMarketStore } from "@/store/market";
 import { useSocketStore } from "@/store/socket";
 import { useT } from "@/i18n";
 
-function formatDeadline(deadline: string): string {
-  return new Date(deadline).toLocaleString();
+// --- Avatar: deterministic color from username ---
+const AVATAR_HUES = [40, 145, 160, 205, 264, 270, 310, 25, 320, 180];
+
+function avatarColor(username: string): string {
+  let hash = 0;
+  for (const c of username) hash = (hash * 31 + c.charCodeAt(0)) >>> 0;
+  return `oklch(56% 0.2 ${AVATAR_HUES[hash % AVATAR_HUES.length]})`;
 }
 
-function marketCardBg(status: string, isOwnMarket = false): string {
-  if (status === "pending_resolution")
-    return isOwnMarket ? "border-red-300 dark:border-red-700 bg-red-50 dark:bg-red-900/20" : "border-yellow-300 dark:border-yellow-700 bg-yellow-50 dark:bg-yellow-900/20";
-  if (status === "proposer_resolved") return "border-blue-300 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/20";
-  if (status === "disputed") return "border-violet-300 dark:border-violet-700 bg-violet-50 dark:bg-violet-900/20";
-  if (status === "closed") return "border-green-300 dark:border-green-700 bg-green-50 dark:bg-green-900/20";
-  return "border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800";
+function Avatar({ username }: { username: string }) {
+  return (
+    <div
+      style={{ background: avatarColor(username) }}
+      className="w-[26px] h-[26px] rounded-full shrink-0 flex items-center justify-center text-white font-bold text-[12px]"
+    >
+      {(username[0] ?? "?").toUpperCase()}
+    </div>
+  );
 }
 
-function marketStatusBadge(status: string, isOwnMarket = false, t?: (key: any) => string): { text: string; cls: string } | null {
-  const tr = t ?? ((k: string) => k);
-  if (status === "pending_resolution")
-    return isOwnMarket
-      ? { text: tr("market.status_make_resolution"), cls: "bg-red-200 dark:bg-red-900/30 text-red-800 dark:text-red-300" }
-      : { text: tr("market.status_pending"), cls: "bg-yellow-200 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300" };
-  if (status === "proposer_resolved") return { text: tr("market.status_proposed"), cls: "bg-blue-200 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300" };
-  if (status === "disputed") return { text: tr("market.status_disputed"), cls: "bg-violet-200 dark:bg-violet-900/30 text-violet-800 dark:text-violet-300" };
-  if (status === "closed") return { text: tr("market.status_closed"), cls: "bg-green-200 dark:bg-green-900/30 text-green-800 dark:text-green-300" };
-  return null;
+function AvatarWithTooltip({
+  username,
+  mission,
+  createdAt,
+  profileHref,
+}: {
+  username: string;
+  mission: string | null;
+  createdAt: string | null;
+  profileHref: string;
+}) {
+  const joined = createdAt
+    ? new Date(createdAt).toLocaleDateString(undefined, { year: "numeric", month: "short" })
+    : null;
+  return (
+    <div className="relative group/avatar shrink-0">
+      <Link
+        href={profileHref}
+        onClick={(e) => e.stopPropagation()}
+        className="block"
+        tabIndex={0}
+      >
+        <Avatar username={username} />
+      </Link>
+      <div className="pointer-events-none absolute left-0 top-full mt-1.5 z-50 w-44 rounded-lg shadow-lg border border-gray-100 dark:border-[oklch(26%_0.015_250)] bg-white dark:bg-[oklch(18%_0.015_250)] p-2.5 opacity-0 group-hover/avatar:opacity-100 transition-opacity duration-150">
+        <p className="text-[12px] font-semibold text-gray-900 dark:text-gray-100 truncate">@{username}</p>
+        {mission && (
+          <p className="text-[11px] text-gray-700 dark:text-gray-300 mt-0.5 line-clamp-2">{mission}</p>
+        )}
+        {joined && (
+          <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-1">Joined {joined}</p>
+        )}
+      </div>
+    </div>
+  );
 }
 
-function MarketCard({ market }: { market: Market }) {
+// --- TimeClock: SSR-safe SVG pie for time remaining ---
+function TimeClock({ createdAt, deadline }: { createdAt: string; deadline: string }) {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
+  const end = new Date(deadline).getTime();
+
+  if (!mounted) {
+    return (
+      <div className="flex flex-col items-center gap-0.5 w-11 shrink-0">
+        <div className="w-5 h-5 rounded-full bg-gray-100 dark:bg-gray-700" />
+        <span className="text-[10px] text-gray-400 dark:text-gray-500">…</span>
+      </div>
+    );
+  }
+
+  const now = Date.now();
+  const start = new Date(createdAt).getTime();
+  const total = end - start;
+  const frac = total > 0 ? Math.max(0, Math.min(1, (now - start) / total)) : 1;
+  const remaining = 1 - frac;
+
+  const r = 9, cx = 10, cy = 10;
+  const angle = remaining * 2 * Math.PI - Math.PI / 2;
+  const x = cx + r * Math.cos(angle);
+  const y = cy + r * Math.sin(angle);
+  const large = remaining > 0.5 ? 1 : 0;
+
+  const daysLeft = Math.max(0, Math.round((end - now) / 86400000));
+  const label =
+    daysLeft > 365 ? `${Math.round(daysLeft / 365)}y`
+    : daysLeft > 30 ? `${Math.round(daysLeft / 30)}mo`
+    : `${daysLeft}d`;
+
+  const sliceColor =
+    remaining > 0.6 ? "oklch(52% 0.18 145)"
+    : remaining > 0.3 ? "oklch(58% 0.2 60)"
+    : "oklch(55% 0.2 25)";
+
+  return (
+    <div className="flex flex-col items-center gap-0.5 w-11 shrink-0">
+      <svg width="20" height="20" viewBox="0 0 20 20">
+        <circle cx={cx} cy={cy} r={r} className="fill-[oklch(88%_0.005_250)] dark:fill-[oklch(30%_0.01_250)]" />
+        {remaining > 0 && remaining < 1 ? (
+          <path
+            d={`M${cx},${cy} L${cx},${cy - r} A${r},${r} 0 ${large},1 ${x.toFixed(3)},${y.toFixed(3)} Z`}
+            fill={sliceColor}
+          />
+        ) : remaining >= 1 ? (
+          <circle cx={cx} cy={cy} r={r} fill={sliceColor} />
+        ) : null}
+        <circle cx={cx} cy={cy} r={r - 3} className="fill-white dark:fill-[oklch(18%_0.015_250)]" />
+      </svg>
+      <span className="text-[10px] text-gray-400 dark:text-gray-500 tabular-nums whitespace-nowrap">
+        {label}
+      </span>
+    </div>
+  );
+}
+
+// --- Multi-choice color palette ---
+const MULTI_COLORS = [
+  "oklch(56% 0.2 264)",
+  "oklch(56% 0.2 145)",
+  "oklch(56% 0.2 25)",
+  "oklch(56% 0.2 310)",
+  "oklch(56% 0.2 50)",
+  "oklch(56% 0.2 205)",
+];
+
+// --- Market outcome graphic ---
+function MarketGraphic({ market }: { market: Market }) {
+  if (market.market_type === "binary") {
+    return (
+      <div className="flex flex-col items-end gap-1 w-[84px] shrink-0">
+        <div className="flex w-full h-2 rounded overflow-hidden bg-[oklch(90%_0.005_250)] dark:bg-[oklch(30%_0.01_250)]">
+          <div
+            style={{ width: `${market.yes_pct}%`, background: "oklch(52% 0.18 145)" }}
+            className="transition-[width] duration-300"
+          />
+          <div style={{ width: `${market.no_pct}%`, background: "oklch(55% 0.2 25)" }} />
+        </div>
+        <span className="text-[11px] font-bold" style={{ color: "oklch(52% 0.18 145)" }}>
+          {market.yes_pct}%
+        </span>
+      </div>
+    );
+  }
+
+  if (market.market_type === "multiple_choice") {
+    const choices = market.choices ?? [];
+    const counts = market.choice_counts ?? {};
+    const total = Object.values(counts).reduce((a, b) => a + b, 0) || 1;
+    const pcts = choices.map((c) => Math.round(((counts[c] ?? 0) / total) * 100));
+    return (
+      <div className="flex flex-col items-end gap-1 w-[84px] shrink-0">
+        <div className="flex w-full h-2 rounded overflow-hidden gap-px bg-[oklch(90%_0.005_250)] dark:bg-[oklch(30%_0.01_250)]">
+          {pcts.map((pct, i) => (
+            <div
+              key={i}
+              style={{ width: `${pct}%`, background: MULTI_COLORS[i % MULTI_COLORS.length] }}
+              className="shrink-0"
+            />
+          ))}
+        </div>
+        <span className="text-[11px] font-semibold" style={{ color: "oklch(60% 0.12 264)" }}>
+          {choices.length} {choices.length === 1 ? "option" : "options"}
+        </span>
+      </div>
+    );
+  }
+
+  // numeric
+  return (
+    <div className="w-[84px] shrink-0 text-right">
+      <span className="text-[13px] font-extrabold tracking-tight text-[var(--accent)]">
+        {market.numeric_min}–{market.numeric_max}
+      </span>
+    </div>
+  );
+}
+
+// --- Status badge ---
+const STATUS_CLASSES: Record<string, string> = {
+  open: "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400",
+  pending: "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400",
+  pending_resolution: "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400",
+  proposer_resolved: "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400",
+  disputed: "bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-400",
+  closed: "bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400",
+};
+
+function StatusBadge({ status, isOwn }: { status: string; isOwn: boolean }) {
   const t = useT();
+  let text: string;
+  if (status === "open") text = t("market.status_open");
+  else if (status === "pending_resolution") text = isOwn ? t("market.status_make_resolution") : t("market.status_pending");
+  else if (status === "proposer_resolved") text = t("market.status_proposed");
+  else if (status === "disputed") text = t("market.status_disputed");
+  else if (status === "closed") text = t("market.status_closed");
+  else return null;
+
+  const cls = STATUS_CLASSES[status] ?? STATUS_CLASSES.closed;
+
+  return (
+    <span className={`text-[10px] font-semibold px-1.5 py-px rounded-full ${cls}`}>
+      {text}
+    </span>
+  );
+}
+
+// --- Individual market row ---
+function MarketRow({ market, isLast }: { market: Market; isLast: boolean }) {
+  const t = useT();
+  const router = useRouter();
   const queryClient = useQueryClient();
   const bootstrap = useAuthStore((s) => s.bootstrap);
   const currentUser = useAuthStore((s) => s.user);
+
   const upvote = useMutation({
     mutationFn: () => api.post(`/api/markets/${market.id}/upvote`),
     onSuccess: async () => {
@@ -57,92 +244,117 @@ function MarketCard({ market }: { market: Market }) {
     },
   });
 
-  const isOwnMarket = currentUser?.id === market.proposer_id;
-  const badge = marketStatusBadge(market.status, isOwnMarket, t);
+  const isOwn = currentUser?.id === market.proposer_id;
+
+  const profileHref = `/profile/${encodeURIComponent(market.proposer_username || "")}`;
 
   return (
-    <Link
-      href={getMarketPath(market)}
-      className={`block rounded border p-4 hover:border-gray-300 dark:hover:border-gray-600 ${marketCardBg(market.status, isOwnMarket)}`}
+    <div
+      onClick={() => router.push(getMarketPath(market))}
+      className={`grid gap-x-3 px-3 py-2.5 items-center cursor-pointer hover:bg-[oklch(97%_0.008_264)] dark:hover:bg-[oklch(20%_0.015_250)] transition-colors duration-100 ${
+        !isLast ? "border-b border-gray-100 dark:border-[oklch(22%_0.015_250)]" : ""
+      }`}
+      style={{ gridTemplateColumns: "1fr 110px 84px 44px" }}
     >
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
-            @{market.proposer_username || "unknown"}
-          </p>
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">{market.title}</h2>
-          <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">{market.description}</p>
-          <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">{t("markets.deadline")}: {formatDeadline(market.deadline)}</p>
-          {badge && (
-            <span className={`mt-2 inline-block rounded px-2 py-0.5 text-xs font-semibold ${badge.cls}`}>
-              {badge.text}
+      {/* Col 1: avatar + title + stat pills */}
+      <div className="flex gap-2.5 items-start min-w-0">
+        <AvatarWithTooltip
+          username={market.proposer_username || "?"}
+          mission={market.proposer_mission ?? null}
+          createdAt={market.proposer_created_at ?? null}
+          profileHref={profileHref}
+        />
+        <div className="flex-1 min-w-0">
+          <div className="text-[13px] font-medium text-gray-900 dark:text-gray-100 leading-[1.35] mb-1">
+            {market.title}
+          </div>
+          <div className="flex items-center gap-2.5 flex-wrap">
+            {/* participants */}
+            <span className="flex items-center gap-1 text-[11px] text-gray-400 dark:text-gray-500">
+              <svg width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden>
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                <circle cx="9" cy="7" r="4"/>
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
+              </svg>
+              {market.position_count}
             </span>
-          )}
-        </div>
-        <div className="shrink-0 flex flex-col items-end gap-1 text-right text-sm">
-          {market.market_type === "binary" && (
-            <>
-              <p className="font-semibold text-green-600 dark:text-green-400">YES {market.yes_pct}%</p>
-              <p className="font-semibold text-red-600 dark:text-red-400">NO {market.no_pct}%</p>
-            </>
-          )}
-          {market.market_type === "multiple_choice" && (
-            <p className="font-semibold text-blue-600 dark:text-blue-400">{(market.choices ?? []).length} {t("markets.choices")}</p>
-          )}
-          {market.market_type === "numeric" && (
-            <p className="font-semibold text-purple-600 dark:text-purple-400">
-              {market.numeric_min} – {market.numeric_max}
-            </p>
-          )}
-          <button
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              market.user_has_liked ? unlike.mutate() : upvote.mutate();
-            }}
-            disabled={upvote.isPending || unlike.isPending}
-            className="mt-1 inline-flex items-center gap-1 text-xs text-gray-600 hover:text-red-600 dark:text-gray-400 dark:hover:text-red-400 disabled:opacity-50"
-          >
-            <span className={`text-base leading-none ${market.user_has_liked ? "text-red-500" : "text-gray-400 dark:text-gray-500"}`}>
-              {market.user_has_liked ? "♥" : "♡"}
+            {/* comments */}
+            <span className="flex items-center gap-1 text-[11px] text-gray-400 dark:text-gray-500">
+              <svg width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden>
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+              </svg>
+              {market.comment_count}
             </span>
-            <span>{market.upvote_count}</span>
-          </button>
-          <p className="inline-flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
-            <span>💬</span>
-            <span>{market.comment_count}</span>
-          </p>
+            {/* likes */}
+            <button
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                market.user_has_liked ? unlike.mutate() : upvote.mutate();
+              }}
+              disabled={upvote.isPending || unlike.isPending}
+              className="flex items-center gap-1 text-[11px] disabled:opacity-50 transition-colors"
+              style={market.user_has_liked ? { color: "oklch(55% 0.2 25)" } : undefined}
+            >
+              <svg
+                width="11" height="11"
+                fill={market.user_has_liked ? "currentColor" : "none"}
+                stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"
+                className={market.user_has_liked ? "" : "text-gray-400 dark:text-gray-500"}
+                aria-hidden
+              >
+                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+              </svg>
+              <span className={market.user_has_liked ? "" : "text-gray-400 dark:text-gray-500"}>
+                {market.upvote_count}
+              </span>
+            </button>
+            {/* status badge */}
+            <StatusBadge status={market.status} isOwn={isOwn} />
+          </div>
         </div>
       </div>
-    </Link>
+
+      {/* Col 2: activity numbers */}
+      <div className="text-right flex flex-col items-end gap-0.5">
+        <span className="text-[12px] font-bold text-gray-900 dark:text-gray-100">
+          {market.position_count}{" "}
+          <span className="font-normal text-gray-400 dark:text-gray-500">
+            {t("markets.traders")}
+          </span>
+        </span>
+        <span className="text-[11px] text-gray-400 dark:text-gray-500">
+          {market.comment_count} {t("markets.comments")}
+        </span>
+      </div>
+
+      {/* Col 3: outcome graphic */}
+      <div className="flex justify-end">
+        <MarketGraphic market={market} />
+      </div>
+
+      {/* Col 4: time clock */}
+      <div className="flex justify-center">
+        <TimeClock createdAt={market.created_at} deadline={market.deadline} />
+      </div>
+    </div>
   );
 }
 
+// --- Page ---
 export default function MarketsPage() {
   const t = useT();
   const {
-    sort,
-    sortDir,
-    filter,
-    search,
-    includeDesc,
-    page,
-    setSort,
-    setFilter,
-    setSearch,
-    setIncludeDesc,
-    setPage,
+    sort, sortDir, filter, search, includeDesc,
+    setSort, setFilter, setSearch, setIncludeDesc,
   } = useMarketStore();
 
   const queryClient = useQueryClient();
   const socket = useSocketStore((s) => s.socket);
 
-  // Refresh listing when any market status changes (real-time)
   useEffect(() => {
     if (!socket) return;
-    const handler = () => {
-      queryClient.invalidateQueries({ queryKey: ["markets"] });
-    };
+    const handler = () => queryClient.invalidateQueries({ queryKey: ["markets"] });
     socket.on("bet:status_changed", handler);
     socket.on("bet:resolved", handler);
     return () => {
@@ -151,149 +363,196 @@ export default function MarketsPage() {
     };
   }, [socket, queryClient]);
 
-  const { data, isLoading, isError } = useQuery<MarketListResponse>({
-    queryKey: ["markets", sort, sortDir, filter, search, includeDesc, page],
-    queryFn: async () => {
+  const sentinelRef = useRef<HTMLDivElement>(null);
+
+  const {
+    data,
+    isLoading,
+    isError,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useInfiniteQuery<MarketListResponse>({
+    queryKey: ["markets", sort, sortDir, filter, search, includeDesc],
+    queryFn: async ({ pageParam }) => {
       const params = new URLSearchParams({
         sort,
         sort_dir: sortDir,
-        status: filter === "my_bets" ? "all" : filter,
+        status: filter === "my_bets" || filter === "liked" ? "all" : filter,
         my_bets: String(filter === "my_bets"),
+        liked: String(filter === "liked"),
         q: search,
         include_desc: String(includeDesc),
-        page: String(page),
+        page: String(pageParam),
         limit: "20",
       });
-      const response = await api.get<MarketListResponse>(`/api/markets?${params}`);
-      return response.data;
+      return (await api.get<MarketListResponse>(`/api/markets?${params}`)).data;
     },
+    initialPageParam: 1,
+    getNextPageParam: (last) => last.page < last.pages ? last.page + 1 : undefined,
   });
 
+  const allMarkets = data?.pages.flatMap((p) => p.items) ?? [];
+
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => { if (entry.isIntersecting && hasNextPage && !isFetchingNextPage) fetchNextPage(); },
+      { rootMargin: "200px" }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+
+  const sortOptions = [
+    { key: "active" as const, label: t("markets.sort_hot") },
+    { key: "newest" as const, label: t("markets.sort_new") },
+    { key: "deadline" as const, label: t("markets.sort_closing") },
+  ];
+
+  const filterOptions = [
+    { key: "all" as const, label: t("markets.filter_all") },
+    { key: "my_bets" as const, label: t("markets.filter_my_bets") },
+    { key: "open" as const, label: t("markets.filter_open") },
+    { key: "disputed" as const, label: t("markets.filter_disputed") },
+    { key: "resolved" as const, label: t("markets.filter_resolved") },
+    { key: "liked" as const, label: t("markets.filter_liked") },
+  ];
+
   return (
-    <div className="space-y-4">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">{t("markets.title")}</h1>
+    <div>
+      {/* Header: search + create */}
+      <div className="flex items-center gap-3 mb-3">
+        <div className="relative flex-1 max-w-[480px]">
+          <svg
+            className="absolute left-3 top-1/2 -translate-y-1/2 opacity-35 pointer-events-none text-gray-900 dark:text-gray-100"
+            width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"
+            aria-hidden
+          >
+            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+          </svg>
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder={t("markets.search_placeholder")}
+            className="w-full pl-8 pr-3 py-2 rounded-lg text-[13px] bg-[oklch(97%_0.005_250)] dark:bg-[oklch(20%_0.015_250)] border border-[oklch(91%_0.006_250)] dark:border-[oklch(24%_0.015_250)] text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-600 focus:outline-none focus:border-[var(--accent)] transition-colors"
+          />
+        </div>
         <Link
           href="/markets/new"
           title={t("markets.create_cost")}
-          className="rounded bg-blue-600 px-4 py-2 text-sm text-white hover:bg-blue-700"
+          className="shrink-0 px-3.5 py-2 rounded-lg text-[13px] font-semibold text-white bg-[var(--accent)] hover:opacity-90 transition-opacity"
         >
-          {t("markets.create")}
+          + {t("markets.create")}
         </Link>
       </div>
 
-      {/* Search */}
-      <div className="space-y-1.5">
+      {/* Include description toggle */}
+      <label className="flex items-center gap-1.5 text-[11px] text-gray-400 dark:text-gray-500 cursor-pointer mb-3 w-fit">
         <input
-          type="text"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder={t("markets.search_placeholder")}
-          className="w-full rounded border border-gray-300 dark:border-gray-600 px-3 py-2 text-sm focus:border-blue-500 dark:focus:border-blue-400 focus:outline-none bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+          type="checkbox"
+          checked={includeDesc}
+          onChange={(e) => setIncludeDesc(e.target.checked)}
+          className="rounded"
         />
-        <label className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={includeDesc}
-            onChange={(e) => setIncludeDesc(e.target.checked)}
-            className="rounded"
-          />
-          {t("markets.include_desc_search")}
-        </label>
-      </div>
+        {t("markets.include_desc_search")}
+      </label>
 
       {/* Sort + Filter row */}
-      <div className="flex flex-wrap items-start gap-4">
-        {/* Sort */}
-        <div className="flex flex-col gap-1">
-          <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">{t("markets.sort_by")}</span>
-          <div className="flex gap-1.5">
-            {(["active", "newest", "deadline"] as const).map((s) => {
-              const isActive = sort === s;
-              const arrow = isActive ? (sortDir === "asc" ? " ↑" : " ↓") : "";
-              const sortLabels: Record<string, string> = { active: t("markets.sort_hot"), newest: t("markets.sort_new"), deadline: t("markets.sort_closing") };
-              return (
-                <button
-                  key={s}
-                  onClick={() => setSort(s)}
-                  className={`rounded px-3 py-1 text-sm font-medium transition-colors ${
-                    isActive
-                      ? "bg-blue-600 text-white"
-                      : "bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/40"
-                  }`}
-                >
-                  {sortLabels[s]}{arrow}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Divider */}
-        <div className="hidden sm:block w-px self-stretch bg-gray-200 dark:bg-gray-700 my-0.5" />
-
-        {/* Filter */}
-        <div className="flex flex-col gap-1">
-          <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">{t("markets.filter")}</span>
-          <div className="flex flex-wrap gap-1.5">
-            {(["all", "my_bets", "open", "disputed", "resolved"] as const).map((f) => {
-              const isActive = filter === f;
-              const filterLabels: Record<string, string> = { all: t("markets.filter_all"), my_bets: t("markets.filter_my_bets"), open: t("markets.filter_open"), disputed: t("markets.filter_disputed"), resolved: t("markets.filter_resolved") };
-              return (
-                <button
-                  key={f}
-                  onClick={() => setFilter(f)}
-                  className={`rounded px-3 py-1 text-sm font-medium transition-colors ${
-                    isActive
-                      ? "bg-gray-800 dark:bg-gray-200 text-white dark:text-gray-900"
-                      : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
-                  }`}
-                >
-                  {filterLabels[f]}
-                </button>
-              );
-            })}
-          </div>
-        </div>
+      <div className="flex items-center gap-1.5 mb-3 flex-wrap">
+        {sortOptions.map(({ key, label }) => {
+          const isActive = sort === key;
+          const arrow = isActive ? (sortDir === "asc" ? " ↑" : " ↓") : "";
+          return (
+            <button
+              key={key}
+              onClick={() => setSort(key)}
+              className={`text-[12px] px-2.5 py-[5px] rounded-md cursor-pointer whitespace-nowrap border transition-colors ${
+                isActive
+                  ? "bg-[var(--accent-soft)] text-[var(--accent)] border-[var(--accent)] font-bold"
+                  : "bg-transparent border-[oklch(91%_0.006_250)] dark:border-[oklch(24%_0.015_250)] text-gray-400 dark:text-gray-500 font-medium"
+              }`}
+            >
+              {label}{arrow}
+            </button>
+          );
+        })}
+        <div className="w-px h-3.5 bg-[oklch(91%_0.006_250)] dark:bg-[oklch(24%_0.015_250)] mx-0.5" />
+        {filterOptions.map(({ key, label }) => {
+          const isActive = filter === key;
+          return (
+            <button
+              key={key}
+              onClick={() => setFilter(key)}
+              className={`text-[12px] px-2.5 py-[5px] rounded-md cursor-pointer whitespace-nowrap border transition-colors ${
+                isActive
+                  ? "bg-[oklch(91%_0.006_250)] dark:bg-[oklch(24%_0.015_250)] border-[oklch(88%_0.005_250)] dark:border-[oklch(28%_0.015_250)] text-gray-900 dark:text-gray-100 font-semibold"
+                  : "border-transparent text-gray-400 dark:text-gray-500 font-medium"
+              }`}
+            >
+              {label}
+            </button>
+          );
+        })}
       </div>
 
-      {/* Results */}
-      {isLoading && <p className="text-sm text-gray-500 dark:text-gray-400">{t("markets.loading")}</p>}
-      {isError && <p className="text-sm text-red-600 dark:text-red-400">{t("markets.load_error")}</p>}
-
-      <div className="space-y-3">
-        {data?.items.map((market) => (
-          <MarketCard key={market.id} market={market} />
-        ))}
-        {data?.items.length === 0 && (
-          <p className="text-sm text-gray-500 dark:text-gray-400">{t("markets.no_match")}</p>
-        )}
+      {/* Column headers */}
+      <div
+        className="grid gap-x-3 px-3 pb-2 items-center"
+        style={{ gridTemplateColumns: "1fr 110px 84px 44px" }}
+      >
+        <span className="text-[11px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
+          {t("markets.col_question")}
+        </span>
+        <span className="text-[11px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider text-right">
+          {t("markets.col_activity")}
+        </span>
+        <span className="text-[11px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider text-right">
+          {t("markets.col_outcome")}
+        </span>
+        <span className="text-[11px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider text-center">
+          {t("markets.col_time")}
+        </span>
       </div>
 
-      {/* Pagination */}
-      {!!data && data.pages > 1 && (
-        <div className="flex items-center justify-between border-t border-gray-200 dark:border-gray-700 pt-3 text-sm">
-          <span>
-            {t("markets.page_of", { page: data.page, pages: data.pages })}
-          </span>
-          <div className="flex gap-2">
-            <button
-              onClick={() => setPage(Math.max(1, page - 1))}
-              disabled={page <= 1}
-              className="rounded border border-gray-300 dark:border-gray-600 px-3 py-1 disabled:opacity-50 dark:text-gray-300"
-            >
-              {t("markets.prev")}
-            </button>
-            <button
-              onClick={() => setPage(Math.min(data.pages, page + 1))}
-              disabled={page >= data.pages}
-              className="rounded border border-gray-300 dark:border-gray-600 px-3 py-1 disabled:opacity-50 dark:text-gray-300"
-            >
-              {t("markets.next")}
-            </button>
-          </div>
+      {/* Loading / Error */}
+      {isLoading && (
+        <p className="text-[13px] text-gray-400 dark:text-gray-500 py-6 text-center">
+          {t("markets.loading")}
+        </p>
+      )}
+      {isError && (
+        <p className="text-[13px] text-red-500 dark:text-red-400 py-6 text-center">
+          {t("markets.load_error")}
+        </p>
+      )}
+
+      {/* Market rows card */}
+      {!isLoading && (
+        <div className="bg-white dark:bg-[oklch(18%_0.015_250)] border border-[oklch(91%_0.006_250)] dark:border-[oklch(22%_0.015_250)] rounded-[10px] overflow-hidden">
+          {allMarkets.map((market, i) => (
+            <MarketRow
+              key={market.id}
+              market={market}
+              isLast={i === allMarkets.length - 1}
+            />
+          ))}
+          {allMarkets.length === 0 && (
+            <div className="py-10 text-center text-[13px] text-gray-400 dark:text-gray-500">
+              {t("markets.no_match")}
+            </div>
+          )}
         </div>
+      )}
+
+      {/* Infinite scroll sentinel + loading indicator */}
+      <div ref={sentinelRef} className="h-1" />
+      {isFetchingNextPage && (
+        <p className="text-[13px] text-gray-400 dark:text-gray-500 py-4 text-center">
+          {t("markets.loading")}
+        </p>
       )}
     </div>
   );

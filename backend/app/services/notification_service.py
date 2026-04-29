@@ -215,7 +215,7 @@ async def notify_lp_converted(db: AsyncSession, user_id: uuid.UUID, lp_converted
         "lp_converted": lp_converted,
         "bp_earned": bp_earned,
         "username": username,
-        "message": f"{lp_converted} ♥ converted to {bp_earned:.1f} BP",
+        "message": f"{lp_converted} ❤️ converted to {bp_earned:.1f} BP",
     })
 
 

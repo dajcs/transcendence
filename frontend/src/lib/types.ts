@@ -7,6 +7,8 @@ export interface Market {
   status: "open" | "pending" | "pending_resolution" | "proposer_resolved" | "disputed" | "closed";
   proposer_id: string;
   proposer_username: string;
+  proposer_mission: string | null;
+  proposer_created_at: string | null;
   created_at: string;
   market_type: "binary" | "multiple_choice" | "numeric";
   choices: string[] | null;

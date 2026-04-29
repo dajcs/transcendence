@@ -170,7 +170,7 @@ Plans:
 
 **Delivers:**
 - Market creation form: auto-resolution toggle with city/condition fields; resolution_source JSON persisted to Bet
-- Profile pages: full sortable point transaction ledger (BP/TP/KP UNION query, all flows)
+- Profile pages: full sortable point transaction ledger (BP/TP/LP UNION query, all flows, exact LP conversion descriptions)
 - Market detail pages: participant list + aggregate stats; payout breakdown for closed markets
 - Three new public GET endpoints: positions, payouts, transactions
 
@@ -226,7 +226,7 @@ Plans:
 - LP→BP conversion capped at 10.0 BP; bet cap changed to flat 10 BP
 - TP formula: raw t_win/t_bet (no floor); binary/multichoice payout capped at 10x per winner
 - Numeric market payout: span-based waterfall bands (2%, 4%, 8%, 16% of market range); first non-empty band takes the full pool; 10x cap surplus tracked in bp_fund_entries
-- Heart UI (♥) for upvotes; unlike (toggle) for comments and markets
+- Heart UI (❤️) for upvotes; unlike (toggle) for comments and markets
 - ECON-01–04 requirements defined
 
 **Requirements:** ECON-01–04
@@ -268,12 +268,14 @@ Plans:
 - `plan/TESTING.md`
 - `plan/SCALING.md` (load test targets)
 
-**Plans:** 3 plans
+**Plans:** 5 plans
 
 Plans:
 - [x] 07-01-PLAN.md — Backend regression baseline: pytest coverage tooling + economy/resolution/auth/API tests
 - [x] 07-02-PLAN.md — Frontend Jest regression baseline: coverage scripts + auth/nav/profile/market-detail tests
 - [x] 07-03-PLAN.md — Playwright critical flows + incremental GitHub Actions CI
+- [x] 07-04-PLAN.md — Gap closure: repo-owned proof targets, CI wiring confirmation, and real E2E proof
+- [x] 07-05-PLAN.md — Gap closure: backend/frontend coverage thresholds, fail-under gates, and reviewed test hardening
 
 ---
 
