@@ -177,6 +177,7 @@ Last activity: 2026-04-29
 | fast | Dispute cost ledger type fix | 2026-04-27 | pending | Complete | `backend/app/services/ledger_service.py`, `frontend/src/i18n/en.ts` |
 | 260427-ivy | Reject bets after market deadline | 2026-04-27 | f302c1c | Complete | [260427-ivy-please-check-the-comment-below-if-valid-](./quick/260427-ivy-please-check-the-comment-below-if-valid-/) |
 | fast | Fix mission length validation message | 2026-04-29 | pending | Verified | `backend/app/schemas/profile.py`, `backend/tests/test_users.py` |
+| fast | Remove fragile Celery broker timeout override | 2026-04-29 | pending | Verified | `backend/app/workers/celery_app.py` |
 
 ### Blockers/Concerns
 
