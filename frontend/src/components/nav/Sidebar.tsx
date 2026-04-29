@@ -71,6 +71,7 @@ export default function Sidebar() {
   const setLocale = useLocaleStore((s) => s.setLocale);
   const t = useT();
   const [mounted, setMounted] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   useEffect(() => setMounted(true), []);
 
@@ -97,147 +98,181 @@ export default function Sidebar() {
   };
 
   return (
-    <aside className="fixed top-0 left-0 w-[220px] h-screen flex flex-col z-[100] bg-white dark:bg-[oklch(14%_0.015_250)] border-r border-gray-200 dark:border-[oklch(22%_0.015_250)] transition-colors duration-200">
-
-      {/* 1. Logo */}
-      <Link href="/markets" className="flex items-center gap-2.5 px-4 pt-4 pb-3 shrink-0">
-        <Image src="/voxpopuli-logo.png" width={28} height={28} alt="Vox Populi" className="h-7 w-7 rounded-lg shrink-0" />
-        <span className="font-bold text-[15px] tracking-tight text-gray-900 dark:text-gray-100">
-          Vox Populi
-        </span>
-      </Link>
-
-      {/* 2. Spacer */}
-      <div className="h-2 shrink-0" />
-
-      {/* 3. Username row — clickable, links to profile */}
-      <div className="px-4 pb-1 shrink-0">
-        <Link
-          href={profileHref}
-          className="text-[13px] font-semibold text-gray-700 dark:text-gray-300 truncate hover:text-[var(--accent)] transition-colors"
-        >
-          @{user?.username}
-        </Link>
-      </div>
-
-      {/* 4. Point balances row */}
-      <div className="px-3 pb-2 flex items-center gap-1 shrink-0">
-        {/* LP — light pink */}
-        <span className="text-[11px] font-semibold px-2 py-1 rounded-full bg-rose-100 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 whitespace-nowrap">
-          ❤️ {Math.round(user?.lp ?? 0)}
-        </span>
-        <span className="text-gray-400 dark:text-gray-600 text-[11px]">♦</span>
-        {/* BP — light green */}
-        <span className="text-[11px] font-semibold px-2 py-1 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 whitespace-nowrap">
-          {(user?.bp ?? 0).toFixed(1)} BP
-        </span>
-        <span className="text-gray-400 dark:text-gray-600 text-[11px]">♦</span>
-        {/* TP — light blue */}
-        <span className="text-[11px] font-semibold px-2 py-1 rounded-full bg-sky-100 dark:bg-sky-900/30 text-sky-700 dark:text-sky-400 whitespace-nowrap">
-          {(user?.tp ?? 0).toFixed(1)} TP
-        </span>
-      </div>
-
-      {/* 5. Profile link */}
-      <div className="px-2 pb-1 shrink-0">
-        <Link
-          href={profileHref}
-          className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] transition-all duration-150 ${
-            isActive(profileHref)
-              ? "bg-[var(--accent-soft)] text-[var(--accent)] font-semibold"
-              : "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5 font-normal"
-          }`}
-        >
-          <IconProfile />
-          Profile
-        </Link>
-      </div>
-
-      {/* 6. Search Users */}
-      <div className="px-3 pb-2 shrink-0">
-        <UserSearch />
-      </div>
-
-      {/* 7. Spacer */}
-      <div className="h-2 shrink-0" />
-
-      {/* 8. Controls row: language left | theme center | bell right */}
-      <div className="px-3 pb-2 flex items-center gap-1 shrink-0">
-        <select
-          value={mounted ? locale : "en"}
-          onChange={(e) => setLocale(e.target.value as Locale)}
-          className="w-12 text-[12px] rounded-md border border-gray-200 dark:border-[oklch(26%_0.015_250)] bg-transparent text-gray-500 dark:text-gray-400 px-1 py-1.5 focus:outline-none cursor-pointer"
-          aria-label={t("nav.language")}
-          suppressHydrationWarning
-        >
-          <option value="en">EN</option>
-          <option value="fr">FR</option>
-          <option value="de">DE</option>
-        </select>
-        <div className="flex-1 flex justify-center">
-          <button
-            onClick={toggle}
-            className="p-1.5 rounded-md text-gray-400 dark:text-gray-500 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors shrink-0"
-            title={isDark ? t("nav.theme_light") : t("nav.theme_dark")}
-            suppressHydrationWarning
-          >
-            {isDark ? <IconSun /> : <IconMoon />}
-          </button>
-        </div>
-        <div className="ml-auto shrink-0">
-          <NotificationBell dropdownAlign="left" />
-        </div>
-      </div>
-
-      {/* 9. Spacer (Create Market available on /markets page) */}
-      <div className="h-3 shrink-0" />
-
-      {/* Divider */}
-      <div className="mx-3 border-t border-gray-100 dark:border-[oklch(22%_0.015_250)] mb-1 shrink-0" />
-
-      {/* 10. Nav links: Markets, Friends, Chat, Hall of Fame */}
-      <nav className="flex-1 overflow-y-auto px-2 space-y-0.5" aria-label="Main navigation">
-        {navLinks.map((n) => {
-          const active = isActive(n.href);
-          return (
-            <Link
-              key={n.href}
-              href={n.href}
-              className={`flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-[14px] transition-all duration-150 ${
-                active
-                  ? "bg-[var(--accent-soft)] text-[var(--accent)] font-semibold"
-                  : "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5 font-normal"
-              }`}
-            >
-              {n.icon}
-              <span>{n.label}</span>
-              {!!n.badge && n.badge > 0 && (
-                <span className="ml-auto inline-flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">
-                  {n.badge}
-                </span>
-              )}
-            </Link>
-          );
-        })}
-      </nav>
-
-      {/* 10.5. Empty row + Logout link after Hall of Fame */}
-      <div className="h-2 shrink-0" />
-      <div className="px-2 pb-2 shrink-0">
+    <>
+      {/* Mobile-only top bar — always visible, contains logo and hamburger */}
+      <div className="md:hidden fixed top-0 left-0 right-0 z-[99] flex items-center justify-between px-4 h-12 bg-white dark:bg-[oklch(14%_0.015_250)] border-b border-gray-200 dark:border-[oklch(22%_0.015_250)]">
+        <span className="font-semibold text-sm text-gray-800 dark:text-gray-100">Vox Populi</span>
         <button
-          onClick={handleLogout}
-          className="flex items-center gap-2.5 px-3 py-2.5 w-full rounded-lg text-[14px] text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5 transition-all duration-150"
+          onClick={() => setMobileOpen((v) => !v)}
+          className="p-1 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
+          aria-label="Toggle menu"
         >
-          <IconLogout />
-          <span>{t("nav.logout")}</span>
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            {mobileOpen ? (
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            ) : (
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+            )}
+          </svg>
         </button>
       </div>
 
-      {/* 11. Footer: Privacy Policy left, Terms of Service right */}
-      <div className="border-t border-gray-100 dark:border-[oklch(22%_0.015_250)] px-3 py-2 shrink-0 flex items-center justify-between">
-        <Link href="/privacy" className="text-[10px] text-gray-400 dark:text-gray-500 hover:underline">{t("footer.privacy")}</Link>
-        <Link href="/terms" className="text-[10px] text-gray-400 dark:text-gray-500 hover:underline">{t("footer.terms")}</Link>
-      </div>
-    </aside>
+      {/* Backdrop — closes sidebar on outside click (mobile only) */}
+      {mobileOpen && (
+        <div
+          className="md:hidden fixed inset-0 z-[98] bg-black/40"
+          onClick={() => setMobileOpen(false)}
+          aria-hidden
+        />
+      )}
+
+      <aside className={`fixed top-0 left-0 w-[220px] h-screen flex flex-col z-[100] bg-white dark:bg-[oklch(14%_0.015_250)] border-r border-gray-200 dark:border-[oklch(22%_0.015_250)] transition-colors duration-200 transition-transform ${
+        mobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
+      }`}>
+
+        {/* 1. Logo */}
+        <Link href="/markets" onClick={() => setMobileOpen(false)} className="flex items-center gap-2.5 px-4 pt-4 pb-3 shrink-0">
+          <Image src="/voxpopuli-logo.png" width={28} height={28} alt="Vox Populi" className="h-7 w-7 rounded-lg shrink-0" />
+          <span className="font-bold text-[15px] tracking-tight text-gray-900 dark:text-gray-100">
+            Vox Populi
+          </span>
+        </Link>
+
+        {/* 2. Spacer */}
+        <div className="h-2 shrink-0" />
+
+        {/* 3. Username row — clickable, links to profile */}
+        <div className="px-4 pb-1 shrink-0">
+          <Link
+            href={profileHref}
+            onClick={() => setMobileOpen(false)}
+            className="text-[13px] font-semibold text-gray-700 dark:text-gray-300 truncate hover:text-[var(--accent)] transition-colors"
+          >
+            @{user?.username}
+          </Link>
+        </div>
+
+        {/* 4. Point balances row */}
+        <div className="px-3 pb-2 flex items-center gap-1 shrink-0">
+          {/* LP — light pink */}
+          <span className="text-[11px] font-semibold px-2 py-1 rounded-full bg-rose-100 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 whitespace-nowrap">
+            ❤️ {Math.round(user?.lp ?? 0)}
+          </span>
+          <span className="text-gray-400 dark:text-gray-600 text-[11px]">♦</span>
+          {/* BP — light green */}
+          <span className="text-[11px] font-semibold px-2 py-1 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 whitespace-nowrap">
+            {(user?.bp ?? 0).toFixed(1)} BP
+          </span>
+          <span className="text-gray-400 dark:text-gray-600 text-[11px]">♦</span>
+          {/* TP — light blue */}
+          <span className="text-[11px] font-semibold px-2 py-1 rounded-full bg-sky-100 dark:bg-sky-900/30 text-sky-700 dark:sky-400 whitespace-nowrap">
+            {(user?.tp ?? 0).toFixed(1)} TP
+          </span>
+        </div>
+
+        {/* 5. Profile link */}
+        <div className="px-2 pb-1 shrink-0">
+          <Link
+            href={profileHref}
+            onClick={() => setMobileOpen(false)}
+            className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] transition-all duration-150 ${
+              isActive(profileHref)
+                ? "bg-[var(--accent-soft)] text-[var(--accent)] font-semibold"
+                : "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5 font-normal"
+            }`}
+          >
+            <IconProfile />
+            Profile
+          </Link>
+        </div>
+
+        {/* 6. Search Users */}
+        <div className="px-3 pb-2 shrink-0">
+          <UserSearch />
+        </div>
+
+        {/* 7. Spacer */}
+        <div className="h-2 shrink-0" />
+
+        {/* 8. Controls row: language left | theme center | bell right */}
+        <div className="px-3 pb-2 flex items-center gap-1 shrink-0">
+          <select
+            value={mounted ? locale : "en"}
+            onChange={(e) => setLocale(e.target.value as Locale)}
+            className="w-12 text-[12px] rounded-md border border-gray-200 dark:border-[oklch(26%_0.015_250)] bg-transparent text-gray-500 dark:text-gray-400 px-1 py-1.5 focus:outline-none cursor-pointer"
+            aria-label={t("nav.language")}
+            suppressHydrationWarning
+          >
+            <option value="en">EN</option>
+            <option value="fr">FR</option>
+            <option value="de">DE</option>
+          </select>
+          <div className="flex-1 flex justify-center">
+            <button
+              onClick={toggle}
+              className="p-1.5 rounded-md text-gray-400 dark:text-gray-500 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors shrink-0"
+              title={isDark ? t("nav.theme_light") : t("nav.theme_dark")}
+              suppressHydrationWarning
+            >
+              {isDark ? <IconSun /> : <IconMoon />}
+            </button>
+          </div>
+          <div className="ml-auto shrink-0">
+            <NotificationBell dropdownAlign="left" />
+          </div>
+        </div>
+
+        {/* 9. Spacer (Create Market available on /markets page) */}
+        <div className="h-3 shrink-0" />
+
+        {/* Divider */}
+        <div className="mx-3 border-t border-gray-100 dark:border-[oklch(22%_0.015_250)] mb-1 shrink-0" />
+
+        {/* 10. Nav links: Markets, Friends, Chat, Hall of Fame */}
+        <nav className="flex-1 overflow-y-auto px-2 space-y-0.5" aria-label="Main navigation">
+          {navLinks.map((n) => {
+            const active = isActive(n.href);
+            return (
+              <Link
+                key={n.href}
+                href={n.href}
+                onClick={() => setMobileOpen(false)}
+                className={`flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-[14px] transition-all duration-150 ${
+                  active
+                    ? "bg-[var(--accent-soft)] text-[var(--accent)] font-semibold"
+                    : "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5 font-normal"
+                }`}
+              >
+                {n.icon}
+                <span>{n.label}</span>
+                {!!n.badge && n.badge > 0 && (
+                  <span className="ml-auto inline-flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">
+                    {n.badge}
+                  </span>
+                )}
+              </Link>
+            );
+          })}
+        </nav>
+
+        {/* 10.5. Empty row + Logout link after Hall of Fame */}
+        <div className="h-2 shrink-0" />
+        <div className="px-2 pb-2 shrink-0">
+          <button
+            onClick={handleLogout}
+            className="flex items-center gap-2.5 px-3 py-2.5 w-full rounded-lg text-[14px] text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5 transition-all duration-150"
+          >
+            <IconLogout />
+            <span>{t("nav.logout")}</span>
+          </button>
+        </div>
+
+        {/* 11. Footer: Privacy Policy left, Terms of Service right */}
+        <div className="border-t border-gray-100 dark:border-[oklch(22%_0.015_250)] px-3 py-2 shrink-0 flex items-center justify-between">
+          <Link href="/privacy" onClick={() => setMobileOpen(false)} className="text-[10px] text-gray-400 dark:text-gray-500 hover:underline">{t("footer.privacy")}</Link>
+          <Link href="/terms" onClick={() => setMobileOpen(false)} className="text-[10px] text-gray-400 dark:text-gray-500 hover:underline">{t("footer.terms")}</Link>
+        </div>
+      </aside>
+    </>
   );
 }
