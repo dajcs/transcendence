@@ -1,4 +1,4 @@
-"""Comment API tests — DISC-01 (list), DISC-02 (upvote +1 kp), DISC-03 (reply depth)."""
+"""Comment API tests — DISC-01 (list), DISC-02 (upvote +1 LP), DISC-03 (reply depth)."""
 import uuid
 from datetime import datetime, timezone
 from unittest.mock import AsyncMock
@@ -38,10 +38,18 @@ async def test_post_and_list_comments(client: AsyncClient):
 
 
 @pytest.mark.asyncio
-async def test_upvote_comment_earns_kp(client: AsyncClient):
-    """DISC-02: POST /api/comments/{id}/upvote earns +1 kp for comment author."""
-    import uuid
+async def test_upvote_comment_earns_lp(client: AsyncClient, db_session):
+    """DISC-02: POST /api/comments/{id}/upvote earns +1 LP for comment author."""
+    from sqlalchemy import select
+
+    from app.db.models.user import User
+    from app.services.economy_service import get_balance
+
     market_id = await _setup_user_market_bet(client, "author@example.com", "author")
+    author = (
+        await db_session.execute(select(User).where(User.email == "author@example.com"))
+    ).scalar_one()
+    before_lp = (await get_balance(db_session, author.id))["lp"]
     post_resp = await client.post(f"/api/markets/{market_id}/comments",
                                    json={"content": "Worth upvoting."})
     comment_id = post_resp.json()["id"]
@@ -53,6 +61,8 @@ async def test_upvote_comment_earns_kp(client: AsyncClient):
     await client.post("/api/auth/login", json={"identifier": "voter@example.com", "password": "Passw0rd!"})
     upvote_resp = await client.post(f"/api/comments/{comment_id}/upvote")
     assert upvote_resp.status_code == 201
+    after_lp = (await get_balance(db_session, author.id))["lp"]
+    assert after_lp == before_lp + 1
 
 
 @pytest.mark.asyncio

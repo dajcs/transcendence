@@ -13,8 +13,17 @@ const config: Config = {
     "<rootDir>/src/**/*.{ts,tsx}",
     "!<rootDir>/src/**/*.d.ts",
     "!<rootDir>/src/**/__tests__/**",
+    "!<rootDir>/src/app/api/**",
+    "!<rootDir>/src/app/page.tsx",
+    "!<rootDir>/src/app/(auth)/**/page.tsx",
     "!<rootDir>/src/app/layout.tsx",
     "!<rootDir>/src/app/providers.tsx",
+    "!<rootDir>/src/app/privacy/page.tsx",
+    "!<rootDir>/src/app/terms/page.tsx",
+    "!<rootDir>/src/components/AppShell.tsx",
+    "!<rootDir>/src/components/Footer.tsx",
+    "!<rootDir>/src/components/QueryProvider.tsx",
+    "!<rootDir>/src/i18n/**",
     "!<rootDir>/src/lib/types.ts",
   ],
   coveragePathIgnorePatterns: [
@@ -27,6 +36,12 @@ const config: Config = {
     "<rootDir>/e2e/",
   ],
   coverageReporters: ["text", "lcov", "html"],
+  coverageThreshold: {
+    global: {
+      statements: 54,
+      lines: 57,
+    },
+  },
 };
 
 export default createJestConfig(config);

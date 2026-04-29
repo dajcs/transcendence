@@ -101,6 +101,23 @@ async def test_get_bet_odds_binary_uses_participant_counts_not_bp_stake(db_sessi
 
 
 @pytest.mark.asyncio
+async def test_get_bet_odds_empty_market_defaults_to_even_odds(db_session):
+    from app.services.economy_service import get_bet_odds
+
+    odds = await get_bet_odds(db_session, uuid.uuid4())
+
+    assert odds == {
+        "yes_pct": 50.0,
+        "no_pct": 50.0,
+        "yes_pool": 0.0,
+        "no_pool": 0.0,
+        "yes_count": 0,
+        "no_count": 0,
+        "total_votes": 0,
+    }
+
+
+@pytest.mark.asyncio
 async def test_get_balance_empty(db_session):
     """get_balance returns zero balances for a user with no transactions."""
     from app.services.economy_service import get_balance
@@ -150,6 +167,15 @@ async def test_deduct_bp_insufficient(db_session):
     with pytest.raises(HTTPException) as exc_info:
         await deduct_bp(db_session, user_id, 10.0, "bet_place")
     assert exc_info.value.status_code == 402
+
+
+@pytest.mark.asyncio
+async def test_deduct_bp_missing_user_raises_404(db_session):
+    from app.services.economy_service import deduct_bp
+
+    with pytest.raises(HTTPException) as exc_info:
+        await deduct_bp(db_session, uuid.uuid4(), 1.0, "bet_place")
+    assert exc_info.value.status_code == 404
 
 
 @pytest.mark.asyncio

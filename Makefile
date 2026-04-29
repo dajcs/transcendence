@@ -57,7 +57,7 @@ phase7-backend-sync:
 
 # Backend coverage proof using a repo-local uv cache instead of stale local state
 phase7-proof-backend: phase7-backend-sync
-	cd backend && UV_CACHE_DIR="$(UV_CACHE_DIR)" uv run pytest --cov=app --cov-report=term-missing tests/ -q
+	cd backend && UV_CACHE_DIR="$(UV_CACHE_DIR)" uv run pytest --cov=app --cov-report=term-missing --cov-fail-under=62 tests/ -q
 
 # Frontend typecheck + Jest coverage proof using a clean npm install
 phase7-proof-frontend: phase7-frontend-install

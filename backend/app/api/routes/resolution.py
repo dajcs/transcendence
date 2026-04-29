@@ -104,7 +104,10 @@ async def proposer_resolve(
             detail=f"Market is not pending resolution (current status: {bet.status})"
         )
 
-    seven_days = bet.deadline + timedelta(days=7)
+    deadline = bet.deadline
+    if deadline.tzinfo is None:
+        deadline = deadline.replace(tzinfo=timezone.utc)
+    seven_days = deadline + timedelta(days=7)
     if datetime.now(timezone.utc) > seven_days:
         raise HTTPException(status_code=400, detail="Proposer resolution window has expired (7 days)")
 
@@ -347,7 +350,10 @@ async def cast_vote(
     if dispute is None:
         raise HTTPException(status_code=404, detail="No open dispute found for this bet")
 
-    if datetime.now(timezone.utc) > dispute.closes_at:
+    closes_at = dispute.closes_at
+    if closes_at.tzinfo is None:
+        closes_at = closes_at.replace(tzinfo=timezone.utc)
+    if datetime.now(timezone.utc) > closes_at:
         raise HTTPException(status_code=400, detail="Dispute voting window has closed")
 
     resolution = (await db.execute(

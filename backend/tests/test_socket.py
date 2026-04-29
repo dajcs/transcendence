@@ -73,7 +73,9 @@ class TestBetEmits:
         from app.services.bet_service import place_bet
         from app.schemas.bet import BetPlaceRequest
         from app.socket.server import sio
+        from app.config import settings
 
+        monkeypatch.setattr(settings, "database_url", "postgresql://test")
         from datetime import datetime, timedelta
         user_id = uuid.uuid4()
         bet_id = uuid.uuid4()

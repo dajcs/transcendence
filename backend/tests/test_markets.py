@@ -5,7 +5,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from httpx import AsyncClient
-from sqlalchemy import func, select
+from sqlalchemy import delete, func, select
 from unittest.mock import AsyncMock
 
 
@@ -21,6 +21,7 @@ async def test_create_market_deducts_1bp(client: AsyncClient):
     })
     # Check balance before (should have 10 bp signup bonus after Plan 02-02)
     me_before = await client.get("/api/auth/me")
+    before_bp = me_before.json()["bp"]
     # Create market
     resp = await client.post("/api/markets", json={
         "title": "Will it rain tomorrow?",
@@ -32,27 +33,40 @@ async def test_create_market_deducts_1bp(client: AsyncClient):
     data = resp.json()
     assert data["title"] == "Will it rain tomorrow?"
     assert data["status"] == "open"
+    me_after = await client.get("/api/auth/me")
+    after_bp = me_after.json()["bp"]
+    assert after_bp == before_bp - 1
 
 
 @pytest.mark.asyncio
-async def test_create_market_insufficient_bp(client: AsyncClient):
+async def test_create_market_insufficient_bp(client: AsyncClient, db_session):
     """BET-01 + D-06: POST /api/markets returns 402 when user has 0 bp."""
-    # Register fresh user with no bonus credited yet
+    from app.db.models.transaction import BpTransaction
+    from app.db.models.user import User
+
     await client.post("/api/auth/register", json={
         "email": "broke@example.com", "username": "broke", "password": "Passw0rd!",
     })
+    user = (
+        await db_session.execute(select(User).where(User.email == "broke@example.com"))
+    ).scalar_one()
     await client.post("/api/auth/login", json={
         "identifier": "broke@example.com", "password": "Passw0rd!",
     })
+    from app.services.economy_service import get_balance
+
+    balance = await get_balance(db_session, user.id)
+    await db_session.execute(delete(BpTransaction).where(BpTransaction.user_id == user.id))
+    if balance["bp"] != 0:
+        db_session.add(BpTransaction(user_id=user.id, amount=-balance["bp"], reason="test_zero_balance"))
+    await db_session.commit()
     resp = await client.post("/api/markets", json={
         "title": "No money market",
         "description": "desc",
         "resolution_criteria": "criteria",
         "deadline": "2027-01-01T00:00:00Z",
     })
-    # With signup bonus implemented, this test will need a user with 0 bp.
-    # For now verify the endpoint rejects malformed requests.
-    assert resp.status_code in (201, 402, 422)
+    assert resp.status_code == 402
 
 
 @pytest.mark.asyncio
@@ -107,12 +121,15 @@ async def test_list_markets_includes_user_like_state(client: AsyncClient):
 # ---------------------------------------------------------------------------
 
 @pytest.mark.asyncio
-async def test_create_market_schedules_eta_at_exact_deadline(db_session):
+async def test_create_market_schedules_eta_at_exact_deadline(db_session, monkeypatch):
     """create_market schedules the ETA task at bet.deadline — no grace offset."""
     from app.db.models.user import User
     from app.db.models.transaction import BpTransaction
     from app.schemas.market import MarketCreate
+    from app.services import market_service
     from app.services.market_service import create_market
+
+    monkeypatch.setattr(market_service.settings, "database_url", "postgresql://test")
 
     user_id = uuid.uuid4()
     db_session.add(User(id=user_id, email="eta@test.com", username="eta_user", password_hash="x"))
@@ -143,14 +160,17 @@ async def test_create_market_schedules_eta_at_exact_deadline(db_session):
 
 
 @pytest.mark.asyncio
-async def test_create_market_stores_celery_task_id(db_session):
+async def test_create_market_stores_celery_task_id(db_session, monkeypatch):
     """create_market stores the Celery task_id on Market.celery_task_id for future revocation."""
     from sqlalchemy import select
     from app.db.models.user import User
     from app.db.models.market import Market
     from app.db.models.transaction import BpTransaction
     from app.schemas.market import MarketCreate
+    from app.services import market_service
     from app.services.market_service import create_market
+
+    monkeypatch.setattr(market_service.settings, "database_url", "postgresql://test")
 
     user_id = uuid.uuid4()
     db_session.add(User(id=user_id, email="tid@test.com", username="tid_user", password_hash="x"))
