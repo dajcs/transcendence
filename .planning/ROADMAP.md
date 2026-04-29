@@ -295,10 +295,10 @@ Plans:
 **Plans:** 2 plans
 
 **Wave 1**
-- [ ] P01 — Mobile nav shell (AppShell.tsx + Sidebar.tsx + layout.tsx)
+- [x] P01 — Mobile nav shell (AppShell.tsx + Sidebar.tsx + layout.tsx)
 
 **Wave 2** *(blocked on Wave 1 completion)*
-- [ ] P02 — Page-level responsive fixes + audit (markets grid, auth pages, chat, 9 remaining pages)
+- [x] P02 — Page-level responsive fixes + audit (markets grid, auth pages, chat, 9 remaining pages)
 
 Cross-cutting constraints:
 - All plans: no inline `style={{ gridTemplateColumns }}` on layout containers
