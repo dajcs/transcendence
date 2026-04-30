@@ -17,6 +17,7 @@ Phase 8 delivers optional 42 module points beyond the 14-point baseline. Primary
 - **D-01:** Primary deliverable is RWD only (+2pts major). This is the target for planning and execution.
 - **D-02:** Public API (+1pt minor) and PWA (+2pts major) are noted as potential additions if implementation goes quickly — but carry no commitment. They should appear in plans as optional/deferred, not as primary goals.
 - **D-03:** If Public API or PWA are attempted, they follow RWD completion — not in parallel.
+- **D-04:** After RWD UAT passed on 2026-04-30, continue Phase 8 with the recommended read-only Public API scope. The API must expose public list/detail endpoints for markets, comments, participants, payouts, public profiles, and leaderboards. It must not expose write actions, API keys, private settings, notification data, chat data, friend data, account data export/delete, or LLM endpoints.
 
 ### Claude's Discretion
 - RWD breakpoints (Tailwind's default sm/md/lg are fine)
@@ -24,7 +25,7 @@ Phase 8 delivers optional 42 module points beyond the 14-point baseline. Primary
 - Whether to use a hamburger menu or collapsing nav on mobile
 - Mobile layout for the chat thread and friends pages
 - Exact order of page retrofits within the RWD plan
-- Whether Public API uses a `/api/public/` prefix or selectively removes auth from existing endpoints
+- Public API should use a dedicated `/api/public/` prefix so the stretch module is obvious in Swagger/OpenAPI and cannot accidentally inherit authenticated write routes.
 - PWA library choice (next-pwa or manual service worker) if attempted
 
 </decisions>
