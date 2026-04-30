@@ -147,6 +147,6 @@ gen-keys:
 
 # Production nginx mounts Let's Encrypt certs directly from /etc/letsencrypt/live/voxpo.me.
 gen-keys-main:
-	@test -r /etc/letsencrypt/live/voxpo.me/cert.pem
+	@test -r /etc/letsencrypt/live/voxpo.me/fullchain.pem
 	@test -r /etc/letsencrypt/live/voxpo.me/privkey.pem
-	@echo "Production SSL certs available in /etc/letsencrypt/live/voxpo.me"
+	@echo "Production SSL fullchain and key available in /etc/letsencrypt/live/voxpo.me"
