@@ -309,7 +309,7 @@ export default function ProfilePage() {
           </div>
 
           {/* Stats */}
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
+          <div className="grid grid-cols-5 gap-1.5">
             {[
               { value: profile.lp, label: "❤️" },
               { value: profile.bp.toFixed(1), label: "BP" },
@@ -317,9 +317,9 @@ export default function ProfilePage() {
               { value: profile.total_bets, label: t("profile.total_bets") },
               { value: `${profile.win_rate.toFixed(1)}%`, label: t("profile.win_rate") },
             ].map(({ value, label }) => (
-              <div key={label} className="bg-white dark:bg-[oklch(18%_0.015_250)] border border-[oklch(91%_0.006_250)] dark:border-[oklch(22%_0.015_250)] rounded-[10px] p-3 text-center">
-                <p className="text-[18px] font-bold text-gray-900 dark:text-gray-100 tabular-nums">{value}</p>
-                <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-0.5">{label}</p>
+              <div key={label} className="bg-white dark:bg-[oklch(18%_0.015_250)] border border-[oklch(91%_0.006_250)] dark:border-[oklch(22%_0.015_250)] rounded-[8px] p-1.5 sm:p-3 text-center">
+                <p className="text-[12px] sm:text-[18px] font-bold text-gray-900 dark:text-gray-100 tabular-nums leading-tight">{value}</p>
+                <p className="text-[10px] sm:text-[11px] text-gray-400 dark:text-gray-500 mt-0.5">{label}</p>
               </div>
             ))}
           </div>
@@ -374,11 +374,11 @@ export default function ProfilePage() {
                               <th className="pb-2 text-right text-[11px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider cursor-pointer select-none hover:text-gray-600 dark:hover:text-gray-300" onClick={() => handleSort("bp")}>
                                 {t("ledger.bp_delta")}{sortIcon("bp")}
                               </th>
-                              <th className="pb-2 text-right text-[11px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">{t("ledger.bp_balance")}</th>
+                              <th className="hidden sm:table-cell pb-2 text-right text-[11px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">{t("ledger.bp_balance")}</th>
                               <th className="pb-2 text-right text-[11px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider cursor-pointer select-none hover:text-gray-600 dark:hover:text-gray-300" onClick={() => handleSort("tp")}>
                                 {t("ledger.tp_delta")}{sortIcon("tp")}
                               </th>
-                              <th className="pb-2 text-right text-[11px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">{t("ledger.tp_balance")}</th>
+                              <th className="hidden sm:table-cell pb-2 text-right text-[11px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">{t("ledger.tp_balance")}</th>
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-gray-100 dark:divide-[oklch(22%_0.015_250)]">
@@ -388,8 +388,9 @@ export default function ProfilePage() {
                                 : null;
                               return (
                                 <tr key={tx.id} className="hover:bg-[oklch(97%_0.008_264)] dark:hover:bg-[oklch(20%_0.015_250)] transition-colors duration-100">
-                                  <td className="py-2 text-[12px] text-gray-400 dark:text-gray-500 whitespace-nowrap">
-                                    {new Date(tx.date).toLocaleString()}
+                                  <td className="py-2 text-[11px] text-gray-400 dark:text-gray-500">
+                                    <div>{new Date(tx.date).toLocaleDateString()}</div>
+                                    <div className="text-[10px]">{new Date(tx.date).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</div>
                                   </td>
                                   <td className="py-2">
                                     <span className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${TYPE_COLORS[tx.type] ?? TYPE_COLORS.daily_bonus}`}>
@@ -412,13 +413,13 @@ export default function ProfilePage() {
                                   <td className={`py-2 text-right text-[13px] font-medium tabular-nums ${tx.bp_delta > 0 ? "text-green-600 dark:text-green-400" : tx.bp_delta < 0 ? "text-red-600 dark:text-red-400" : "text-gray-400"}`}>
                                     {tx.bp_delta !== 0 ? fmt(tx.bp_delta) : "—"}
                                   </td>
-                                  <td className="py-2 text-right text-[12px] tabular-nums text-gray-400 dark:text-gray-500">
+                                  <td className="hidden sm:table-cell py-2 text-right text-[12px] tabular-nums text-gray-400 dark:text-gray-500">
                                     {tx.bp_balance.toFixed(1)}
                                   </td>
                                   <td className={`py-2 text-right text-[13px] font-medium tabular-nums ${tx.tp_delta > 0 ? "text-[var(--accent)]" : tx.tp_delta < 0 ? "text-gray-500" : "text-gray-400"}`}>
                                     {tx.tp_delta !== 0 ? fmt(tx.tp_delta) : "—"}
                                   </td>
-                                  <td className="py-2 text-right text-[12px] tabular-nums text-gray-400 dark:text-gray-500">
+                                  <td className="hidden sm:table-cell py-2 text-right text-[12px] tabular-nums text-gray-400 dark:text-gray-500">
                                     {tx.tp_balance.toFixed(1)}
                                   </td>
                                 </tr>
@@ -561,8 +562,9 @@ export default function ProfilePage() {
                               <td className="py-2 text-right text-[12px] tabular-nums text-gray-400 dark:text-gray-500">
                                 {m.position_count}
                               </td>
-                              <td className="py-2 text-right text-[12px] text-gray-400 dark:text-gray-500 whitespace-nowrap">
-                                {new Date(m.deadline).toLocaleDateString()}
+                              <td className="py-2 text-right text-[11px] text-gray-400 dark:text-gray-500">
+                                <div>{new Date(m.deadline).toLocaleDateString()}</div>
+                                <div className="text-[10px]">{new Date(m.deadline).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</div>
                               </td>
                             </tr>
                           ))}
