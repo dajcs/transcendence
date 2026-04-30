@@ -112,6 +112,7 @@ Last activity: 2026-04-30
 - [Phase 06]: Implemented outside GSD and merged back into the main codebase; planning artifacts retained as historical record
 - [Phase 06.1]: All 8 plans executed; all 6 HUMAN-UAT checks passed; accepted follow-up fixes include refund/ledger corrections, participant-count binary odds, span-based numeric payout bands (2/4/8/16%), and Hall of Fame backed by bp_fund_entries
 - [Quick 260421-exi]: Leave OAUTH_REDIRECT_BASE empty by default and forward X-Forwarded-Proto/Host through Nginx so OAuth callback URIs preserve the initiating host and HTTPS scheme
+- [Quick 260430-ssl]: Production nginx mounts `/etc/letsencrypt/live/voxpo.me` directly with the archive symlink target; `make main` no longer stages certs into `nginx/ssl-prod`
 
 ## Accumulated Context
 
@@ -179,6 +180,7 @@ Last activity: 2026-04-30
 | 260427-ivy | Reject bets after market deadline | 2026-04-27 | f302c1c | Complete | [260427-ivy-please-check-the-comment-below-if-valid-](./quick/260427-ivy-please-check-the-comment-below-if-valid-/) |
 | fast | Fix mission length validation message | 2026-04-29 | pending | Verified | `backend/app/schemas/profile.py`, `backend/tests/test_users.py` |
 | fast | Remove fragile Celery broker timeout override | 2026-04-29 | pending | Verified | `backend/app/workers/celery_app.py` |
+| 260430-ssl | Mount production Let's Encrypt certs directly into nginx | 2026-04-30 | pending | Pending user test | [260430-ssl-prod-fix](./quick/260430-ssl-prod-fix/) |
 
 ### Blockers/Concerns
 
