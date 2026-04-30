@@ -15,6 +15,7 @@ from app.api.routes.llm import router as llm_router
 from app.api.routes.resolution import router as resolution_router
 from app.api.routes.markets import router as markets_router
 from app.api.routes.notifications import router as notifications_router
+from app.api.routes.public import router as public_router
 from app.api.routes.users import router as users_router
 from app.config import settings
 from sqlalchemy import text
@@ -60,6 +61,7 @@ app.include_router(comments_router, prefix="/api", tags=["comments"])
 app.include_router(config_router, prefix="/api", tags=["config"])
 app.include_router(friends_router, prefix="/api/friends", tags=["friends"])
 app.include_router(notifications_router, prefix="/api/notifications", tags=["notifications"])
+app.include_router(public_router, prefix="/api/public")
 app.include_router(users_router, prefix="/api/users", tags=["users"])
 app.include_router(llm_router, prefix="/api", tags=["llm"])
 app.include_router(resolution_router, prefix="/api", tags=["resolution"])
