@@ -12,6 +12,8 @@ dev:
 
 # Start all services in PRODUCTION mode (https://voxpo.me, no hot-reload)
 main:
+	cp  /etc/letsencrypt/live/voxpo.me/cert.pem nginx/ssl-prod/cert.pem
+	cp  /etc/letsencrypt/live/voxpo.me/privkey.pem nginx/ssl-prod/key.pem
 	docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
 
 # Stop production services
