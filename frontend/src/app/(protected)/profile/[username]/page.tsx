@@ -175,6 +175,12 @@ export default function ProfilePage() {
   const sortIcon = (field: string) =>
     sortBy === field ? (sortDir === "asc" ? " ▲" : " ▼") : "";
 
+  const shortStatus = (s: string) => {
+    if (s === "pending_resolution") return "pending";
+    if (s === "proposer_resolved") return "resolved";
+    return s.replace(/_/g, " ");
+  };
+
   const fmt = (n: number) => {
     if (n === 0) return "—";
     return (n > 0 ? "+" : "") + n.toFixed(1);
@@ -460,22 +466,22 @@ export default function ProfilePage() {
                                   <th className="pb-2 text-left text-[11px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">{t("profile.market")}</th>
                                   <th className="pb-2 text-left text-[11px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">{t("profile.side")}</th>
                                   <th className="pb-2 text-right text-[11px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">{t("profile.bp_staked")}</th>
-                                  <th className="pb-2 text-right text-[11px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">{t("profile.win_prob")}</th>
+                                  <th className="hidden sm:table-cell pb-2 text-right text-[11px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">{t("profile.win_prob")}</th>
                                 </tr>
                               </thead>
                               <tbody className="divide-y divide-gray-100 dark:divide-[oklch(22%_0.015_250)]">
                                 {positionsQuery.data!.active.map((p) => (
                                   <tr key={p.id} className="hover:bg-[oklch(97%_0.008_264)] dark:hover:bg-[oklch(20%_0.015_250)] transition-colors duration-100">
-                                    <td className="py-2 max-w-[220px] truncate">
+                                    <td className="py-2 max-w-[130px] sm:max-w-[220px] truncate">
                                       <Link href={getMarketPath(p.bet_id, p.market_title)} className="text-[13px] hover:underline text-[var(--accent)]">
                                         {p.market_title}
                                       </Link>
                                     </td>
-                                    <td className={`py-2 text-[13px] font-medium ${p.side === "yes" ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
+                                    <td className={`py-2 text-[13px] font-medium whitespace-nowrap ${p.side === "yes" ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
                                       {typeof p.side === "string" ? p.side.toUpperCase() : p.side}
                                     </td>
-                                    <td className="py-2 text-right text-[13px] tabular-nums">{p.bp_staked.toFixed(1)} BP</td>
-                                    <td className="py-2 text-right text-[12px] tabular-nums text-gray-400 dark:text-gray-500">
+                                    <td className="py-2 text-right text-[13px] tabular-nums whitespace-nowrap">{p.bp_staked.toFixed(1)} BP</td>
+                                    <td className="hidden sm:table-cell py-2 text-right text-[12px] tabular-nums text-gray-400 dark:text-gray-500">
                                       {p.side === "yes" ? p.yes_pct : p.no_pct}%
                                     </td>
                                   </tr>
@@ -494,24 +500,24 @@ export default function ProfilePage() {
                                 <tr className="border-b border-gray-100 dark:border-[oklch(22%_0.015_250)]">
                                   <th className="pb-2 text-left text-[11px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">{t("profile.market")}</th>
                                   <th className="pb-2 text-left text-[11px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">{t("profile.side")}</th>
-                                  <th className="pb-2 text-right text-[11px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">{t("profile.bp_staked")}</th>
+                                  <th className="hidden sm:table-cell pb-2 text-right text-[11px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">{t("profile.bp_staked")}</th>
                                   <th className="pb-2 text-left text-[11px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">{t("profile.status")}</th>
                                 </tr>
                               </thead>
                               <tbody className="divide-y divide-gray-100 dark:divide-[oklch(22%_0.015_250)]">
                                 {positionsQuery.data!.resolved.map((p) => (
                                   <tr key={p.id} className="hover:bg-[oklch(97%_0.008_264)] dark:hover:bg-[oklch(20%_0.015_250)] transition-colors duration-100">
-                                    <td className="py-2 max-w-[220px] truncate">
+                                    <td className="py-2 max-w-[130px] sm:max-w-[220px] truncate">
                                       <Link href={getMarketPath(p.bet_id, p.market_title)} className="text-[13px] hover:underline text-[var(--accent)]">
                                         {p.market_title}
                                       </Link>
                                     </td>
-                                    <td className={`py-2 text-[13px] font-medium ${p.side === "yes" ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
+                                    <td className={`py-2 text-[13px] font-medium whitespace-nowrap ${p.side === "yes" ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
                                       {typeof p.side === "string" ? p.side.toUpperCase() : p.side}
                                     </td>
-                                    <td className="py-2 text-right text-[13px] tabular-nums">{p.bp_staked.toFixed(1)} BP</td>
-                                    <td className={`py-2 text-[12px] font-medium ${STATUS_COLORS[p.market_status] ?? ""}`}>
-                                      {p.market_status.replace(/_/g, " ")}
+                                    <td className="hidden sm:table-cell py-2 text-right text-[13px] tabular-nums">{p.bp_staked.toFixed(1)} BP</td>
+                                    <td className={`py-2 text-[12px] font-medium whitespace-nowrap ${STATUS_COLORS[p.market_status] ?? ""}`}>
+                                      {shortStatus(p.market_status)}
                                     </td>
                                   </tr>
                                 ))}
@@ -544,22 +550,22 @@ export default function ProfilePage() {
                           <tr className="border-b border-gray-100 dark:border-[oklch(22%_0.015_250)]">
                             <th className="pb-2 text-left text-[11px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">{t("profile.market")}</th>
                             <th className="pb-2 text-left text-[11px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">{t("profile.status")}</th>
-                            <th className="pb-2 text-right text-[11px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">{t("profile.participants")}</th>
+                            <th className="hidden sm:table-cell pb-2 text-right text-[11px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">{t("profile.participants")}</th>
                             <th className="pb-2 text-right text-[11px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">{t("profile.deadline")}</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100 dark:divide-[oklch(22%_0.015_250)]">
                           {myMarketsQuery.data.items.map((m) => (
                             <tr key={m.id} className="hover:bg-[oklch(97%_0.008_264)] dark:hover:bg-[oklch(20%_0.015_250)] transition-colors duration-100">
-                              <td className="py-2 max-w-[220px] truncate">
+                              <td className="py-2 max-w-[120px] sm:max-w-[220px] truncate">
                                 <Link href={getMarketPath(m)} className="text-[13px] hover:underline text-[var(--accent)]">
                                   {m.title}
                                 </Link>
                               </td>
-                              <td className={`py-2 text-[12px] font-medium ${STATUS_COLORS[m.status] ?? ""}`}>
-                                {m.status.replace(/_/g, " ")}
+                              <td className={`py-2 text-[12px] font-medium whitespace-nowrap ${STATUS_COLORS[m.status] ?? ""}`}>
+                                {shortStatus(m.status)}
                               </td>
-                              <td className="py-2 text-right text-[12px] tabular-nums text-gray-400 dark:text-gray-500">
+                              <td className="hidden sm:table-cell py-2 text-right text-[12px] tabular-nums text-gray-400 dark:text-gray-500">
                                 {m.position_count}
                               </td>
                               <td className="py-2 text-right text-[11px] text-gray-400 dark:text-gray-500">
