@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v21.0
 milestone_name: milestone
 current_plan: 3
-status: Phase 08 ready to execute Public API follow-up
+status: Phase 08 complete — all phases done
 last_updated: "2026-04-30T00:00:00+02:00"
 last_activity: 2026-04-30
 progress:
   total_phases: 9
-  completed_phases: 8
+  completed_phases: 9
   total_plans: 53
-  completed_plans: 52
-  percent: 98
+  completed_plans: 53
+  percent: 100
 ---
 
 # Project State
@@ -21,11 +21,11 @@ progress:
 See: `.planning/PROJECT.md` (updated 2026-03-24)
 
 **Core value:** Users can bet on real-world outcomes, argue their position, and earn a verifiable reputation score — without real money.
-**Current focus:** Phase 08 — Public API follow-up planned after RWD UAT passed
+**Current focus:** Phase 08 — stretch modules complete
 
 ## Current Status
 
-**Phase:** 08 (ready to execute Public API follow-up)
+**Phase:** 08 (complete)
 **Current Plan:** 3/3
 **Last session:** 2026-04-30T00:00:00+02:00
 Last activity: 2026-04-30
@@ -122,6 +122,7 @@ Last activity: 2026-04-30
 - Phase 6.1 inserted after Phase 6: rename Karma Points to Like Points + fix BP/TP earn/win formulas (URGENT)
 - Phase 8 added: stretch modules — RWD (mobile-first, priority), Public REST API, PWA (up to +5 pts)
 - Phase 8 RWD UAT passed on 2026-04-30; user selected the recommended read-only Public API scope as the next Phase 8 follow-up. PWA remains deferred.
+- Phase 8 P03 implemented read-only Public API under `/api/public` with seven GET endpoints, OpenAPI coverage, and Redis-backed per-IP rate limiting. STRETCH-01 complete; PWA remains deferred.
 
 ## Performance Metrics
 

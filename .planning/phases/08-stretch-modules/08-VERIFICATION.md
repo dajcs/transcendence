@@ -2,13 +2,9 @@
 phase: 08-stretch-modules
 verified: 2026-04-30T12:00:00Z
 status: passed
-score: 8/11 must-haves verified
-overrides_applied: 3
+score: 10/11 must-haves verified
+overrides_applied: 2
 overrides:
-  - must_have: "STRETCH-01 (Public API) is implemented as part of Phase 8"
-    reason: "Explicitly deferred per design decision D-02 in 08-CONTEXT.md. RWD was the only committed deliverable for Phase 8. Public API remains a backlog candidate."
-    accepted_by: "orchestrator"
-    accepted_at: "2026-04-30"
   - must_have: "STRETCH-03 (PWA) is implemented as part of Phase 8"
     reason: "Explicitly deferred per design decision D-02 in 08-CONTEXT.md. PWA remains a backlog candidate if RWD and API complete first."
     accepted_by: "orchestrator"
@@ -34,14 +30,6 @@ human_verification:
     expected: "The chat thread takes up the correct viewport height (h-[calc(100vh-14rem)]) so the compose bar is not pushed below the viewport by the mobile top bar."
     why_human: "vh-based height calculations involving the mobile top bar offset can only be confirmed in a real browser at target viewport."
 gaps:
-  - truth: "STRETCH-01 (Public API) is implemented as part of Phase 8"
-    status: failed
-    reason: "STRETCH-01 was declared in P01 frontmatter as requirements-completed, but was explicitly deferred per D-02 in CONTEXT.md and is not implemented. The SUMMARY.md entry 'requirements-completed: STRETCH-01' is incorrect — this was a coverage acknowledgment, not an implementation."
-    artifacts:
-      - path: "backend/app/api/routes/public.py"
-        issue: "File does not exist — Public API router was never created"
-    missing:
-      - "Accept this deviation by adding an override entry (suggested format in frontmatter above)"
   - truth: "STRETCH-03 (PWA) is implemented as part of Phase 8"
     status: failed
     reason: "STRETCH-03 was declared in P01 frontmatter as requirements-completed, but was explicitly deferred per D-02 in CONTEXT.md and is not implemented."
@@ -69,7 +57,7 @@ gaps:
 
 ### Scope Note
 
-CONTEXT.md D-02 explicitly scoped Phase 8 execution to RWD only. Public API (STRETCH-01) and PWA (STRETCH-03) were acknowledged as not committed deliverables. STRETCH-02 (advanced search) was also explicitly out of scope. The truths below are evaluated accordingly: RWD truths are verified against the codebase; STRETCH-01/02/03 truths fail because no implementation exists, though the deferrals are documented.
+CONTEXT.md D-02 initially scoped Phase 8 execution to RWD only. After RWD UAT passed, D-04 added the recommended read-only Public API follow-up. The truths below are evaluated accordingly: RWD and STRETCH-01 are verified against the codebase; STRETCH-03 remains deferred; STRETCH-02 (advanced search) is out of scope.
 
 ### Observable Truths
 
@@ -84,10 +72,22 @@ CONTEXT.md D-02 explicitly scoped Phase 8 execution to RWD only. Public API (STR
 | 7  | The markets list fixed grid columns are replaced with responsive Tailwind classes | VERIFIED | `markets/page.tsx`: 0 `gridTemplateColumns:` occurrences; 2 occurrences of `grid-cols-[1fr_84px] sm:grid-cols-[1fr_110px_84px_44px]`; 4+ `hidden sm:flex` instances |
 | 8  | The SVG histogram charts in market detail do not cause horizontal overflow on mobile | VERIFIED (code) | `markets/[id]/page.tsx` lines 589, 1023: both SVG blocks wrapped in `<div className="overflow-x-auto">` — visual confirmation needed |
 | 9  | The chat thread height calculation accounts for the mobile top bar height | VERIFIED (code) | `chat/[userId]/page.tsx` line 68: `h-[calc(100vh-14rem)] md:h-[calc(100vh-12rem)]` — visual confirmation needed |
-| 10 | Public REST API (STRETCH-01) is implemented | FAILED | No `backend/app/api/routes/public.py` exists; deferred per D-02 |
+| 10 | Public REST API (STRETCH-01) is implemented | VERIFIED | P03 added dedicated `/api/public` router, 7 GET endpoints, rate limiting, and OpenAPI tests |
 | 11 | PWA (STRETCH-03) is implemented | FAILED | No `frontend/public/manifest.json` or service worker; deferred per D-02 |
 
-**Score: 8/11 truths verified** (STRETCH-01/03 not implemented per documented deferral D-02; visual rendering requires human)
+**Score: 10/11 truths verified** (STRETCH-03 not implemented per documented deferral D-02)
+
+### Public API Re-verification (2026-04-30)
+
+Phase 8 P03 implemented the Public API follow-up after RWD UAT passed.
+
+Verified evidence:
+- `backend/app/api/routes/public.py` exists and defines exactly 7 `@router.get` endpoints under `/api/public`.
+- `backend/app/main.py` registers `app.include_router(public_router, prefix="/api/public")`.
+- `backend/app/services/public_rate_limit.py` uses `rate:public:` keys and returns 429 with `Retry-After`.
+- `backend/tests/test_public_api.py` verifies unauthenticated access, no write methods, OpenAPI paths/tags, and rate limiting.
+- Targeted tests passed: `tests/test_public_api.py` → 6 passed.
+- Route-adjacent regressions passed: `tests/test_markets.py tests/test_comments.py tests/test_market_positions.py tests/test_users.py` → 46 passed.
 
 ### STRETCH-02 Requirement Note
 
@@ -106,7 +106,7 @@ STRETCH-02 (advanced search) is in REQUIREMENTS.md as a v2 requirement listed wi
 | `frontend/src/app/(auth)/login/page.tsx` | Reduced top padding on mobile `pt-4 md:pt-12` | VERIFIED | Line 12: `pt-4 md:pt-12` |
 | `frontend/src/app/(auth)/register/page.tsx` | Reduced top padding on mobile `pt-4 md:pt-12` | VERIFIED | Line 11: `pt-4 md:pt-12` |
 | `frontend/src/app/(auth)/reset-password/page.tsx` | Reduced top padding on mobile `pt-4 md:pt-12` | VERIFIED | Line 9: `pt-4 md:pt-12` |
-| `backend/app/api/routes/public.py` | Public API router (STRETCH-01) | MISSING | Not created — deferred per D-02 |
+| `backend/app/api/routes/public.py` | Public API router (STRETCH-01) | VERIFIED | Dedicated `/api/public` router with market/profile/leaderboard endpoints, rate limiting dependency, and OpenAPI tests |
 | `frontend/public/manifest.json` | PWA manifest (STRETCH-03) | MISSING | Not created — deferred per D-02 |
 
 ### Key Link Verification
@@ -120,7 +120,11 @@ STRETCH-02 (advanced search) is in REQUIREMENTS.md as a v2 requirement listed wi
 
 ### Data-Flow Trace (Level 4)
 
-Not applicable. All phase changes are CSS/layout modifications with no data-fetching or state rendering. No data-flow trace required.
+P03 public API flow:
+
+`GET /api/public/*` → `backend/app/api/routes/public.py` → existing service layer (`market_service`, `comment_service`, `profile_service`) → SQLAlchemy models → existing response schemas.
+
+The router supplies anonymous viewer context (`user_id=None` / `current_user_id=None`) and does not inspect cookies or call `auth_service.get_current_user`.
 
 ### Behavioral Spot-Checks
 
@@ -138,7 +142,7 @@ Not applicable. All phase changes are CSS/layout modifications with no data-fetc
 | Requirement | Source Plan | Description | Status | Evidence |
 |-------------|------------|-------------|--------|----------|
 | STRETCH-RWD (implicit) | P01, P02 | Responsive Web Design — mobile-first layout | SATISFIED | All RWD truths verified; TypeScript clean |
-| STRETCH-01 | P01 (acknowledged) | Public API — 5+ endpoints, rate-limited, documented | NOT IMPLEMENTED | Deferred per D-02; no code written; plan frontmatter claim of completion is incorrect |
+| STRETCH-01 | P03 | Public API — 5+ endpoints, rate-limited, documented | SATISFIED | `/api/public` has 7 GET endpoints, Redis-backed rate limiting, and OpenAPI tests |
 | STRETCH-02 | P02 (acknowledged) | Advanced search — filters, sorting, pagination | NOT IMPLEMENTED | Out of scope per CONTEXT.md; not in plan deliverables; P02 SUMMARY's `requirements-completed: STRETCH-02` is a frontmatter error |
 | STRETCH-03 | P01 (acknowledged) | PWA with offline support | NOT IMPLEMENTED | Deferred per D-02; no code written; plan frontmatter claim of completion is incorrect |
 
@@ -146,7 +150,7 @@ Not applicable. All phase changes are CSS/layout modifications with no data-fetc
 
 | File | Line | Pattern | Severity | Impact |
 |------|------|---------|----------|--------|
-| `08-P01-SUMMARY.md` | frontmatter | `requirements-completed: STRETCH-01, STRETCH-03` — these were deferred, not implemented | Warning | Documentation only; no code impact. May confuse downstream agents reading requirement coverage. |
+| `08-P01-SUMMARY.md` | frontmatter | `requirements-completed: STRETCH-01, STRETCH-03` — STRETCH-01 was completed later by P03; STRETCH-03 remains deferred | Warning | Documentation only; no code impact. P03-SUMMARY is now the authoritative STRETCH-01 completion record. |
 | `08-P02-SUMMARY.md` | frontmatter | `requirements-completed: STRETCH-02` — explicitly out of scope | Warning | Documentation only; no code impact. Same concern. |
 
 No code-level anti-patterns (TODO/FIXME, placeholder returns, empty handlers, hardcoded empty arrays) found in any modified files.
@@ -185,11 +189,11 @@ No code-level anti-patterns (TODO/FIXME, placeholder returns, empty handlers, ha
 
 ### Gaps Summary
 
-Three STRETCH requirements (STRETCH-01, STRETCH-02, STRETCH-03) were declared in plan frontmatter as "requirements-completed" but were neither implemented nor in scope per D-02 design decision in CONTEXT.md. This is not a new failure — it is a known, documented deferral. However, the frontmatter claims create a false record of requirement completion.
+Two STRETCH requirements remain intentionally unimplemented: STRETCH-02 (advanced search) and STRETCH-03 (PWA). STRETCH-01 was implemented by Phase 8 P03.
 
-**Resolution path:** The maintainer should add `overrides:` entries to this VERIFICATION.md frontmatter accepting the three deferrals with reason "Deferred per D-02 in 08-CONTEXT.md; RWD was the only committed deliverable for Phase 8." Once accepted, the gaps list is empty and status advances to `human_needed` with only the visual checks remaining.
+**Resolution path:** STRETCH-02 and STRETCH-03 remain documented deferrals. No code remediation is required for STRETCH-01.
 
-**RWD implementation is complete at the code level.** All Tailwind responsive classes, mobile drawer logic, grid refactoring, SVG overflow wrapping, and viewport height adjustments are present and wired. TypeScript compiles with zero errors. The only remaining work is human visual verification at 360px viewport.
+**RWD and Public API implementation are complete at the code level.** All Tailwind responsive classes, mobile drawer logic, grid refactoring, SVG overflow wrapping, viewport height adjustments, and `/api/public` read endpoints are present and wired.
 
 ---
 

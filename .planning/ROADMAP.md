@@ -279,7 +279,7 @@ Plans:
 
 ---
 
-## Phase 8 — Stretch Modules
+## Phase 8 — Stretch Modules ✓ Complete (2026-04-30)
 
 **Goal:** Add optional 42 module points beyond the 14-point baseline: Responsive Web Design (mobile-first), Public REST API, and PWA support.
 
@@ -292,7 +292,7 @@ Plans:
 
 **42 modules:** RWD (2pts major), Public API (1pt minor), PWA (2pt major) — up to +5 pts
 
-**Status:** RWD complete and human-UAT accepted on 2026-04-30. Public API follow-up is planned next. PWA remains deferred.
+**Status:** RWD complete and human-UAT accepted on 2026-04-30. Public API follow-up complete. PWA remains deferred.
 
 **Plans:** 3 plans
 
@@ -303,7 +303,7 @@ Plans:
 - [x] P02 — Page-level responsive fixes + audit (markets grid, auth pages, chat, 9 remaining pages)
 
 **Wave 3** *(blocked on RWD UAT completion)*
-- [ ] P03 — Read-only Public API (`/api/public` market/profile/leaderboard endpoints, rate limiting, OpenAPI tests)
+- [x] P03 — Read-only Public API (`/api/public` market/profile/leaderboard endpoints, rate limiting, OpenAPI tests)
 
 Cross-cutting constraints:
 - All plans: no inline `style={{ gridTemplateColumns }}` on layout containers
