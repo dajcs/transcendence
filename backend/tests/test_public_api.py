@@ -129,7 +129,7 @@ async def test_public_api_rejects_write_methods(client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_public_api_openapi_documents_public_paths(client: AsyncClient):
-    resp = await client.get("/openapi.json")
+    resp = await client.get("/api/openapi.json")
 
     assert resp.status_code == 200
     paths = resp.json()["paths"]
@@ -146,6 +146,17 @@ async def test_public_api_openapi_documents_public_paths(client: AsyncClient):
         assert path in paths
         assert "get" in paths[path]
         assert "public" in paths[path]["get"]["tags"]
+
+
+@pytest.mark.asyncio
+async def test_backend_docs_are_available_under_api_prefix(client: AsyncClient):
+    docs_resp = await client.get("/api/docs")
+    schema_resp = await client.get("/api/openapi.json")
+
+    assert docs_resp.status_code == 200
+    assert "swagger" in docs_resp.text.lower()
+    assert schema_resp.status_code == 200
+    assert schema_resp.json()["info"]["title"] == "Vox Populi API"
 
 
 @pytest.mark.asyncio
