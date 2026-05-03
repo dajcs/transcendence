@@ -9,6 +9,7 @@ import { getMarketIdFromRouteParam } from "@/lib/markets";
 import { useAuthStore } from "@/store/auth";
 import { useSocketStore } from "@/store/socket";
 import type { BetPosition, BetPositionsListResponse, Comment, Market, ResolutionState } from "@/lib/types";
+import Avatar from "@/components/Avatar";
 import UserLink from "@/components/UserLink";
 import ReactMarkdown from 'react-markdown';
 import { useT } from "@/i18n";
@@ -522,11 +523,14 @@ export default function MarketDetailPage() {
                 <span className="text-[11px] font-medium text-gray-400 dark:text-gray-500">{market.upvote_count}</span>
               </button>
             </div>
-            <UserLink
-              username={market.proposer_username || "unknown"}
-              label={`@${market.proposer_username || "unknown"}`}
-              className="block text-[13px] font-medium text-[var(--accent)]"
-            />
+            <div className="flex items-center gap-2">
+              <Avatar username={market.proposer_username || "unknown"} avatarUrl={market.proposer_avatar_url} />
+              <UserLink
+                username={market.proposer_username || "unknown"}
+                label={`@${market.proposer_username || "unknown"}`}
+                className="block text-[13px] font-medium text-[var(--accent)]"
+              />
+            </div>
             <p className="text-[13px] text-gray-600 dark:text-gray-400">{market.description}</p>
             <p className="text-[13px] text-gray-500 dark:text-gray-400">{t("market.resolution_label")} {market.resolution_criteria}</p>
           </header>

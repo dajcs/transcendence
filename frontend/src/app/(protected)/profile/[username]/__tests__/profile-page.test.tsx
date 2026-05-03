@@ -16,7 +16,10 @@ jest.mock("@/i18n", () => ({
     vars ? `${key}:${JSON.stringify(vars)}` : key,
 }));
 
-let authState: { user: null | { username: string } } = { user: { username: "alice" } };
+let authState: { user: null | { username: string }; setAvatarUrl: jest.Mock } = {
+  user: { username: "alice" },
+  setAvatarUrl: jest.fn(),
+};
 jest.mock("@/store/auth", () => ({
   useAuthStore: (selector?: (state: typeof authState) => unknown) =>
     selector ? selector(authState) : authState,
@@ -155,7 +158,7 @@ function renderPage() {
 describe("ProfilePage", () => {
   beforeEach(() => {
     params = { username: "alice" };
-    authState = { user: { username: "alice" } };
+    authState = { user: { username: "alice" }, setAvatarUrl: jest.fn() };
     socketHandlers = {};
     jest.clearAllMocks();
     setupApi();
@@ -230,6 +233,30 @@ describe("ProfilePage", () => {
     expect(screen.queryByPlaceholderText("profile.add_mission")).not.toBeInTheDocument();
   });
 
+  it("uploads a custom avatar image from the own profile avatar", async () => {
+    mockPost.mockResolvedValueOnce({ data: { ...profile, avatar_url: "/uploads/avatars/user-1.png" } });
+    renderPage();
+
+    const uploadControl = await screen.findByLabelText("Upload custom avatar image");
+    expect(uploadControl).toHaveAttribute("title", "Upload custom avatar image");
+
+    const file = new File(["avatar"], "avatar.png", { type: "image/png" });
+    await userEvent.upload(screen.getByTestId("avatar-upload-input"), file);
+
+    await waitFor(() => {
+      expect(mockPost).toHaveBeenCalledWith(
+        "/api/users/me/avatar",
+        expect.any(FormData),
+        expect.objectContaining({ headers: { "Content-Type": "multipart/form-data" } }),
+      );
+    });
+    expect(authState.setAvatarUrl).toHaveBeenCalledWith("/uploads/avatars/user-1.png");
+    expect(await screen.findByRole("img", { name: "alice" })).toHaveAttribute(
+      "src",
+      "/uploads/avatars/user-1.png",
+    );
+  });
+
   it("turns an existing mission statement into an inline editor when clicked", async () => {
     mockGet.mockImplementation((url: string) => {
       if (url === "/api/users/alice") {
@@ -273,7 +300,7 @@ describe("ProfilePage", () => {
 
   it("shows friend actions for another user's profile and exposes their bets tab", async () => {
     params = { username: "bob" };
-    authState = { user: { username: "alice" } };
+    authState = { user: { username: "alice" }, setAvatarUrl: jest.fn() };
     mockGet.mockImplementation((url: string) => {
       if (url === "/api/users/bob") {
         return Promise.resolve({

@@ -5,6 +5,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 
 import { api } from "@/lib/api";
+import Avatar from "@/components/Avatar";
 import { useT } from "@/i18n";
 
 type HallTab = "bp" | "tp";
@@ -28,14 +29,6 @@ interface HallOfFameResponse {
   entries: HallOfFameEntry[];
   tp_entries: HallOfFameTpEntry[];
   total: number;
-}
-
-const AVATAR_HUES = [40, 145, 160, 205, 264, 270, 310, 25, 320, 180];
-
-function avatarColor(username: string): string {
-  let hash = 0;
-  for (const c of username) hash = (hash * 31 + c.charCodeAt(0)) >>> 0;
-  return `oklch(56% 0.2 ${AVATAR_HUES[hash % AVATAR_HUES.length]})`;
 }
 
 export default function HallOfFamePage() {
@@ -121,17 +114,7 @@ export default function HallOfFamePage() {
                         href={`/profile/${encodeURIComponent(entry.username)}`}
                         className="flex items-center gap-2.5"
                       >
-                        <div
-                          style={{ background: entry.avatar_url ? undefined : avatarColor(entry.username) }}
-                          className="w-[26px] h-[26px] rounded-full shrink-0 flex items-center justify-center text-white font-bold text-[12px] overflow-hidden"
-                        >
-                          {entry.avatar_url ? (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img src={entry.avatar_url} alt={entry.username} className="h-full w-full object-cover" />
-                          ) : (
-                            entry.username.slice(0, 1).toUpperCase()
-                          )}
-                        </div>
+                        <Avatar username={entry.username} avatarUrl={entry.avatar_url} />
                         <span className="text-[13px] font-medium text-gray-900 dark:text-gray-100 hover:text-[var(--accent)] transition-colors">
                           {entry.username}
                         </span>

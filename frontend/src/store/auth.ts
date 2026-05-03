@@ -24,6 +24,7 @@ interface AuthStore {
   isAuthenticated: boolean;
   bootstrap: () => Promise<void>;
   applyBalanceUpdate: (payload: BalanceChangedPayload) => void;
+  setAvatarUrl: (avatarUrl: string) => void;
   logout: () => Promise<void>;
 }
 
@@ -51,6 +52,13 @@ export const useAuthStore = create<AuthStore>()((set) => ({
           tp: payload.tp,
         },
       };
+    });
+  },
+
+  setAvatarUrl: (avatarUrl) => {
+    set((state) => {
+      if (!state.user) return state;
+      return { user: { ...state.user, avatar_url: avatarUrl } };
     });
   },
 

@@ -4,6 +4,7 @@ import os
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from app.api.routes.auth import router as auth_router
 from app.api.routes.bets import router as bets_router
@@ -71,6 +72,7 @@ app.include_router(public_router, prefix="/api/public")
 app.include_router(users_router, prefix="/api/users", tags=["users"])
 app.include_router(llm_router, prefix="/api", tags=["llm"])
 app.include_router(resolution_router, prefix="/api", tags=["resolution"])
+app.mount("/uploads", StaticFiles(directory="uploads", check_dir=False), name="uploads")
 
 if os.getenv("ENABLE_E2E_TEST_SUPPORT", "").lower() in {"1", "true", "yes"}:
     from app.api.routes.test_support import router as test_support_router

@@ -2,16 +2,9 @@
 
 import { useEffect } from "react";
 import Link from "next/link";
+import Avatar from "@/components/Avatar";
 import { useChatStore } from "@/store/chat";
 import { useT } from "@/i18n";
-
-const AVATAR_HUES = [40, 145, 160, 205, 264, 270, 310, 25, 320, 180];
-
-function avatarColor(username: string): string {
-  let hash = 0;
-  for (const c of username) hash = (hash * 31 + c.charCodeAt(0)) >>> 0;
-  return `oklch(56% 0.2 ${AVATAR_HUES[hash % AVATAR_HUES.length]})`;
-}
 
 export default function ChatListPage() {
   const { conversations, fetchConversations } = useChatStore();
@@ -39,12 +32,7 @@ export default function ChatListPage() {
             i < conversations.length - 1 ? "border-b border-gray-100 dark:border-[oklch(22%_0.015_250)]" : ""
           }`}
         >
-          <div
-            style={{ background: avatarColor(conv.username) }}
-            className="w-[26px] h-[26px] rounded-full shrink-0 flex items-center justify-center text-white font-bold text-[12px]"
-          >
-            {conv.username[0].toUpperCase()}
-          </div>
+          <Avatar username={conv.username} avatarUrl={conv.avatar_url} />
           <div className="flex-1 min-w-0">
             <div className="flex items-center justify-between gap-2">
               <span className="text-[13px] font-medium text-gray-900 dark:text-gray-100">{conv.username}</span>

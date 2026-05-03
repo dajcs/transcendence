@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { type ChangeEvent, useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -77,11 +77,12 @@ function avatarColor(username: string): string {
 
 export default function ProfilePage() {
   const params = useParams<{ username: string }>();
-  const { user: currentUser } = useAuthStore();
+  const { user: currentUser, setAvatarUrl } = useAuthStore();
   const queryClient = useQueryClient();
   const socket = useSocketStore((s) => s.socket);
   const isOwnProfile = currentUser?.username === params.username;
   const t = useT();
+  const avatarInputRef = useRef<HTMLInputElement>(null);
 
   const [activeTab, setActiveTab] = useState<Tab>("points");
   const [editing, setEditing] = useState(false);
@@ -203,6 +204,29 @@ export default function ProfilePage() {
     },
   });
 
+  const uploadAvatar = useMutation({
+    mutationFn: async (file: File) => {
+      const form = new FormData();
+      form.append("file", file);
+      return api.post<Profile>("/api/users/me/avatar", form, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+    },
+    onSuccess: ({ data }) => {
+      queryClient.setQueryData<Profile>(["profile", params.username], data);
+      if (data.avatar_url) setAvatarUrl(data.avatar_url);
+      void queryClient.invalidateQueries({ queryKey: ["markets"] });
+      void queryClient.invalidateQueries({ queryKey: ["hall-of-fame"] });
+    },
+  });
+
+  const handleAvatarFile = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.currentTarget.files?.[0];
+    event.currentTarget.value = "";
+    if (!file) return;
+    uploadAvatar.mutate(file);
+  };
+
   const sendFriendRequest = useMutation({
     mutationFn: async (userId: string) => api.post(`/api/friends/request/${userId}`),
     onSuccess: async () => {
@@ -227,16 +251,39 @@ export default function ProfilePage() {
           {/* Profile header */}
           <div className="bg-white dark:bg-[oklch(18%_0.015_250)] border border-[oklch(91%_0.006_250)] dark:border-[oklch(22%_0.015_250)] rounded-[10px] p-4">
             <div className="flex items-start gap-4">
-              <div
-                style={{ background: profile.avatar_url ? undefined : avatarColor(profile.username) }}
-                className="h-16 w-16 shrink-0 rounded-full flex items-center justify-center text-white font-bold text-xl overflow-hidden"
-              >
-                {profile.avatar_url ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={profile.avatar_url} alt={profile.username} className="h-full w-full object-cover" />
-                ) : (
-                  profile.username[0].toUpperCase()
+              <div className="shrink-0">
+                {isOwnProfile && (
+                  <input
+                    ref={avatarInputRef}
+                    type="file"
+                    accept=".jpg,.jpeg,.png,image/jpeg,image/png"
+                    onChange={handleAvatarFile}
+                    className="hidden"
+                    data-testid="avatar-upload-input"
+                  />
                 )}
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (isOwnProfile && !uploadAvatar.isPending) avatarInputRef.current?.click();
+                  }}
+                  disabled={!isOwnProfile || uploadAvatar.isPending}
+                  title={isOwnProfile ? "Upload custom avatar image" : undefined}
+                  aria-label={isOwnProfile ? "Upload custom avatar image" : profile.username}
+                  style={{ background: profile.avatar_url ? undefined : avatarColor(profile.username) }}
+                  className={`h-16 w-16 rounded-full flex items-center justify-center text-white font-bold text-xl overflow-hidden transition ${
+                    isOwnProfile
+                      ? "cursor-pointer ring-offset-2 ring-offset-white hover:ring-2 hover:ring-[var(--accent)] dark:ring-offset-[oklch(18%_0.015_250)]"
+                      : "cursor-default"
+                  }`}
+                >
+                  {profile.avatar_url ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={profile.avatar_url} alt={profile.username} className="h-full w-full object-cover" />
+                  ) : (
+                    profile.username[0].toUpperCase()
+                  )}
+                </button>
               </div>
 
               <div className="flex-1 min-w-0">
@@ -331,6 +378,7 @@ export default function ProfilePage() {
           </div>
 
           {sendFriendRequest.isError && <p className="text-[13px] text-red-500 dark:text-red-400">{t("profile.friend_error")}</p>}
+          {uploadAvatar.isError && <p className="text-[13px] text-red-500 dark:text-red-400">Avatar upload failed.</p>}
 
           {/* Tab filter row */}
           <div className="flex items-center gap-1.5 flex-wrap">

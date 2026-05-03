@@ -27,6 +27,9 @@ describe("auth store", () => {
 
     useAuthStore.getState().applyBalanceUpdate({ user_id: "other", bp: 0, lp: 0, tp: 0 });
     expect(useAuthStore.getState().user).toMatchObject({ bp: 4, lp: 5, tp: 6 });
+
+    useAuthStore.getState().setAvatarUrl("/uploads/avatars/u1.png");
+    expect(useAuthStore.getState().user?.avatar_url).toBe("/uploads/avatars/u1.png");
   });
 
   it("clears auth state on bootstrap failure and logout", async () => {

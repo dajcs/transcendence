@@ -58,6 +58,7 @@ const market = {
   user_has_liked: false,
   proposer_id: "owner",
   proposer_username: "owner_user",
+  proposer_avatar_url: "/uploads/avatars/owner.png",
   proposer_mission: "Make tests useful",
   proposer_created_at: "2026-01-01T00:00:00Z",
   choices: null,
@@ -82,6 +83,7 @@ describe("MarketsPage", () => {
 
     expect(screen.getByText("markets.loading")).toBeInTheDocument();
     expect(await screen.findByText("Will coverage pass?")).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: "owner_user" })).toHaveAttribute("src", "/uploads/avatars/owner.png");
     expect(screen.getAllByText("5").length).toBeGreaterThan(0);
     expect(screen.getByText("2 markets.comments")).toBeInTheDocument();
     expect(socket.on).toHaveBeenCalledWith("bet:status_changed", expect.any(Function));

@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { api } from "@/lib/api";
+import Avatar from "@/components/Avatar";
 import { getMarketPath } from "@/lib/markets";
 import { useAuthStore } from "@/store/auth";
 import type { Market, MarketListResponse } from "@/lib/types";
@@ -13,33 +14,15 @@ import { useMarketStore } from "@/store/market";
 import { useSocketStore } from "@/store/socket";
 import { useT } from "@/i18n";
 
-// --- Avatar: deterministic color from username ---
-const AVATAR_HUES = [40, 145, 160, 205, 264, 270, 310, 25, 320, 180];
-
-function avatarColor(username: string): string {
-  let hash = 0;
-  for (const c of username) hash = (hash * 31 + c.charCodeAt(0)) >>> 0;
-  return `oklch(56% 0.2 ${AVATAR_HUES[hash % AVATAR_HUES.length]})`;
-}
-
-function Avatar({ username }: { username: string }) {
-  return (
-    <div
-      style={{ background: avatarColor(username) }}
-      className="w-[26px] h-[26px] rounded-full shrink-0 flex items-center justify-center text-white font-bold text-[12px]"
-    >
-      {(username[0] ?? "?").toUpperCase()}
-    </div>
-  );
-}
-
 function AvatarWithTooltip({
   username,
+  avatarUrl,
   mission,
   createdAt,
   profileHref,
 }: {
   username: string;
+  avatarUrl: string | null;
   mission: string | null;
   createdAt: string | null;
   profileHref: string;
@@ -55,7 +38,7 @@ function AvatarWithTooltip({
         className="block"
         tabIndex={0}
       >
-        <Avatar username={username} />
+        <Avatar username={username} avatarUrl={avatarUrl} />
       </Link>
       <div className="pointer-events-none absolute left-0 top-full mt-1.5 z-50 w-44 rounded-lg shadow-lg border border-gray-100 dark:border-[oklch(26%_0.015_250)] bg-white dark:bg-[oklch(18%_0.015_250)] p-2.5 opacity-0 group-hover/avatar:opacity-100 transition-opacity duration-150">
         <p className="text-[12px] font-semibold text-gray-900 dark:text-gray-100 truncate">@{username}</p>
@@ -259,6 +242,7 @@ function MarketRow({ market, isLast }: { market: Market; isLast: boolean }) {
       <div className="flex gap-2.5 items-start min-w-0">
         <AvatarWithTooltip
           username={market.proposer_username || "?"}
+          avatarUrl={market.proposer_avatar_url}
           mission={market.proposer_mission ?? null}
           createdAt={market.proposer_created_at ?? null}
           profileHref={profileHref}

@@ -51,6 +51,8 @@ class Settings(BaseSettings):
 
     # Misc
     allowed_hosts: str = "localhost"
+    avatar_upload_dir: str = "uploads/avatars"
+    avatar_max_bytes: int = 2_000_000
 
     model_config = SettingsConfigDict(env_file=".env", case_sensitive=False)
 

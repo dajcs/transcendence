@@ -2,8 +2,10 @@ export interface FriendRequest {
   id: string;
   from_user_id: string;
   from_username: string;
+  from_avatar_url: string | null;
   to_user_id: string;
   to_username: string;
+  to_avatar_url: string | null;
   status: "pending" | "accepted" | "declined" | "blocked";
   created_at: string;
 }
