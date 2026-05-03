@@ -183,7 +183,7 @@ Last activity: 2026-04-30
 | fast | Fix mission length validation message | 2026-04-29 | pending | Verified | `backend/app/schemas/profile.py`, `backend/tests/test_users.py` |
 | fast | Remove fragile Celery broker timeout override | 2026-04-29 | pending | Verified | `backend/app/workers/celery_app.py` |
 | 260430-ssl | Mount production Let's Encrypt certs directly into nginx | 2026-04-30 | pending | Pending user test | [260430-ssl-prod-fix](./quick/260430-ssl-prod-fix/) |
-| 260503-avt | Custom avatar upload | 2026-05-03 | cad8e8b | Complete | [260503-avt-custom-avatar-upload](./quick/260503-avt-custom-avatar-upload/) |
+| 260503-avt | Custom avatar upload | 2026-05-03 | d4f253d | Complete | [260503-avt-custom-avatar-upload](./quick/260503-avt-custom-avatar-upload/) |
 
 ### Blockers/Concerns
 
