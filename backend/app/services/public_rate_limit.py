@@ -26,9 +26,22 @@ def _get_redis():
     return _redis
 
 
+def _client_identity(request: Request) -> str:
+    real_ip = request.headers.get("x-real-ip", "").strip()
+    if real_ip:
+        return real_ip
+
+    forwarded_for = request.headers.get("x-forwarded-for", "")
+    if forwarded_for:
+        first_ip = forwarded_for.split(",", 1)[0].strip()
+        if first_ip:
+            return first_ip
+
+    return request.client.host if request.client else "unknown"
+
+
 async def enforce_public_rate_limit(request: Request) -> None:
-    client_host = request.client.host if request.client else "unknown"
-    key = f"rate:public:{client_host}"
+    key = f"rate:public:{_client_identity(request)}"
     try:
         redis = _get_redis()
         current = await redis.incr(key)

@@ -80,4 +80,31 @@ describe("Sidebar", () => {
       expect(push).toHaveBeenCalledWith("/login");
     });
   });
+
+  it("exposes mobile drawer state and controlled sidebar to assistive tech", async () => {
+    render(<Sidebar />);
+
+    const toggleButton = screen.getByRole("button", { name: "Toggle menu" });
+    expect(toggleButton).toHaveAttribute("aria-controls", "primary-sidebar");
+    expect(toggleButton).toHaveAttribute("aria-expanded", "false");
+    expect(document.getElementById("primary-sidebar")).toBeInTheDocument();
+
+    await userEvent.click(toggleButton);
+    expect(toggleButton).toHaveAttribute("aria-expanded", "true");
+  });
+
+  it("closes the mobile drawer before logout navigation", async () => {
+    logout.mockResolvedValueOnce(undefined);
+    render(<Sidebar />);
+
+    await userEvent.click(screen.getByRole("button", { name: "Toggle menu" }));
+    expect(screen.getByRole("button", { name: "Toggle menu" })).toHaveAttribute("aria-expanded", "true");
+
+    await userEvent.click(screen.getByRole("button", { name: /nav.logout/ }));
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "Toggle menu" })).toHaveAttribute("aria-expanded", "false");
+      expect(logout).toHaveBeenCalledTimes(1);
+      expect(push).toHaveBeenCalledWith("/login");
+    });
+  });
 });

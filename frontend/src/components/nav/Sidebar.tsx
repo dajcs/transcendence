@@ -93,6 +93,7 @@ export default function Sidebar() {
   ];
 
   const handleLogout = async () => {
+    setMobileOpen(false);
     await logout();
     router.push("/login");
   };
@@ -106,6 +107,8 @@ export default function Sidebar() {
           onClick={() => setMobileOpen((v) => !v)}
           className="p-1 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
           aria-label="Toggle menu"
+          aria-controls="primary-sidebar"
+          aria-expanded={mobileOpen}
         >
           <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             {mobileOpen ? (
@@ -126,7 +129,7 @@ export default function Sidebar() {
         />
       )}
 
-      <aside className={`fixed top-0 left-0 w-[220px] h-screen flex flex-col z-[100] bg-white dark:bg-[oklch(14%_0.015_250)] border-r border-gray-200 dark:border-[oklch(22%_0.015_250)] transition-colors duration-200 transition-transform ${
+      <aside id="primary-sidebar" className={`fixed top-0 left-0 w-[220px] h-screen flex flex-col z-[100] bg-white dark:bg-[oklch(14%_0.015_250)] border-r border-gray-200 dark:border-[oklch(22%_0.015_250)] transition-[background-color,border-color,color,transform] duration-200 ${
         mobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
       }`}>
 

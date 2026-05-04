@@ -176,3 +176,23 @@ async def test_public_api_rate_limit_returns_429(client: AsyncClient, monkeypatc
     assert third.status_code == 429
     assert third.headers["Retry-After"] == "60"
     await fake_redis.aclose()
+
+
+@pytest.mark.asyncio
+async def test_public_api_rate_limit_uses_forwarded_client_ip(client: AsyncClient, monkeypatch):
+    import app.services.public_rate_limit as public_rate_limit
+
+    fake_redis = FakeRedis(decode_responses=True)
+    monkeypatch.setattr(public_rate_limit, "_redis", fake_redis)
+    monkeypatch.setattr(public_rate_limit, "PUBLIC_RATE_LIMIT_MAX_REQUESTS", 1)
+
+    first = await client.get("/api/public/markets", headers={"X-Real-IP": "203.0.113.10"})
+    second_same_client = await client.get("/api/public/markets", headers={"X-Real-IP": "203.0.113.10"})
+    different_client = await client.get("/api/public/markets", headers={"X-Real-IP": "203.0.113.11"})
+
+    assert first.status_code == 200
+    assert second_same_client.status_code == 429
+    assert different_client.status_code == 200
+    assert await fake_redis.exists("rate:public:203.0.113.10") == 1
+    assert await fake_redis.exists("rate:public:203.0.113.11") == 1
+    await fake_redis.aclose()

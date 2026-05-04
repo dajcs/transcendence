@@ -208,9 +208,7 @@ export default function ProfilePage() {
     mutationFn: async (file: File) => {
       const form = new FormData();
       form.append("file", file);
-      return api.post<Profile>("/api/users/me/avatar", form, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
+      return api.post<Profile>("/api/users/me/avatar", form);
     },
     onSuccess: ({ data }) => {
       queryClient.setQueryData<Profile>(["profile", params.username], data);

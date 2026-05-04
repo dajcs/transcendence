@@ -247,7 +247,6 @@ describe("ProfilePage", () => {
       expect(mockPost).toHaveBeenCalledWith(
         "/api/users/me/avatar",
         expect.any(FormData),
-        expect.objectContaining({ headers: { "Content-Type": "multipart/form-data" } }),
       );
     });
     expect(authState.setAvatarUrl).toHaveBeenCalledWith("/uploads/avatars/user-1.png");
