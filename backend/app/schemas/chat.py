@@ -23,8 +23,10 @@ class MessageResponse(BaseModel):
     id: uuid.UUID
     from_user_id: uuid.UUID
     from_username: str
+    from_avatar_url: str | None = None
     to_user_id: uuid.UUID
     to_username: str
+    to_avatar_url: str | None = None
     content: str
     sent_at: datetime
     read_at: datetime | None

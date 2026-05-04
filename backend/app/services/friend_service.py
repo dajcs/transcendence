@@ -276,17 +276,23 @@ async def get_friends_list(db: AsyncSession, current_user_id: uuid.UUID) -> Frie
             to_user = users_map.get(req.to_user_id)
             if req.from_user_id == current_user_id:
                 from_username = "You"
+                from_avatar_url = None
                 to_username = to_user.username if to_user else "Unknown"
+                to_avatar_url = to_user.avatar_url if to_user else None
             else:
                 from_username = from_user.username if from_user else "Unknown"
+                from_avatar_url = from_user.avatar_url if from_user else None
                 to_username = "You"
+                to_avatar_url = None
 
             resp = FriendRequestResponse(
                 id=req.id,
                 from_user_id=req.from_user_id,
                 from_username=from_username,
+                from_avatar_url=from_avatar_url,
                 to_user_id=req.to_user_id,
                 to_username=to_username,
+                to_avatar_url=to_avatar_url,
                 status=req.status,
                 created_at=req.created_at,
             )
@@ -347,8 +353,10 @@ async def _to_request_response(db: AsyncSession, req: FriendRequest) -> FriendRe
         id=req.id,
         from_user_id=req.from_user_id,
         from_username=from_user.username,
+        from_avatar_url=from_user.avatar_url,
         to_user_id=req.to_user_id,
         to_username=to_user.username,
+        to_avatar_url=to_user.avatar_url,
         status=req.status,
         created_at=req.created_at,
     )

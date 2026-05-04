@@ -9,6 +9,7 @@ import { getMarketIdFromRouteParam } from "@/lib/markets";
 import { useAuthStore } from "@/store/auth";
 import { useSocketStore } from "@/store/socket";
 import type { BetPosition, BetPositionsListResponse, Comment, Market, ResolutionState } from "@/lib/types";
+import Avatar from "@/components/Avatar";
 import UserLink from "@/components/UserLink";
 import ReactMarkdown from 'react-markdown';
 import { useT } from "@/i18n";
@@ -522,11 +523,14 @@ export default function MarketDetailPage() {
                 <span className="text-[11px] font-medium text-gray-400 dark:text-gray-500">{market.upvote_count}</span>
               </button>
             </div>
-            <UserLink
-              username={market.proposer_username || "unknown"}
-              label={`@${market.proposer_username || "unknown"}`}
-              className="block text-[13px] font-medium text-[var(--accent)]"
-            />
+            <div className="flex items-center gap-2">
+              <Avatar username={market.proposer_username || "unknown"} avatarUrl={market.proposer_avatar_url} />
+              <UserLink
+                username={market.proposer_username || "unknown"}
+                label={`@${market.proposer_username || "unknown"}`}
+                className="block text-[13px] font-medium text-[var(--accent)]"
+              />
+            </div>
             <p className="text-[13px] text-gray-600 dark:text-gray-400">{market.description}</p>
             <p className="text-[13px] text-gray-500 dark:text-gray-400">{t("market.resolution_label")} {market.resolution_criteria}</p>
           </header>
@@ -586,29 +590,31 @@ export default function MarketDetailPage() {
                   <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
                     {t("market.range_label", { min, max, count: market.position_count })}
                   </p>
-                  <svg width={W} height={H + 16} className="overflow-visible">
-                    {bins.map((bin, i) => {
-                      const barH = Math.round((bin.count / peak) * H);
-                      const x = pad + i * (barW + pad);
-                      return (
-                        <g key={i}>
-                          <rect
-                            x={x} y={H - barH} width={barW} height={barH}
-                            className="fill-purple-500"
-                            rx={2}
-                          />
-                          {bin.count > 0 && (
-                            <text x={x + barW / 2} y={H - barH - 3} textAnchor="middle" fontSize={9} className="fill-gray-600 dark:fill-gray-300">
-                              {bin.count}
+                  <div className="overflow-x-auto">
+                    <svg width={W} height={H + 16} className="overflow-visible">
+                      {bins.map((bin, i) => {
+                        const barH = Math.round((bin.count / peak) * H);
+                        const x = pad + i * (barW + pad);
+                        return (
+                          <g key={i}>
+                            <rect
+                              x={x} y={H - barH} width={barW} height={barH}
+                              className="fill-purple-500"
+                              rx={2}
+                            />
+                            {bin.count > 0 && (
+                              <text x={x + barW / 2} y={H - barH - 3} textAnchor="middle" fontSize={9} className="fill-gray-600 dark:fill-gray-300">
+                                {bin.count}
+                              </text>
+                            )}
+                            <text x={x + barW / 2} y={H + 12} textAnchor="middle" fontSize={8} className="fill-gray-400 dark:fill-gray-500">
+                              {bin.label}
                             </text>
-                          )}
-                          <text x={x + barW / 2} y={H + 12} textAnchor="middle" fontSize={8} className="fill-gray-400 dark:fill-gray-500">
-                            {bin.label}
-                          </text>
-                        </g>
-                      );
-                    })}
-                  </svg>
+                          </g>
+                        );
+                      })}
+                    </svg>
+                  </div>
                 </div>
               );
             })()}
@@ -1018,29 +1024,31 @@ export default function MarketDetailPage() {
                         {Object.keys(weights).length > 0 && (
                           <div>
                             <p className="text-xs text-violet-600 dark:text-violet-400 font-medium mb-1">{t("market.community_label")}</p>
-                            <svg width={W} height={H + 16} className="overflow-visible">
-                              {bins.map((bin, i) => {
-                                const barH = Math.round((bin.weight / peak) * H);
-                                const x = pad + i * (barW + pad);
-                                return (
-                                  <g key={i}>
-                                    <rect
-                                      x={x} y={H - barH} width={barW} height={barH}
-                                      className="fill-violet-500"
-                                      rx={2}
-                                    />
-                                    {bin.weight > 0 && (
-                                      <text x={x + barW / 2} y={H - barH - 3} textAnchor="middle" fontSize={9} className="fill-violet-600 dark:fill-violet-300">
-                                        {bin.weight.toFixed(1)}
+                            <div className="overflow-x-auto">
+                              <svg width={W} height={H + 16} className="overflow-visible">
+                                {bins.map((bin, i) => {
+                                  const barH = Math.round((bin.weight / peak) * H);
+                                  const x = pad + i * (barW + pad);
+                                  return (
+                                    <g key={i}>
+                                      <rect
+                                        x={x} y={H - barH} width={barW} height={barH}
+                                        className="fill-violet-500"
+                                        rx={2}
+                                      />
+                                      {bin.weight > 0 && (
+                                        <text x={x + barW / 2} y={H - barH - 3} textAnchor="middle" fontSize={9} className="fill-violet-600 dark:fill-violet-300">
+                                          {bin.weight.toFixed(1)}
+                                        </text>
+                                      )}
+                                      <text x={x + barW / 2} y={H + 12} textAnchor="middle" fontSize={8} className="fill-gray-400 dark:fill-gray-500">
+                                        {bin.label}
                                       </text>
-                                    )}
-                                    <text x={x + barW / 2} y={H + 12} textAnchor="middle" fontSize={8} className="fill-gray-400 dark:fill-gray-500">
-                                      {bin.label}
-                                    </text>
-                                  </g>
-                                );
-                              })}
-                            </svg>
+                                    </g>
+                                  );
+                                })}
+                              </svg>
+                            </div>
                           </div>
                         )}
                       </div>
@@ -1290,7 +1298,7 @@ export default function MarketDetailPage() {
                 return (
                   <div
                     key={comment.id}
-                    style={{ marginLeft: `${depth * 20}px` }}
+                    style={{ marginLeft: `${Math.min(depth, 3) * 20}px` }}
                     className="rounded-[8px] border border-[oklch(91%_0.006_250)] dark:border-[oklch(22%_0.015_250)] p-3"
                   >
                     <UserLink username={comment.author_username} className="text-[12px] font-medium text-[var(--accent)] mb-1 block" />

@@ -6,6 +6,7 @@ import { useFriendsStore } from "@/store/friends";
 import { useSocketStore } from "@/store/socket";
 import type { BlockedUser } from "@/lib/friends-types";
 import { api } from "@/lib/api";
+import Avatar from "@/components/Avatar";
 import UserLink from "@/components/UserLink";
 import { useT } from "@/i18n";
 
@@ -13,26 +14,6 @@ interface SearchResult {
   id: string;
   username: string;
   avatar_url: string | null;
-}
-
-// --- Avatar: deterministic color from username (matches markets page) ---
-const AVATAR_HUES = [40, 145, 160, 205, 264, 270, 310, 25, 320, 180];
-
-function avatarColor(username: string): string {
-  let hash = 0;
-  for (const c of username) hash = (hash * 31 + c.charCodeAt(0)) >>> 0;
-  return `oklch(56% 0.2 ${AVATAR_HUES[hash % AVATAR_HUES.length]})`;
-}
-
-function Avatar({ username }: { username: string }) {
-  return (
-    <div
-      style={{ background: avatarColor(username) }}
-      className="w-[26px] h-[26px] rounded-full shrink-0 flex items-center justify-center text-white font-bold text-[12px]"
-    >
-      {(username[0] ?? "?").toUpperCase()}
-    </div>
-  );
 }
 
 function UserSearch() {
@@ -118,7 +99,7 @@ function UserSearch() {
               }`}
             >
               <div className="flex items-center gap-2.5">
-                <Avatar username={user.username} />
+                <Avatar username={user.username} avatarUrl={user.avatar_url} />
                 <span className="text-[13px] font-medium text-gray-900 dark:text-gray-100">{user.username}</span>
               </div>
               <div className="flex flex-col items-end gap-1">
@@ -247,7 +228,7 @@ export default function FriendsPage() {
               >
                 <div className="flex items-center gap-2.5">
                   <div className="relative">
-                    <Avatar username={friend.username} />
+                    <Avatar username={friend.username} avatarUrl={friend.avatar_url} />
                     <span className={`absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-white dark:border-[oklch(18%_0.015_250)] ${
                       friend.is_online ? "bg-green-500" : "bg-gray-400 dark:bg-gray-600"
                     }`} />
@@ -295,7 +276,7 @@ export default function FriendsPage() {
                 }`}
               >
                 <div className="flex items-center gap-2.5">
-                  <Avatar username={req.from_username} />
+                  <Avatar username={req.from_username} avatarUrl={req.from_avatar_url} />
                   <div>
                     <UserLink username={req.from_username} className="text-[13px] font-medium text-gray-900 dark:text-gray-100" />
                     <p className="text-[11px] text-gray-400 dark:text-gray-500">
@@ -333,7 +314,7 @@ export default function FriendsPage() {
                 }`}
               >
                 <div className="flex items-center gap-2.5">
-                  <Avatar username={req.to_username} />
+                  <Avatar username={req.to_username} avatarUrl={req.to_avatar_url} />
                   <div>
                     <UserLink username={req.to_username} className="text-[13px] font-medium text-gray-900 dark:text-gray-100" />
                     <p className="text-[11px] text-gray-400 dark:text-gray-500">
@@ -361,7 +342,7 @@ export default function FriendsPage() {
                 }`}
               >
                 <div className="flex items-center gap-2.5">
-                  <Avatar username={u.username} />
+                  <Avatar username={u.username} avatarUrl={u.avatar_url} />
                   <UserLink username={u.username} className="text-[13px] font-medium text-gray-900 dark:text-gray-100" />
                 </div>
                 <button

@@ -193,6 +193,55 @@ async def test_update_mission_too_long(client: AsyncClient):
     assert resp.json()["detail"][0]["msg"] == "Value error, Mission must be under 500 characters"
 
 
+@pytest.mark.asyncio
+async def test_upload_avatar_accepts_png_and_updates_profile(
+    client: AsyncClient, db_session, tmp_path, monkeypatch
+):
+    """PROFILE-02: authenticated user can upload a custom PNG avatar."""
+    from app.config import settings
+
+    monkeypatch.setattr(settings, "avatar_upload_dir", str(tmp_path / "avatars"))
+    await _register_and_login(client, "avatar@example.com", "avataruser")
+
+    png_bytes = b"\x89PNG\r\n\x1a\n" + b"\x00" * 16
+    resp = await client.post(
+        "/api/users/me/avatar",
+        files={"file": ("avatar.png", png_bytes, "image/png")},
+    )
+
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["avatar_url"].startswith("/uploads/avatars/")
+    assert data["avatar_url"].endswith(".png")
+
+    saved = tmp_path / "avatars" / data["avatar_url"].split("/")[-1]
+    assert saved.read_bytes() == png_bytes
+
+    user = (
+        await db_session.execute(select(User).where(User.username == "avataruser"))
+    ).scalar_one()
+    assert user.avatar_url == data["avatar_url"]
+
+    profile = await client.get("/api/users/avataruser")
+    assert profile.json()["avatar_url"] == data["avatar_url"]
+
+
+@pytest.mark.asyncio
+async def test_upload_avatar_rejects_non_image(client: AsyncClient, tmp_path, monkeypatch):
+    """PROFILE-02: avatar upload only accepts JPG or PNG image data."""
+    from app.config import settings
+
+    monkeypatch.setattr(settings, "avatar_upload_dir", str(tmp_path / "avatars"))
+    await _register_and_login(client, "notimage@example.com", "notimage")
+
+    resp = await client.post(
+        "/api/users/me/avatar",
+        files={"file": ("avatar.txt", b"not an image", "text/plain")},
+    )
+
+    assert resp.status_code == 422
+
+
 # ── PROFILE-03: GET /api/users/search ─────────────────────────────────────────
 
 @pytest.mark.asyncio

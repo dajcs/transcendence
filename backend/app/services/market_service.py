@@ -42,6 +42,7 @@ async def create_market(
 
     proposer = (await db.execute(select(User).where(User.id == proposer_id))).scalar_one_or_none()
     proposer_username = proposer.username if proposer else ""
+    proposer_avatar_url = proposer.avatar_url if proposer else None
 
     # Schedule per-market resolution callback exactly at deadline; store task_id for revocation
     try:
@@ -68,6 +69,7 @@ async def create_market(
         status=market.status,
         proposer_id=market.proposer_id,
         proposer_username=proposer_username,
+        proposer_avatar_url=proposer_avatar_url,
         created_at=market.created_at,
         market_type=market.market_type,
         choices=market.choices,
@@ -204,15 +206,17 @@ async def list_markets(
 
     proposer_ids = {row.proposer_id for row in rows}
     username_map: dict[uuid.UUID, str] = {}
+    avatar_map: dict[uuid.UUID, str | None] = {}
     bio_map: dict[uuid.UUID, str | None] = {}
     created_at_map: dict[uuid.UUID, object] = {}
     if proposer_ids:
         uname_rows = (await db.execute(
-            select(User.id, User.username, User.mission, User.created_at).where(User.id.in_(proposer_ids))
+            select(User.id, User.username, User.avatar_url, User.mission, User.created_at).where(User.id.in_(proposer_ids))
         )).all()
-        username_map = {uid: uname for uid, uname, _m, _cat in uname_rows}
-        mission_map = {uid: m for uid, _uname, m, _cat in uname_rows}
-        created_at_map = {uid: cat for uid, _uname, _m, cat in uname_rows}
+        username_map = {uid: uname for uid, uname, _avatar, _m, _cat in uname_rows}
+        avatar_map = {uid: avatar for uid, _uname, avatar, _m, _cat in uname_rows}
+        mission_map = {uid: m for uid, _uname, _avatar, m, _cat in uname_rows}
+        created_at_map = {uid: cat for uid, _uname, _avatar, _m, cat in uname_rows}
 
     items: list[MarketResponse] = []
     for row in rows:
@@ -259,6 +263,7 @@ async def list_markets(
                 status=row.status,
                 proposer_id=row.proposer_id,
                 proposer_username=username_map.get(row.proposer_id, ""),
+                proposer_avatar_url=avatar_map.get(row.proposer_id),
                 proposer_mission=mission_map.get(row.proposer_id),
                 proposer_created_at=created_at_map.get(row.proposer_id),
                 created_at=row.created_at,
@@ -292,6 +297,7 @@ async def get_market(
 
     proposer = (await db.execute(select(User).where(User.id == market.proposer_id))).scalar_one_or_none()
     proposer_username = proposer.username if proposer else ""
+    proposer_avatar_url = proposer.avatar_url if proposer else None
 
     odds = await get_bet_odds(db, market.id)
     position_count = (
@@ -337,6 +343,9 @@ async def get_market(
         status=market.status,
         proposer_id=market.proposer_id,
         proposer_username=proposer_username,
+        proposer_avatar_url=proposer_avatar_url,
+        proposer_mission=proposer.mission if proposer else None,
+        proposer_created_at=proposer.created_at if proposer else None,
         created_at=market.created_at,
         market_type=market.market_type,
         choices=market.choices,

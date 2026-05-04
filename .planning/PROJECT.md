@@ -12,6 +12,14 @@ Users can bet on real-world outcomes, argue their position in discussion threads
 
 ### Validated
 
+**Responsive Web Design** — Validated in Phase 08: stretch-modules
+- Mobile hamburger drawer sidebar with backdrop overlay and slide-in animation
+- Breakpoint-conditional AppShell margin (full-width on mobile, 220px offset on desktop)
+- Responsive markets grid replacing inline gridTemplateColumns
+- SVG histogram overflow-x-auto wrapping on market detail page
+- Profile page: compact 5-stat row, split date/time columns, mobile-optimised bets/markets tables
+- All 15+ pages tested at 360px — no horizontal overflow
+
 **Intelligence & Resolution** — Validated in Phase 05: intelligence-resolution
 - Tiered resolution (auto Celery ETA + beat fallback, proposer, community vote with weighted voting)
 - LLM via OpenRouter: thread summarizer + resolution assistant with rate limits (5/day summary, 3/day hint)

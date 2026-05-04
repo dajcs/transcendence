@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v21.0
 milestone_name: milestone
-current_plan: 5
-status: Phase 07 complete
-last_updated: "2026-04-29T00:00:00+02:00"
-last_activity: 2026-04-29
+current_plan: 3
+status: Phase 08 complete — all phases done
+last_updated: "2026-04-30T00:00:00+02:00"
+last_activity: 2026-04-30
 progress:
   total_phases: 9
-  completed_phases: 8
-  total_plans: 50
-  completed_plans: 50
+  completed_phases: 9
+  total_plans: 53
+  completed_plans: 53
   percent: 100
 ---
 
@@ -21,15 +21,15 @@ progress:
 See: `.planning/PROJECT.md` (updated 2026-03-24)
 
 **Core value:** Users can bet on real-world outcomes, argue their position, and earn a verifiable reputation score — without real money.
-**Current focus:** Phase 07 — testing-stretch complete
+**Current focus:** Phase 08 — stretch modules complete
 
 ## Current Status
 
-**Phase:** 07
-**Current Plan:** 5
-**Last session:** 2026-04-29T00:00:00+02:00
-Last activity: 2026-04-29
-**Resume file:** .planning/phases/07-testing-stretch/07-05-SUMMARY.md
+**Phase:** 08 (complete)
+**Current Plan:** 3/3
+**Last session:** 2026-04-30T00:00:00+02:00
+Last activity: 2026-04-30
+**Resume file:** .planning/phases/08-stretch-modules/
 
 ## Decisions
 
@@ -112,6 +112,7 @@ Last activity: 2026-04-29
 - [Phase 06]: Implemented outside GSD and merged back into the main codebase; planning artifacts retained as historical record
 - [Phase 06.1]: All 8 plans executed; all 6 HUMAN-UAT checks passed; accepted follow-up fixes include refund/ledger corrections, participant-count binary odds, span-based numeric payout bands (2/4/8/16%), and Hall of Fame backed by bp_fund_entries
 - [Quick 260421-exi]: Leave OAUTH_REDIRECT_BASE empty by default and forward X-Forwarded-Proto/Host through Nginx so OAuth callback URIs preserve the initiating host and HTTPS scheme
+- [Quick 260430-ssl]: Production nginx mounts `/etc/letsencrypt/live/voxpo.me` directly with the archive symlink target; `make main` no longer stages certs into `nginx/ssl-prod`
 
 ## Accumulated Context
 
@@ -119,6 +120,9 @@ Last activity: 2026-04-29
 
 - Phase 5.1 inserted after Phase 5: add autoresolution, profile bet logs, market bet details (URGENT)
 - Phase 6.1 inserted after Phase 6: rename Karma Points to Like Points + fix BP/TP earn/win formulas (URGENT)
+- Phase 8 added: stretch modules — RWD (mobile-first, priority), Public REST API, PWA (up to +5 pts)
+- Phase 8 RWD UAT passed on 2026-04-30; user selected the recommended read-only Public API scope as the next Phase 8 follow-up. PWA remains deferred.
+- Phase 8 P03 implemented read-only Public API under `/api/public` with seven GET endpoints, OpenAPI coverage, and Redis-backed per-IP rate limiting. STRETCH-01 complete; PWA remains deferred.
 
 ## Performance Metrics
 
@@ -178,6 +182,8 @@ Last activity: 2026-04-29
 | 260427-ivy | Reject bets after market deadline | 2026-04-27 | f302c1c | Complete | [260427-ivy-please-check-the-comment-below-if-valid-](./quick/260427-ivy-please-check-the-comment-below-if-valid-/) |
 | fast | Fix mission length validation message | 2026-04-29 | pending | Verified | `backend/app/schemas/profile.py`, `backend/tests/test_users.py` |
 | fast | Remove fragile Celery broker timeout override | 2026-04-29 | pending | Verified | `backend/app/workers/celery_app.py` |
+| 260430-ssl | Mount production Let's Encrypt certs directly into nginx | 2026-04-30 | pending | Pending user test | [260430-ssl-prod-fix](./quick/260430-ssl-prod-fix/) |
+| 260503-avt | Custom avatar upload | 2026-05-03 | d4f253d | Complete | [260503-avt-custom-avatar-upload](./quick/260503-avt-custom-avatar-upload/) |
 
 ### Blockers/Concerns
 

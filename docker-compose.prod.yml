@@ -5,7 +5,8 @@ services:
       - "443:443"
     volumes:
       - ./nginx/nginx.prod.conf:/etc/nginx/nginx.conf:ro
-      - ./nginx/ssl-prod:/etc/nginx/ssl:ro
+      - /etc/letsencrypt/live/voxpo.me:/etc/letsencrypt/live/voxpo.me:ro
+      - /etc/letsencrypt/archive/voxpo.me:/etc/letsencrypt/archive/voxpo.me:ro
 
   frontend:
     build:
