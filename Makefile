@@ -145,8 +145,8 @@ gen-keys:
 	openssl rsa -in backend/keys/jwt_private.pem -pubout -out backend/keys/jwt_public.pem
 	@echo "Keys generated. Update JWT_PRIVATE_KEY_PATH and JWT_PUBLIC_KEY_PATH in .env"
 
-# Create nginx/ssl-prod/ directory for production SSL certs (main mode)
+# Production nginx mounts Let's Encrypt certs directly from /etc/letsencrypt/live/voxpo.me.
 gen-keys-main:
-	mkdir -p nginx/ssl-prod
-	@echo "Place real SSL certs in nginx/ssl-prod/cert.pem and nginx/ssl-prod/key.pem"
-	@echo "(e.g. from Let's Encrypt: fullchain.pem -> cert.pem, privkey.pem -> key.pem)"
+	@test -r /etc/letsencrypt/live/voxpo.me/fullchain.pem
+	@test -r /etc/letsencrypt/live/voxpo.me/privkey.pem
+	@echo "Production SSL fullchain and key available in /etc/letsencrypt/live/voxpo.me"

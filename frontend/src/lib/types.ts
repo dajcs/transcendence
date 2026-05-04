@@ -7,6 +7,7 @@ export interface Market {
   status: "open" | "pending" | "pending_resolution" | "proposer_resolved" | "disputed" | "closed";
   proposer_id: string;
   proposer_username: string;
+  proposer_avatar_url: string | null;
   proposer_mission: string | null;
   proposer_created_at: string | null;
   created_at: string;

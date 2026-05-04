@@ -114,13 +114,11 @@ make gen-keys   # writes nginx/ssl/cert.pem + key.pem
 
 ### Main: real certificate (Let's Encrypt or similar)
 ```bash
-make gen-keys-main          # creates nginx/ssl-prod/
-# copy certs:
-cp /etc/letsencrypt/live/voxpo.me/fullchain.pem nginx/ssl-prod/cert.pem
-cp /etc/letsencrypt/live/voxpo.me/privkey.pem   nginx/ssl-prod/key.pem
+make gen-keys-main          # verifies cert.pem + privkey.pem are readable
+make main
 ```
 
-Certificates mounted into Nginx via `nginx/ssl/` (dev) or `nginx/ssl-prod/` (main).
+Certificates mounted into Nginx via `nginx/ssl/` (dev) or `/etc/letsencrypt/live/voxpo.me` plus its `/etc/letsencrypt/archive/voxpo.me` symlink target directory (main). Production nginx reads `cert.pem` and `privkey.pem` directly from the Let's Encrypt live directory.
 
 ### JWT Signing Keys
 
@@ -270,7 +268,7 @@ App available at `https://localhost:8443`.
 
 **Main (production):**
 ```bash
-make gen-keys-main    # then place real certs in nginx/ssl-prod/
+make gen-keys-main    # verifies real certs in /etc/letsencrypt/live/voxpo.me
 # set OAUTH_REDIRECT_BASE=https://voxpo.me in .env
 make main
 ```

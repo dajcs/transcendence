@@ -1,10 +1,14 @@
 """User profile API routes: /api/users/*"""
-from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from pathlib import Path
+from uuid import uuid4
+
+from fastapi import APIRouter, Depends, File, HTTPException, Query, Request, UploadFile
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_db
+from app.config import settings
 from app.schemas.ledger import TransactionListResponse
 from app.schemas.profile import (
     HallOfFameResponse,
@@ -19,6 +23,11 @@ from app.services import gdpr_service
 from app.utils.crypto import encrypt_secret
 
 router = APIRouter()
+
+_AVATAR_CONTENT_TYPES = {
+    "image/jpeg": ("jpg", b"\xff\xd8\xff"),
+    "image/png": ("png", b"\x89PNG\r\n\x1a\n"),
+}
 
 
 async def _get_current_user(request: Request, db: AsyncSession):
@@ -100,6 +109,43 @@ async def update_my_profile(
     """Update the authenticated user's profile."""
     user = await _get_current_user(request, db)
     await profile_service.update_profile(db, user.id, data)
+    return await profile_service.get_public_profile(db, user.username, user.id)
+
+
+@router.post("/me/avatar", response_model=PublicProfileResponse)
+async def upload_my_avatar(
+    request: Request,
+    file: UploadFile = File(...),
+    db: AsyncSession = Depends(get_db),
+):
+    """Upload a custom JPG or PNG avatar for the authenticated user."""
+    user = await _get_current_user(request, db)
+
+    type_info = _AVATAR_CONTENT_TYPES.get(file.content_type or "")
+    if type_info is None:
+        raise HTTPException(status_code=422, detail="Avatar must be a JPG or PNG image")
+
+    ext, signature = type_info
+    content = await file.read()
+    if not content or len(content) > settings.avatar_max_bytes:
+        raise HTTPException(status_code=413, detail="Avatar image is too large")
+    if not content.startswith(signature):
+        raise HTTPException(status_code=422, detail="Avatar file contents do not match JPG or PNG")
+
+    upload_dir = Path(settings.avatar_upload_dir)
+    upload_dir.mkdir(parents=True, exist_ok=True)
+
+    if user.avatar_url and user.avatar_url.startswith("/uploads/avatars/"):
+        previous = upload_dir / Path(user.avatar_url).name
+        if previous.is_file():
+            previous.unlink()
+
+    filename = f"{user.id}-{uuid4().hex}.{ext}"
+    destination = upload_dir / filename
+    destination.write_bytes(content)
+
+    user.avatar_url = f"/uploads/avatars/{filename}"
+    await db.commit()
     return await profile_service.get_public_profile(db, user.username, user.id)
 
 

@@ -3,24 +3,17 @@
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
+import Avatar from "@/components/Avatar";
 import { useChatStore } from "@/store/chat";
 import { useAuthStore } from "@/store/auth";
 import { useSocketStore } from "@/store/socket";
 import { useT } from "@/i18n";
 
-const AVATAR_HUES = [40, 145, 160, 205, 264, 270, 310, 25, 320, 180];
-
-function avatarColor(username: string): string {
-  let hash = 0;
-  for (const c of username) hash = (hash * 31 + c.charCodeAt(0)) >>> 0;
-  return `oklch(56% 0.2 ${AVATAR_HUES[hash % AVATAR_HUES.length]})`;
-}
-
 export default function ChatConversationPage() {
   const params = useParams<{ userId: string }>();
   const partnerId = params.userId;
   const { user: currentUser } = useAuthStore();
-  const { messages, isLoading, fetchMessages, sendMessage, markRead } = useChatStore();
+  const { conversations, messages, isLoading, fetchMessages, sendMessage, markRead } = useChatStore();
   const socket = useSocketStore((s) => s.socket);
   const t = useT();
   const [newMessage, setNewMessage] = useState("");
@@ -48,7 +41,10 @@ export default function ChatConversationPage() {
 
   const partnerUsername = messages.length > 0
     ? (messages[0].from_user_id === partnerId ? messages[0].from_username : messages[0].to_username)
-    : "";
+    : conversations.find((conv) => conv.user_id === partnerId)?.username ?? "";
+  const partnerAvatarUrl = messages.length > 0
+    ? (messages[0].from_user_id === partnerId ? messages[0].from_avatar_url : messages[0].to_avatar_url)
+    : conversations.find((conv) => conv.user_id === partnerId)?.avatar_url ?? null;
 
   const handleSend = async (e: FormEvent) => {
     e.preventDefault();
@@ -65,7 +61,7 @@ export default function ChatConversationPage() {
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-12rem)]">
+    <div className="flex flex-col h-[calc(100vh-14rem)] md:h-[calc(100vh-12rem)]">
       {/* Header */}
       <div className="flex items-center gap-2.5 pb-3 mb-3 border-b border-gray-100 dark:border-[oklch(22%_0.015_250)]">
         <Link
@@ -79,12 +75,7 @@ export default function ChatConversationPage() {
         </Link>
         {partnerUsername ? (
           <>
-            <div
-              style={{ background: avatarColor(partnerUsername) }}
-              className="w-[26px] h-[26px] rounded-full shrink-0 flex items-center justify-center text-white font-bold text-[12px]"
-            >
-              {partnerUsername[0].toUpperCase()}
-            </div>
+            <Avatar username={partnerUsername} avatarUrl={partnerAvatarUrl} />
             <Link
               href={`/profile/${encodeURIComponent(partnerUsername)}`}
               className="text-[14px] font-semibold text-gray-900 dark:text-gray-100 hover:text-[var(--accent)] transition-colors"

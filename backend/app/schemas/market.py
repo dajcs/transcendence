@@ -83,6 +83,7 @@ class MarketResponse(BaseModel):
     status: str
     proposer_id: uuid.UUID
     proposer_username: str = ""
+    proposer_avatar_url: str | None = None
     proposer_mission: str | None = None
     proposer_created_at: datetime | None = None
     created_at: datetime

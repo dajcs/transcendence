@@ -4,6 +4,7 @@ import os
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from app.api.routes.auth import router as auth_router
 from app.api.routes.bets import router as bets_router
@@ -15,6 +16,7 @@ from app.api.routes.llm import router as llm_router
 from app.api.routes.resolution import router as resolution_router
 from app.api.routes.markets import router as markets_router
 from app.api.routes.notifications import router as notifications_router
+from app.api.routes.public import router as public_router
 from app.api.routes.users import router as users_router
 from app.config import settings
 from sqlalchemy import text
@@ -42,7 +44,13 @@ async def lifespan(app: FastAPI):
     await engine.dispose()
 
 
-app = FastAPI(title="Vox Populi API", lifespan=lifespan)
+app = FastAPI(
+    title="Vox Populi API",
+    lifespan=lifespan,
+    docs_url="/api/docs",
+    redoc_url="/api/redoc",
+    openapi_url="/api/openapi.json",
+)
 
 app.add_middleware(
     CORSMiddleware,
@@ -60,9 +68,11 @@ app.include_router(comments_router, prefix="/api", tags=["comments"])
 app.include_router(config_router, prefix="/api", tags=["config"])
 app.include_router(friends_router, prefix="/api/friends", tags=["friends"])
 app.include_router(notifications_router, prefix="/api/notifications", tags=["notifications"])
+app.include_router(public_router, prefix="/api/public")
 app.include_router(users_router, prefix="/api/users", tags=["users"])
 app.include_router(llm_router, prefix="/api", tags=["llm"])
 app.include_router(resolution_router, prefix="/api", tags=["resolution"])
+app.mount("/uploads", StaticFiles(directory="uploads", check_dir=False), name="uploads")
 
 if os.getenv("ENABLE_E2E_TEST_SUPPORT", "").lower() in {"1", "true", "yes"}:
     from app.api.routes.test_support import router as test_support_router

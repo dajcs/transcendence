@@ -19,6 +19,7 @@ __pycache__/
 backend/.venv/
 backend/.coverage
 backend/coverage.xml
+backend/uploads/
 
 # Node
 node_modules/
