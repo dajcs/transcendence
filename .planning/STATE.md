@@ -28,7 +28,7 @@ See: `.planning/PROJECT.md` (updated 2026-03-24)
 **Phase:** 08 (complete)
 **Current Plan:** 3/3
 **Last session:** 2026-04-30T00:00:00+02:00
-Last activity: 2026-05-05 - Completed quick task 260505-prt: Pending resolution timeout fix
+Last activity: 2026-05-05 - Completed quick task oauth-login-daily-bonus: OAuth daily login bonus duplication fix
 **Resume file:** .planning/phases/08-stretch-modules/
 
 ## Decisions
@@ -186,6 +186,7 @@ Last activity: 2026-05-05 - Completed quick task 260505-prt: Pending resolution 
 | 260503-avt | Custom avatar upload | 2026-05-03 | d4f253d | Complete | [260503-avt-custom-avatar-upload](./quick/260503-avt-custom-avatar-upload/) |
 | 260505 | Fix avatar upload multipart content type | 2026-05-05 | pending | Pending user test | [260505-fix-avatar-upload](./quick/260505-fix-avatar-upload/) |
 | 260505-prt | Pending resolution timeout fix | 2026-05-05 | b5eaff1 | Complete | [260505-prt-pending-resolution-timeout-fix](./quick/260505-prt-pending-resolution-timeout-fix/) |
+| 20260505 | OAuth daily login bonus duplication fix | 2026-05-05 | pending | Complete | [20260505-oauth-login-daily-bonus](./quick/20260505-oauth-login-daily-bonus/) |
 
 ### Blockers/Concerns
 

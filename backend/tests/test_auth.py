@@ -5,7 +5,9 @@ from httpx import AsyncClient
 from fastapi import HTTPException
 from starlette.requests import Request
 from unittest.mock import AsyncMock, patch
+from sqlalchemy import func, select
 from app.db.models.user import User
+from app.db.models.transaction import BpTransaction
 
 
 # ── AUTH-01: Registration ──────────────────────────────────────────────────
@@ -250,6 +252,46 @@ async def test_oauth_callback_invalid_host_redirects_to_login_error(monkeypatch)
 
     assert resp.status_code == 302
     assert resp.headers["location"] == "/login?error=Invalid%20host%20header"
+
+
+@pytest.mark.asyncio
+async def test_daily_login_bonus_is_atomic_for_stale_oauth_me_requests(db_session):
+    from app.services.auth_service import _credit_daily_login_bonus
+
+    user_id = uuid.uuid4()
+    db_session.add(User(
+        id=user_id,
+        email="oauth-race@example.com",
+        username="oauth_race",
+        password_hash=None,
+        is_active=True,
+    ))
+    await db_session.commit()
+
+    first_user = (
+        await db_session.execute(select(User).where(User.id == user_id))
+    ).scalar_one()
+    stale_second_user = User(
+        id=user_id,
+        email="oauth-race@example.com",
+        username="oauth_race",
+        password_hash=None,
+        is_active=True,
+    )
+
+    await _credit_daily_login_bonus(db_session, first_user)
+    await _credit_daily_login_bonus(db_session, stale_second_user)
+
+    daily_total = (
+        await db_session.execute(
+            select(func.coalesce(func.sum(BpTransaction.amount), 0)).where(
+                BpTransaction.user_id == user_id,
+                BpTransaction.reason == "daily_login",
+            )
+        )
+    ).scalar_one()
+
+    assert float(daily_total) == 1.0
 
 
 # ── AUTH-03: Password reset no enumeration ────────────────────────────────

@@ -4,7 +4,7 @@ import uuid
 from datetime import datetime, timezone
 
 from fastapi import HTTPException, status
-from sqlalchemy import or_, select
+from sqlalchemy import or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models.user import User
@@ -63,8 +63,16 @@ async def register(db: AsyncSession, req: RegisterRequest) -> User:
 async def _credit_daily_login_bonus(db: AsyncSession, user: User) -> None:
     """Credit +1 bp on first authenticated request of the UTC day."""
     now = datetime.now(timezone.utc)
-    today = now.date()
-    if user.last_login is not None and user.last_login.astimezone(timezone.utc).date() == today:
+    today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    result = await db.execute(
+        update(User)
+        .where(
+            User.id == user.id,
+            or_(User.last_login.is_(None), User.last_login < today_start),
+        )
+        .values(last_login=now)
+    )
+    if result.rowcount != 1:
         return
 
     await credit_bp(db, user.id, 1.0, "daily_login")
