@@ -5,7 +5,7 @@ milestone_name: milestone
 current_plan: 3
 status: Phase 08 complete — all phases done
 last_updated: "2026-04-30T00:00:00+02:00"
-last_activity: 2026-04-30
+last_activity: 2026-05-05
 progress:
   total_phases: 9
   completed_phases: 9
@@ -28,7 +28,7 @@ See: `.planning/PROJECT.md` (updated 2026-03-24)
 **Phase:** 08 (complete)
 **Current Plan:** 3/3
 **Last session:** 2026-04-30T00:00:00+02:00
-Last activity: 2026-04-30
+Last activity: 2026-05-05 - Completed quick task 260505-prt: Pending resolution timeout fix
 **Resume file:** .planning/phases/08-stretch-modules/
 
 ## Decisions
@@ -185,6 +185,7 @@ Last activity: 2026-04-30
 | 260430-ssl | Mount production Let's Encrypt certs directly into nginx | 2026-04-30 | pending | Pending user test | [260430-ssl-prod-fix](./quick/260430-ssl-prod-fix/) |
 | 260503-avt | Custom avatar upload | 2026-05-03 | d4f253d | Complete | [260503-avt-custom-avatar-upload](./quick/260503-avt-custom-avatar-upload/) |
 | 260505 | Fix avatar upload multipart content type | 2026-05-05 | pending | Pending user test | [260505-fix-avatar-upload](./quick/260505-fix-avatar-upload/) |
+| 260505-prt | Pending resolution timeout fix | 2026-05-05 | b5eaff1 | Complete | [260505-prt-pending-resolution-timeout-fix](./quick/260505-prt-pending-resolution-timeout-fix/) |
 
 ### Blockers/Concerns
 
