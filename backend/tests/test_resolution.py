@@ -2,6 +2,7 @@
 import math
 import uuid
 from datetime import datetime, timedelta, timezone
+from unittest.mock import AsyncMock
 
 import pytest
 from sqlalchemy import select
@@ -380,6 +381,56 @@ async def test_proposer_resolve_route_creates_resolution_and_rejects_non_propose
     with pytest.raises(Exception) as exc:
         await routes.proposer_resolve(bet_id, body, Request(), db_session)
     assert exc.value.status_code in {400, 403}
+
+
+@pytest.mark.asyncio
+async def test_proposer_resolve_after_two_day_timeout_opens_community_vote(db_session, monkeypatch):
+    import app.api.routes.resolution as routes
+
+    proposer_id = uuid.uuid4()
+    bet_id = uuid.uuid4()
+    db_session.add_all(
+        [
+            User(id=proposer_id, email="timeout-prop@test.com", username="timeout_prop", password_hash="x"),
+            Market(
+                id=bet_id,
+                proposer_id=proposer_id,
+                title="Late resolve",
+                description="desc",
+                resolution_criteria="criteria",
+                deadline=datetime.now(timezone.utc) - timedelta(days=2, minutes=1),
+                status="pending_resolution",
+            ),
+        ]
+    )
+    await db_session.commit()
+
+    class Request:
+        cookies = {}
+
+    class Celery:
+        def send_task(self, *_args, **_kwargs):
+            return None
+
+    async def current_proposer(_request, _db):
+        return User(id=proposer_id, email="timeout-prop@test.com", username="timeout_prop", password_hash="x")
+
+    monkeypatch.setattr(routes, "_get_current_user", current_proposer)
+    monkeypatch.setattr(routes, "_emit_dispute_opened", AsyncMock())
+    monkeypatch.setattr("app.workers.celery_app.celery_app", Celery())
+
+    body = routes.ProposerResolveRequest(outcome="yes", justification="Enough evidence to resolve this market.")
+    result = await routes.proposer_resolve(bet_id, body, Request(), db_session)
+
+    bet = (await db_session.execute(select(Market).where(Market.id == bet_id))).scalar_one()
+    dispute = (await db_session.execute(select(Dispute).where(Dispute.market_id == bet_id))).scalar_one()
+    resolution = (await db_session.execute(select(Resolution).where(Resolution.market_id == bet_id))).scalar_one_or_none()
+
+    assert result["status"] == "disputed"
+    assert result["escalated"] is True
+    assert bet.status == "disputed"
+    assert dispute.status == "open"
+    assert resolution is None
 
 
 @pytest.mark.asyncio

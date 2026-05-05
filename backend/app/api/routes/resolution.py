@@ -21,7 +21,7 @@ from app.db.models.market import Market, MarketPosition, Dispute, DisputeVote, R
 from app.db.models.user import User
 from app.services import auth_service
 from app.services.economy_service import deduct_bp
-from app.services.resolution_service import compute_vote_weight, trigger_payout
+from app.services.resolution_service import PROPOSER_RESOLUTION_WINDOW_DAYS, compute_vote_weight, trigger_payout
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -80,6 +80,37 @@ class DisputeVoteRequest(BaseModel):
     vote: str = Field(..., min_length=1, max_length=200)
 
 
+async def _open_proposer_timeout_dispute(db: AsyncSession, bet: Market) -> Dispute:
+    existing = (await db.execute(
+        select(Dispute).where(Dispute.market_id == bet.id)
+    )).scalar_one_or_none()
+    if existing is not None:
+        bet.status = "disputed"
+        return existing
+
+    dispute = Dispute(
+        market_id=bet.id,
+        opened_by=bet.proposer_id,
+        closes_at=datetime.now(timezone.utc) + timedelta(days=3),
+        status="open",
+    )
+    db.add(dispute)
+    bet.status = "disputed"
+    await db.flush()
+    return dispute
+
+
+async def _emit_dispute_opened(bet_id: uuid.UUID) -> None:
+    try:
+        from app.socket.server import sio
+        await sio.emit("dispute:opened", {"bet_id": str(bet_id)}, room=f"bet:{bet_id}")
+        status_data = {"bet_id": str(bet_id), "status": "disputed"}
+        await sio.emit("bet:status_changed", status_data, room=f"bet:{bet_id}")
+        await sio.emit("bet:status_changed", status_data, room="global")
+    except Exception:
+        pass
+
+
 @router.post("/bets/{bet_id}/resolve")
 async def proposer_resolve(
     bet_id: uuid.UUID,
@@ -107,9 +138,21 @@ async def proposer_resolve(
     deadline = bet.deadline
     if deadline.tzinfo is None:
         deadline = deadline.replace(tzinfo=timezone.utc)
-    seven_days = deadline + timedelta(days=7)
-    if datetime.now(timezone.utc) > seven_days:
-        raise HTTPException(status_code=400, detail="Proposer resolution window has expired (7 days)")
+    timeout_at = deadline + timedelta(days=PROPOSER_RESOLUTION_WINDOW_DAYS)
+    if datetime.now(timezone.utc) > timeout_at:
+        dispute = await _open_proposer_timeout_dispute(db, bet)
+        await db.commit()
+        try:
+            from app.workers.celery_app import celery_app as _celery
+            _celery.send_task(
+                "app.workers.tasks.resolution.close_dispute_at_deadline",
+                args=[str(dispute.id)],
+                eta=dispute.closes_at,
+            )
+        except Exception:
+            pass
+        await _emit_dispute_opened(bet_id)
+        return {"status": "disputed", "escalated": True, "reason": "proposer_timeout"}
 
     bet.status = "proposer_resolved"
     bet.winning_side = body.outcome

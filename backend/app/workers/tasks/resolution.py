@@ -24,6 +24,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models.market import Market, Dispute, Resolution
 from app.db.session import make_task_session
+from app.services.resolution_service import PROPOSER_RESOLUTION_WINDOW_DAYS
 from app.workers.celery_app import celery_app
 
 logger = logging.getLogger(__name__)
@@ -160,13 +161,13 @@ async def _process_auto_resolution(db: AsyncSession) -> None:
 
 
 async def _escalate_overdue_proposer(db: AsyncSession) -> None:
-    """D-06: If proposer hasn't resolved within 7 days of deadline, open a system dispute."""
+    """D-06: If proposer misses the resolution window, open a system dispute."""
     now = datetime.now(timezone.utc)
 
     overdue_bets = (await db.execute(
         select(Market).where(
             Market.status == "pending_resolution",
-            Market.deadline <= now - timedelta(days=7),
+            Market.deadline <= now - timedelta(days=PROPOSER_RESOLUTION_WINDOW_DAYS),
         )
     )).scalars().all()
 

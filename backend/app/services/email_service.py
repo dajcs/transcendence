@@ -11,7 +11,7 @@ async def send_resolution_due_email(email: str, market_title: str, market_url: s
     body = (
         f"Your market '{market_title}' has reached its deadline and needs your resolution.\n\n"
         f"Go to: {market_url}\n\n"
-        "If you don't resolve it within 7 days, it will be escalated to community vote."
+        "If you don't resolve it within 2 days, it will be escalated to community vote."
     )
     if not settings.smtp_host or settings.smtp_host == "localhost":
         logger.info("RESOLUTION DUE EMAIL (no SMTP configured): to=%s url=%s", email, market_url)

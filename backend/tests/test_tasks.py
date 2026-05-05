@@ -170,3 +170,32 @@ async def test_escalate_overdue_proposer_opens_system_dispute(db_session, monkey
     dispute = (await db_session.execute(select(Dispute).where(Dispute.market_id == bet_id))).scalar_one()
     assert bet.status == "disputed"
     assert dispute.status == "open"
+
+
+@pytest.mark.asyncio
+async def test_escalate_overdue_proposer_uses_two_day_timeout(db_session, monkeypatch):
+    from sqlalchemy import select
+
+    import app.workers.tasks.resolution as tasks
+    from app.db.models.market import Dispute, Market
+
+    overdue_deadline = datetime.now(timezone.utc) - timedelta(days=2, minutes=1)
+    not_overdue_deadline = datetime.now(timezone.utc) - timedelta(days=1, hours=23)
+    overdue_bet_id, _ = await _make_bet(db_session, deadline=overdue_deadline, status="pending_resolution")
+    not_overdue_bet_id, _ = await _make_bet(db_session, deadline=not_overdue_deadline, status="pending_resolution")
+
+    class Celery:
+        def send_task(self, *_args, **_kwargs):
+            return None
+
+    monkeypatch.setattr(tasks, "celery_app", Celery())
+    with patch("app.socket.server.celery_emit", new_callable=AsyncMock):
+        await tasks._escalate_overdue_proposer(db_session)
+
+    overdue_bet = (await db_session.execute(select(Market).where(Market.id == overdue_bet_id))).scalar_one()
+    not_overdue_bet = (await db_session.execute(select(Market).where(Market.id == not_overdue_bet_id))).scalar_one()
+    dispute = (await db_session.execute(select(Dispute).where(Dispute.market_id == overdue_bet_id))).scalar_one()
+
+    assert overdue_bet.status == "disputed"
+    assert dispute.status == "open"
+    assert not_overdue_bet.status == "pending_resolution"

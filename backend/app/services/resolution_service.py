@@ -15,6 +15,8 @@ from app.db.models.market import Market, MarketPosition, MarketPositionHistory
 from app.db.models.transaction import BpFundEntry, BpTransaction, TpTransaction
 from app.services.economy_service import credit_bp
 
+PROPOSER_RESOLUTION_WINDOW_DAYS = 2
+
 
 def compute_vote_weight(user_position_side: str | None, user_vote: str) -> float:
     """RES-04: Dispute vote weights based on position-vs-vote alignment.
