@@ -41,6 +41,25 @@ Open [https://localhost:8443](https://localhost:8443) in your browser. Use the s
 
 
 
+## Start Production — voxpo.me
+
+**Prerequisites:** DigitalOcean droplet (or any VPS) with Docker installed, port 80/443 open, DNS pointing `voxpo.me` to the server IP.
+
+```bash
+# first time only — run as the deploy user (needs sudo):
+make setup-prod        # issues Let's Encrypt cert, sets ACLs, generates JWT keys, creates .env
+
+# fill in secrets before starting:
+nano .env              # POSTGRES_PASSWORD, SECRET_KEY, OPENROUTER_API_KEY, OAuth IDs, SMTP
+
+# start the production stack:
+make main              # docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+```
+
+Open [https://voxpo.me](https://voxpo.me). Cert renewal runs automatically every Sunday at 03:00 via cron (nginx is briefly restarted, ~10 s downtime). Manual renewal: `make cert-renew`.
+
+
+
 ## Tech Stack
 
 | | Choice |

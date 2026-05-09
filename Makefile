@@ -1,4 +1,4 @@
-.PHONY: dev main main-down test migrate seed logs build down gen-keys gen-keys-main \
+.PHONY: dev main main-down setup-prod cert-renew test migrate seed logs build down gen-keys gen-keys-main \
 	e2e e2e-list \
 	phase7-backend-sync phase7-frontend-install phase7-e2e-install phase7-proof-backend \
 	phase7-proof-frontend phase7-proof-e2e-list phase7-proof phase7-heavy \
@@ -150,3 +150,13 @@ gen-keys-main:
 	@test -r /etc/letsencrypt/live/voxpo.me/fullchain.pem
 	@test -r /etc/letsencrypt/live/voxpo.me/privkey.pem
 	@echo "Production SSL fullchain and key available in /etc/letsencrypt/live/voxpo.me"
+
+# First-time production setup: issue cert, set ACLs, generate JWT keys, create .env
+setup-prod:
+	@bash scripts/setup-prod.sh
+
+# Manual cert renewal (certbot standalone — briefly stops/starts nginx container)
+cert-renew:
+	sudo certbot renew --quiet \
+		--pre-hook "docker compose -f $(CURDIR)/docker-compose.yml -f $(CURDIR)/docker-compose.prod.yml stop nginx" \
+		--post-hook "docker compose -f $(CURDIR)/docker-compose.yml -f $(CURDIR)/docker-compose.prod.yml start nginx"
