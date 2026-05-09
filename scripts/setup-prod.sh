@@ -3,8 +3,12 @@
 # Run once on a fresh server BEFORE starting the stack: make setup-prod
 set -euo pipefail
 
+# Let your user run docker without sudo
+sudo usermod -aG docker $USER
+
+
 DOMAIN="voxpo.me"
-DEPLOY_USER="${SUDO_USER:-neat}"
+DEPLOY_USER="${SUDO_USER:-$USER}"
 REPO_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 COMPOSE="docker compose -f $REPO_DIR/docker-compose.yml -f $REPO_DIR/docker-compose.prod.yml"
 
@@ -44,7 +48,22 @@ fi
 if [ -f "/etc/letsencrypt/live/$DOMAIN/fullchain.pem" ]; then
     echo "Certificate already exists for $DOMAIN, skipping issuance."
 else
-    echo "Issuing Let's Encrypt certificate for $DOMAIN (port 80 must be reachable)..."
+    # Free port 80: stop any system web server that may be pre-installed on the droplet
+    for svc in apache2 nginx; do
+        if systemctl is-active --quiet "$svc" 2>/dev/null; then
+            echo "Stopping $svc (occupying port 80)..."
+            sudo systemctl stop "$svc"
+            sudo systemctl disable "$svc"
+        fi
+    done
+    # Kill anything else still holding port 80
+    if sudo ss -tlnp | grep -q ':80 '; then
+        echo "Killing remaining process on port 80..."
+        sudo fuser -k 80/tcp 2>/dev/null || true
+        sleep 1
+    fi
+
+    echo "Issuing Let's Encrypt certificate for $DOMAIN..."
     read -rp "Email for Let's Encrypt notices: " LE_EMAIL
     sudo certbot certonly \
         --standalone \
