@@ -154,6 +154,12 @@ gen-keys-main:
 # First-time production setup: issue cert, set ACLs, generate JWT keys, create .env
 setup-prod:
 	@bash scripts/setup-prod.sh
+# additional setup:
+# - expand cert to yolosite
+# 	sudo certbot certonly --standalone --expand -d voxpo.me -d yolosite.voxpo.me
+# - create docker proxy network to attach yolosite container
+# 	docker network create proxy
+
 
 # Manual cert renewal (certbot standalone — briefly stops/starts nginx container)
 cert-renew:
